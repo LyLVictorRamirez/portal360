@@ -1,6 +1,6 @@
-# LyL Control
+# Portal 360
 
-LyL Control es una aplicación web interna para coordinar el trabajo de un equipo de consultoría y desarrollo que atiende proyectos de implementación, requerimientos de clientes y tickets escalados.
+Portal 360 es una aplicación web interna para coordinar el trabajo de un equipo de consultoría y desarrollo que atiende proyectos de implementación, requerimientos de clientes y tickets escalados.
 
 Su objetivo es dar claridad sobre **qué debe trabajar cada persona, qué es prioritario, qué compromisos existen, qué capacidad está disponible y qué ocurrió realmente durante la semana**.
 
@@ -93,7 +93,7 @@ Representan solicitudes de clientes y siguen:
 `Cancelado` es una salida alternativa.
 
 ### Tickets
-Representan trabajo originado en una plataforma externa. LyL Control conserva la referencia necesaria para gestionar el trabajo interno, mientras la plataforma externa sigue siendo la fuente de verdad de su workflow y estado.
+Representan trabajo originado en una plataforma externa. Portal 360 conserva la referencia necesaria para gestionar el trabajo interno, mientras la plataforma externa sigue siendo la fuente de verdad de su workflow y estado.
 
 En el MVP la referencia es manual; la integración automática queda para una fase posterior.
 

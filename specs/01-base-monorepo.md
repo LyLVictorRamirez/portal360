@@ -7,7 +7,7 @@
 
 ## Por qué existe esta spec
 
-LyL Control necesita una base mínima y verificable antes de incorporar capacidades de negocio.
+Portal 360 necesita una base mínima y verificable antes de incorporar capacidades de negocio.
 
 ## Scope
 
@@ -96,5 +96,5 @@ apps/api/.env.example          # DATABASE_URL=postgresql://usuario:clave@host:54
 
 - Base de datos PostgreSQL operativa, TypeORM o migraciones.
 - Autenticación y autorización.
-- Funcionalidad del dominio de LyL Control.
+- Funcionalidad del dominio de Portal 360.
 - Turborepo, paquetes compartidos, CI/CD o despliegue.
