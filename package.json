@@ -8,6 +8,11 @@
     "pnpm": "12.4.1"
   },
   "scripts": {
+    "dev": "corepack pnpm --parallel --stream --filter \"./apps/*\" run dev",
+    "lint": "corepack pnpm --filter \"./apps/*\" run lint",
+    "typecheck": "corepack pnpm --filter \"./apps/*\" run typecheck",
+    "test": "corepack pnpm --filter \"./apps/*\" run test",
+    "build": "corepack pnpm --filter \"./apps/*\" run build",
     "format": "prettier . --write",
     "format:check": "prettier . --check"
   },
