@@ -86,11 +86,11 @@ apps/api/.env.example          # DATABASE_URL=postgresql://usuario:clave@host:54
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
+| Riesgo                                                                       | Mitigación                                                                                                           |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Incompatibilidad entre las versiones seleccionadas de Node, Next.js y NestJS | Verificar la matriz de soporte vigente antes de fijar las versiones y ejecutar todas las validaciones tras instalar. |
-| Diferencias de entorno entre desarrolladores | Fijar Node, pnpm y el lockfile, y documentar el flujo de instalación limpio. |
-| Exposición accidental de secretos | Versionar solo `.env.example` y mantener `.env` fuera de Git. |
+| Diferencias de entorno entre desarrolladores                                 | Fijar Node, pnpm y el lockfile, y documentar el flujo de instalación limpio.                                         |
+| Exposición accidental de secretos                                            | Versionar solo `.env.example` y mantener `.env` fuera de Git.                                                        |
 
 ## Qué **no** está en esta spec
 

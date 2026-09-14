@@ -83,9 +83,11 @@ Puede registrarse desde Agenda o directamente desde Actividad. Registrar tiempo 
 ## Contenedores de trabajo
 
 ### Proyectos
+
 Estructuran implementaciones mediante Etapas y Actividades. Su control utiliza señales objetivas como Actividades vencidas, bloqueadas, entregables próximos, estimado frente a real y fecha final comprometida.
 
 ### Requerimientos
+
 Representan solicitudes de clientes y siguen:
 
 **Nuevo → En análisis → Cotizado → Aprobado → En ejecución → Cerrado**
@@ -93,6 +95,7 @@ Representan solicitudes de clientes y siguen:
 `Cancelado` es una salida alternativa.
 
 ### Tickets
+
 Representan trabajo originado en una plataforma externa. Portal 360 conserva la referencia necesaria para gestionar el trabajo interno, mientras la plataforma externa sigue siendo la fuente de verdad de su workflow y estado.
 
 En el MVP la referencia es manual; la integración automática queda para una fase posterior.
