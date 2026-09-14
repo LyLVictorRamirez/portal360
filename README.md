@@ -4,6 +4,62 @@ Portal 360 es una aplicación web interna para coordinar el trabajo de un equipo
 
 Su objetivo es dar claridad sobre **qué debe trabajar cada persona, qué es prioritario, qué compromisos existen, qué capacidad está disponible y qué ocurrió realmente durante la semana**.
 
+## Desarrollo local
+
+### Prerrequisitos
+
+- Node.js `24.21.0`. La versión está fijada en `.nvmrc`.
+- Corepack, incluido con Node.js, para ejecutar pnpm `12.4.1`.
+
+### Instalación
+
+Desde la raíz del repositorio:
+
+```powershell
+corepack pnpm install --frozen-lockfile
+```
+
+### Ejecutar en desarrollo
+
+Para iniciar las dos aplicaciones:
+
+```powershell
+corepack pnpm dev
+```
+
+- Web: `http://localhost:3000`
+- API: `http://localhost:3001`
+
+Para iniciar una aplicación individualmente:
+
+```powershell
+corepack pnpm --filter @portal-360/web dev
+corepack pnpm --filter @portal-360/api dev
+```
+
+### Validaciones
+
+```powershell
+corepack pnpm lint
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm build
+corepack pnpm format:check
+```
+
+### Variables de entorno
+
+La API no requiere un archivo `.env` todavía porque no existe una conexión activa a PostgreSQL.
+Cuando se incorpore, copia `apps/api/.env.example` como `apps/api/.env` y define `DATABASE_URL` con la cadena de conexión de ese entorno.
+
+### Versiones fijadas
+
+- Node.js `24.21.0`
+- pnpm `12.4.1`
+- Next.js `16.3.5`
+- NestJS `12.0.2`
+- TypeScript `7.0.2`
+
 ## Objetivos
 
 - Centralizar el trabajo relevante sin reemplazar herramientas externas especializadas.
