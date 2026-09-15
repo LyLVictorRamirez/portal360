@@ -1,6 +1,6 @@
 # SPEC 02 — Plantilla visual del frontend
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 01
 > **Date:** 2026-09-14
 > **Objective:** Crear una plantilla visual neutra y reutilizable para `apps/web` con un Application Shell, Login público, navegación responsive y estados de interfaz base.
@@ -67,20 +67,20 @@ Los componentes usarán esos tokens mediante utilidades de Tailwind o variables 
 
 ## Criterios de aceptación
 
-- [ ] `apps/web` usa Tailwind CSS y conserva tokens globales semánticos definidos en `apps/web/src/app/globals.css`.
-- [ ] Lucide React es la única fuente de iconos para navegación, acciones y estados de la plantilla.
-- [ ] La ruta `/` muestra Inicio dentro de un Application Shell con Sidebar, Top Bar y contenido principal.
-- [ ] La ruta `/login` se renderiza fuera del Application Shell.
-- [ ] El Sidebar desktop puede alternar entre expandido y colapsado, y su preferencia se conserva tras una recarga.
-- [ ] En pantallas pequeñas, el Sidebar está oculto inicialmente y se abre como panel temporal desde la Top Bar.
-- [ ] El panel lateral móvil se cierra al seleccionar Inicio y no ocupa espacio horizontal persistente.
-- [ ] La navegación inicial solo contiene Inicio como opción funcional y el menú de usuario en su ubicación visual.
-- [ ] El encabezado de página reutilizable admite título, descripción opcional y acción principal opcional.
-- [ ] La página inicial es neutra y no contiene KPIs, widgets, tablas, formularios ni módulos de negocio.
-- [ ] `/login` muestra identidad, título, texto explicativo y la acción visual `Iniciar sesión` sin campos ni comportamiento de autenticación.
-- [ ] Existen componentes reutilizables para carga, vacío, error, no autorizado y no encontrado.
-- [ ] Una URL inexistente renderiza el estado no encontrado mediante el mecanismo estándar de Next.js.
-- [ ] `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build` y `corepack pnpm format:check` terminan correctamente desde la raíz.
+- [X] `apps/web` usa Tailwind CSS y conserva tokens globales semánticos definidos en `apps/web/src/app/globals.css`.
+- [X] Lucide React es la única fuente de iconos para navegación, acciones y estados de la plantilla.
+- [X] La ruta `/` muestra Inicio dentro de un Application Shell con Sidebar, Top Bar y contenido principal.
+- [X] La ruta `/login` se renderiza fuera del Application Shell.
+- [X] El Sidebar desktop puede alternar entre expandido y colapsado, y su preferencia se conserva tras una recarga.
+- [X] En pantallas pequeñas, el Sidebar está oculto inicialmente y se abre como panel temporal desde la Top Bar.
+- [X] El panel lateral móvil se cierra al seleccionar Inicio y no ocupa espacio horizontal persistente.
+- [X] La navegación inicial solo contiene Inicio como opción funcional y el menú de usuario en su ubicación visual.
+- [X] El encabezado de página reutilizable admite título, descripción opcional y acción principal opcional.
+- [X] La página inicial es neutra y no contiene KPIs, widgets, tablas, formularios ni módulos de negocio.
+- [X] `/login` muestra identidad, título, texto explicativo y la acción visual `Iniciar sesión` sin campos ni comportamiento de autenticación.
+- [X] Existen componentes reutilizables para carga, vacío, error, no autorizado y no encontrado.
+- [X] Una URL inexistente renderiza el estado no encontrado mediante el mecanismo estándar de Next.js.
+- [X] `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build` y `corepack pnpm format:check` terminan correctamente desde la raíz.
 
 ## Decisiones
 
