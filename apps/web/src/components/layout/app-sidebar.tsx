@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home } from "lucide-react";
+import { Home, PanelsTopLeft } from "lucide-react";
 
 const primaryNavigation = [
   {
@@ -9,12 +9,25 @@ const primaryNavigation = [
   },
 ];
 
-export function AppSidebar() {
+type AppSidebarProps = {
+  collapsed: boolean;
+};
+
+export function AppSidebar({ collapsed }: AppSidebarProps) {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface md:flex">
-      <div className="flex h-16 items-center border-b border-border px-5">
-        <Link className="text-sm font-semibold tracking-tight text-foreground" href="/">
-          Portal 360
+    <aside
+      className={`hidden shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200 md:flex ${collapsed ? "w-16" : "w-64"}`}
+    >
+      <div
+        className={`flex h-16 items-center border-b border-border ${collapsed ? "justify-center" : "px-5"}`}
+      >
+        <Link
+          aria-label="Portal 360"
+          className={`flex items-center gap-3 text-sm font-semibold tracking-tight text-foreground ${collapsed ? "justify-center" : ""}`}
+          href="/"
+        >
+          <PanelsTopLeft aria-hidden="true" size={18} strokeWidth={1.75} />
+          <span className={collapsed ? "sr-only" : undefined}>Portal 360</span>
         </Link>
       </div>
       <nav aria-label="Navegación principal" className="flex-1 px-3 py-4">
@@ -23,11 +36,12 @@ export function AppSidebar() {
             <li key={href}>
               <Link
                 aria-current="page"
-                className="flex h-9 items-center gap-3 rounded-md bg-surface-muted px-3 text-sm font-medium text-foreground"
+                aria-label={collapsed ? label : undefined}
+                className={`flex h-9 items-center rounded-md bg-surface-muted text-sm font-medium text-foreground ${collapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                 href={href}
               >
                 <Icon aria-hidden="true" size={18} strokeWidth={1.75} />
-                {label}
+                <span className={collapsed ? "sr-only" : undefined}>{label}</span>
               </Link>
             </li>
           ))}
