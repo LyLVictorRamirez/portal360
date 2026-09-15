@@ -1,16 +1,31 @@
-import { ChevronDown, CircleUserRound, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronDown, CircleUserRound, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { IconButton } from "../ui/icon-button";
 
 type TopBarProps = {
   collapsed: boolean;
+  mobileSidebarOpen: boolean;
+  onOpenMobileSidebar: () => void;
   onToggleSidebar: () => void;
 };
 
-export function TopBar({ collapsed, onToggleSidebar }: TopBarProps) {
+export function TopBar({
+  collapsed,
+  mobileSidebarOpen,
+  onOpenMobileSidebar,
+  onToggleSidebar,
+}: TopBarProps) {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-6 lg:px-8">
       <div className="flex items-center gap-2">
+        <IconButton
+          aria-controls="mobile-sidebar"
+          aria-expanded={mobileSidebarOpen}
+          className="md:hidden"
+          icon={Menu}
+          label="Abrir navegación"
+          onClick={onOpenMobileSidebar}
+        />
         <IconButton
           className="hidden md:inline-flex"
           icon={collapsed ? PanelLeftOpen : PanelLeftClose}

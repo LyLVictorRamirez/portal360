@@ -13,6 +13,7 @@ const SIDEBAR_STORAGE_KEY = "portal-360:sidebar-collapsed";
 
 export function ApplicationShell({ children }: ApplicationShellProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -21,6 +22,20 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
       // Keep the default expanded state when storage is unavailable.
     }
   }, []);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMobileSidebarOpen(false);
+      }
+    }
+
+    if (isMobileSidebarOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isMobileSidebarOpen]);
 
   function toggleSidebar() {
     setIsSidebarCollapsed((currentValue) => {
@@ -38,9 +53,18 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <AppSidebar collapsed={isSidebarCollapsed} />
+      <AppSidebar
+        collapsed={isSidebarCollapsed}
+        mobileOpen={isMobileSidebarOpen}
+        onMobileClose={() => setIsMobileSidebarOpen(false)}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar collapsed={isSidebarCollapsed} onToggleSidebar={toggleSidebar} />
+        <TopBar
+          collapsed={isSidebarCollapsed}
+          mobileSidebarOpen={isMobileSidebarOpen}
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+          onToggleSidebar={toggleSidebar}
+        />
         <main className="min-w-0 flex-1 px-6 py-8 lg:px-8">{children}</main>
       </div>
     </div>
