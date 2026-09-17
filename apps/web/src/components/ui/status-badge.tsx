@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 
-type StatusBadgeTone = "neutral" | "info" | "success" | "warning" | "danger";
+export type StatusBadgeTone = "neutral" | "info" | "success" | "warning" | "danger";
 
 type StatusBadgeProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
   label: string;
