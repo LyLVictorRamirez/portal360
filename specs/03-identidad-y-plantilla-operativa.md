@@ -1,6 +1,6 @@
 # SPEC 03 — Identidad y plantilla operativa
 
-> **Status:** Aprobada
+> **Status:** Implementada
 > **Depends on:** SPEC 02
 > **Date:** 2026-09-16
 > **Objective:** Definir una identidad visual clara y una plantilla operativa reutilizable para `apps/web` que prepare Portal 360 para el trabajo diario sin añadir módulos de negocio.
