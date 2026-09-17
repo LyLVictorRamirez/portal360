@@ -8,17 +8,26 @@
     "start": "node dist/main.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "node --test",
+    "auth:generate": "pnpm dlx auth@1.7.5 generate",
+    "auth:migrate": "pnpm dlx auth@1.7.5 migrate"
   },
   "dependencies": {
     "@nestjs/common": "12.0.2",
     "@nestjs/core": "12.0.2",
     "@nestjs/platform-express": "12.0.2",
+    "@thallesp/nestjs-better-auth": "^2.8.0",
+    "better-auth": "^1.7.5",
+    "nodemailer": "^10.0.10",
+    "pg": "^8.23.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   },
   "devDependencies": {
     "@types/node": "26.5.1",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "auth": "1.7.5",
     "tsx": "4.23.13",
     "typescript": "7.0.2"
   }
