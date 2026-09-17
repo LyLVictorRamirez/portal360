@@ -1,0 +1,73 @@
+import { useId, type ReactNode, type SelectHTMLAttributes } from "react";
+
+import { FieldLabel } from "./field-label";
+
+type SelectFieldProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "id"> & {
+  error?: ReactNode;
+  helpText?: ReactNode;
+  id?: string;
+  label: ReactNode;
+};
+
+const selectClassName =
+  "min-h-10 w-full rounded-md border bg-surface px-3 text-sm text-foreground transition-colors duration-150 hover:border-border-strong focus:border-primary disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted disabled:opacity-100";
+
+export function SelectField({
+  "aria-describedby": ariaDescribedBy,
+  "aria-errormessage": ariaErrorMessage,
+  "aria-invalid": ariaInvalid,
+  className,
+  error,
+  helpText,
+  id,
+  label,
+  required,
+  ...props
+}: SelectFieldProps) {
+  const generatedId = useId();
+  const fieldId = id ?? `field-${generatedId}`;
+  const helpTextId = `${fieldId}-help`;
+  const errorId = `${fieldId}-error`;
+  const hasError = error !== undefined && error !== null;
+  const hasHelpText = helpText !== undefined && helpText !== null;
+  const describedBy = [
+    ariaDescribedBy,
+    hasHelpText ? helpTextId : undefined,
+    hasError ? errorId : undefined,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div className="space-y-1.5">
+      <FieldLabel htmlFor={fieldId} required={required}>
+        {label}
+      </FieldLabel>
+      <select
+        aria-describedby={describedBy || undefined}
+        aria-errormessage={hasError ? errorId : ariaErrorMessage}
+        aria-invalid={hasError ? true : ariaInvalid}
+        className={[
+          selectClassName,
+          hasError ? "border-danger focus:border-danger" : "border-border",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        id={fieldId}
+        required={required}
+        {...props}
+      />
+      {hasHelpText ? (
+        <p id={helpTextId} className="text-sm leading-5 text-muted">
+          {helpText}
+        </p>
+      ) : null}
+      {hasError ? (
+        <p id={errorId} role="alert" className="text-sm leading-5 text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
