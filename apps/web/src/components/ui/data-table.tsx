@@ -44,7 +44,7 @@ export function DataTable<Row extends { id: string }>({
       tabIndex={0}
       {...props}
     >
-      <table className="min-w-[42rem] w-full border-collapse">
+      <table className="min-w-2xl w-full border-collapse">
         <caption className="sr-only">{label}</caption>
         <thead className="bg-surface-muted">
           <tr>
@@ -69,7 +69,7 @@ export function DataTable<Row extends { id: string }>({
                 <td
                   key={id}
                   className={[
-                    "break-words px-4 py-3 text-sm leading-5 text-foreground",
+                    "wrap-break-word px-4 py-3 text-sm leading-5 text-foreground",
                     rowIndex < rows.length - 1 ? "border-b border-border" : "",
                     alignmentClassNames[align],
                   ]

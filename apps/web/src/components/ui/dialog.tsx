@@ -175,7 +175,7 @@ export function Dialog({ children, description, onOpenChange, open, title }: Dia
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/35 p-4 sm:p-6"
+      className="fixed inset-0 z-60 flex items-center justify-center bg-foreground/35 p-4 sm:p-6"
       onPointerDown={handleBackdropPointerDown}
     >
       <div

@@ -51,8 +51,10 @@ export function WorkList({ className, items, label, ...props }: WorkListProps) {
           className="grid min-h-11 gap-x-5 gap-y-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center"
         >
           <div className="min-w-0">
-            <p className="break-words text-sm font-semibold leading-5 text-foreground">{title}</p>
-            <p className="break-words text-xs leading-5 text-muted">{context}</p>
+            <p className="wrap-break-word text-sm font-semibold leading-5 text-foreground">
+              {title}
+            </p>
+            <p className="wrap-break-word text-xs leading-5 text-muted">{context}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:justify-self-end">
             <StatusBadge label={status.label} tone={status.tone} />
