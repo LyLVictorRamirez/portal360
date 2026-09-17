@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { AppSidebar } from "./app-sidebar";
 import { TopBar } from "./top-bar";
@@ -11,18 +11,28 @@ type ApplicationShellProps = Readonly<{
 
 const SIDEBAR_STORAGE_KEY = "portal-360:sidebar-collapsed";
 
+function getSidebarCollapsedPreference() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function applySidebarCollapsedPreference(isCollapsed: boolean) {
+  document.documentElement.dataset.sidebarCollapsed = String(isCollapsed);
+}
+
 export function ApplicationShell({ children }: ApplicationShellProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const mobileSidebarOpenerRef = useRef<HTMLElement | null>(null);
   const wasMobileSidebarOpenRef = useRef(false);
 
-  useEffect(() => {
-    try {
-      setIsSidebarCollapsed(window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true");
-    } catch {
-      // Keep the default expanded state when storage is unavailable.
-    }
+  useLayoutEffect(() => {
+    const collapsedPreference = getSidebarCollapsedPreference();
+    setIsSidebarCollapsed(collapsedPreference);
+    applySidebarCollapsedPreference(collapsedPreference);
   }, []);
 
   useEffect(() => {
@@ -80,17 +90,15 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
   }
 
   function toggleSidebar() {
-    setIsSidebarCollapsed((currentValue) => {
-      const nextValue = !currentValue;
+    const nextValue = !isSidebarCollapsed;
+    setIsSidebarCollapsed(nextValue);
+    applySidebarCollapsedPreference(nextValue);
 
-      try {
-        window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(nextValue));
-      } catch {
-        // The interface remains usable when storage is unavailable.
-      }
-
-      return nextValue;
-    });
+    try {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(nextValue));
+    } catch {
+      // The interface remains usable when storage is unavailable.
+    }
   }
 
   return (

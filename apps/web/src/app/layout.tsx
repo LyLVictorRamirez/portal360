@@ -4,6 +4,13 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 
+const sidebarPreferenceScript = `
+  try {
+    document.documentElement.dataset.sidebarCollapsed =
+      window.localStorage.getItem("portal-360:sidebar-collapsed") === "true" ? "true" : "false";
+  } catch {}
+`;
+
 const ibmPlexSans = IBM_Plex_Sans({
   display: "swap",
   fallback: ["Segoe UI", "Arial", "sans-serif"],
@@ -23,7 +30,10 @@ type RootLayoutProps = Readonly<{
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html className={ibmPlexSans.variable} lang="es">
+    <html className={ibmPlexSans.variable} lang="es" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: sidebarPreferenceScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );

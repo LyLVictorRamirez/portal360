@@ -31,6 +31,7 @@ export function Portal360Mark({ className, compact = false, size = "md" }: Porta
         <circle cx="16" cy="16" fill="currentColor" r="2.25" />
       </svg>
       <span
+        data-portal-360-wordmark
         className={compact ? "sr-only" : "text-sm font-semibold tracking-tight text-foreground"}
       >
         Portal 360

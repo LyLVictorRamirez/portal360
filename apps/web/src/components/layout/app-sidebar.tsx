@@ -53,12 +53,13 @@ function SidebarContent({ collapsed, onMobileClose, onNavigate }: SidebarContent
   return (
     <>
       <div
+        data-sidebar-brand
         className={`flex min-h-20 items-center border-b border-border ${
           collapsed ? "justify-center px-3" : "justify-between px-5"
         }`}
       >
         <Link
-          aria-label={collapsed ? "Portal 360" : undefined}
+          aria-label="Portal 360"
           className="inline-flex rounded-sm"
           href="/"
           onClick={onNavigate}
@@ -83,7 +84,8 @@ function SidebarContent({ collapsed, onMobileClose, onNavigate }: SidebarContent
               <li key={href}>
                 <Link
                   aria-current={isActive ? "page" : undefined}
-                  aria-label={collapsed ? label : undefined}
+                  aria-label={label}
+                  data-sidebar-nav-link
                   className={`flex h-11 items-center rounded-r-md border-l-2 text-sm font-medium transition-colors duration-150 ${
                     collapsed ? "justify-center px-0" : "gap-3 px-4"
                   } ${
@@ -95,7 +97,9 @@ function SidebarContent({ collapsed, onMobileClose, onNavigate }: SidebarContent
                   onClick={onNavigate}
                 >
                   <Icon aria-hidden="true" size={18} strokeWidth={1.75} />
-                  <span className={collapsed ? "sr-only" : undefined}>{label}</span>
+                  <span data-sidebar-nav-label className={collapsed ? "sr-only" : undefined}>
+                    {label}
+                  </span>
                 </Link>
               </li>
             );
@@ -165,6 +169,7 @@ export function AppSidebar({ collapsed, mobileOpen, onMobileClose }: AppSidebarP
     <>
       <aside
         aria-label="Navegación principal"
+        data-desktop-sidebar
         className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200 md:flex ${
           collapsed ? "w-[4.5rem]" : "w-[17.5rem]"
         }`}

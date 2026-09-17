@@ -94,6 +94,26 @@ html {
   background: var(--background);
 }
 
+html[data-sidebar-collapsed="true"] [data-desktop-sidebar] {
+  width: 4.5rem;
+}
+
+html[data-sidebar-collapsed="true"] [data-desktop-sidebar] [data-sidebar-brand] {
+  justify-content: center;
+  padding-inline: 0.75rem;
+}
+
+html[data-sidebar-collapsed="true"] [data-desktop-sidebar] [data-portal-360-wordmark],
+html[data-sidebar-collapsed="true"] [data-desktop-sidebar] [data-sidebar-nav-label] {
+  display: none;
+}
+
+html[data-sidebar-collapsed="true"] [data-desktop-sidebar] [data-sidebar-nav-link] {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+}
+
 body {
   min-height: 100vh;
   margin: 0;
