@@ -1,13 +1,13 @@
-import { ChevronDown, CircleUserRound, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { IconButton } from "../ui/icon-button";
 
-type TopBarProps = {
+type TopBarProps = Readonly<{
   collapsed: boolean;
   mobileSidebarOpen: boolean;
   onOpenMobileSidebar: () => void;
   onToggleSidebar: () => void;
-};
+}>;
 
 export function TopBar({
   collapsed,
@@ -16,7 +16,7 @@ export function TopBar({
   onToggleSidebar,
 }: TopBarProps) {
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-6 lg:px-8">
+    <header className="flex h-16 shrink-0 items-center border-b border-border bg-surface px-6 lg:px-8">
       <div className="flex items-center gap-2">
         <IconButton
           aria-controls="mobile-sidebar"
@@ -32,17 +32,9 @@ export function TopBar({
           label={collapsed ? "Expandir navegación" : "Contraer navegación"}
           onClick={onToggleSidebar}
         />
-        <span className="text-sm font-medium text-foreground">Portal 360</span>
+        <span aria-hidden="true" className="h-5 w-px bg-border" />
+        <p className="text-sm font-semibold text-foreground">Inicio</p>
       </div>
-      <button
-        aria-haspopup="menu"
-        className="inline-flex h-9 items-center gap-2 rounded-md px-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
-        type="button"
-      >
-        <CircleUserRound aria-hidden="true" size={18} strokeWidth={1.75} />
-        <span>Usuario</span>
-        <ChevronDown aria-hidden="true" size={16} strokeWidth={1.75} />
-      </button>
     </header>
   );
 }
