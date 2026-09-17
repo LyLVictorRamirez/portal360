@@ -16,7 +16,7 @@ export function TopBar({
   onToggleSidebar,
 }: TopBarProps) {
   return (
-    <header className="flex h-16 shrink-0 items-center border-b border-border bg-surface px-6 lg:px-8">
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center border-b border-border bg-surface px-6 lg:px-8">
       <div className="flex items-center gap-2">
         <IconButton
           aria-controls="mobile-sidebar"
