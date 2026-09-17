@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import {
   Inbox,
   LoaderCircle,
@@ -8,42 +8,69 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type InterfaceStateProps = {
+type InterfaceStateTone = "default" | "danger" | "warning";
+type StateHeadingLevel = "h1" | "h2";
+
+type InterfaceStateProps = Readonly<{
   action?: ReactNode;
   description: string;
+  headingLevel?: StateHeadingLevel;
   icon: LucideIcon;
   isLoading?: boolean;
   title: string;
-  tone?: "default" | "danger";
-};
+  tone?: InterfaceStateTone;
+}>;
 
-type StateOverrides = Partial<Pick<InterfaceStateProps, "action" | "description" | "title">>;
+type StateOverrides = Readonly<
+  Partial<Pick<InterfaceStateProps, "action" | "description" | "title">>
+>;
+
+const iconClassNames: Record<InterfaceStateTone, string> = {
+  default: "border-primary bg-surface-selected text-primary",
+  danger: "border-danger bg-danger-surface text-danger",
+  warning: "border-warning bg-warning-surface text-warning-foreground",
+};
 
 function InterfaceState({
   action,
   description,
+  headingLevel = "h2",
   icon: Icon,
   isLoading = false,
   title,
   tone = "default",
 }: InterfaceStateProps) {
-  const iconClassName = tone === "danger" ? "text-danger" : "text-muted";
+  const Heading = headingLevel;
+  const titleId = useId();
+  const role = isLoading ? "status" : tone === "danger" ? "alert" : undefined;
 
   return (
-    <section className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
-      <div
-        className={`flex size-10 items-center justify-center rounded-md bg-surface-muted ${iconClassName}`}
-      >
-        <Icon
-          aria-hidden="true"
-          className={isLoading ? "animate-spin" : undefined}
-          size={20}
-          strokeWidth={1.75}
-        />
+    <section
+      aria-busy={isLoading || undefined}
+      aria-live={isLoading ? "polite" : undefined}
+      aria-labelledby={titleId}
+      className="flex min-h-64 items-center border-y border-border bg-surface px-6 py-12"
+      role={role}
+    >
+      <div className="mx-auto max-w-lg text-center">
+        <div
+          className={`mx-auto flex size-12 items-center justify-center rounded-md border ${
+            iconClassNames[tone]
+          }`}
+        >
+          <Icon
+            aria-hidden="true"
+            className={isLoading ? "motion-safe:animate-spin" : undefined}
+            size={24}
+            strokeWidth={1.75}
+          />
+        </div>
+        <Heading className="mt-5 text-xl font-semibold tracking-tight text-foreground" id={titleId}>
+          {title}
+        </Heading>
+        <p className="mt-2 text-sm leading-6 text-muted">{description}</p>
+        {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
       </div>
-      <h2 className="mt-4 text-base font-semibold text-foreground">{title}</h2>
-      <p className="mt-1 max-w-md text-sm leading-6 text-muted">{description}</p>
-      {action ? <div className="mt-5">{action}</div> : null}
     </section>
   );
 }
@@ -85,7 +112,13 @@ export function UnauthorizedState({
   title = "Acceso no autorizado",
 }: StateOverrides) {
   return (
-    <InterfaceState action={action} description={description} icon={ShieldOff} title={title} />
+    <InterfaceState
+      action={action}
+      description={description}
+      icon={ShieldOff}
+      title={title}
+      tone="warning"
+    />
   );
 }
 
@@ -94,5 +127,13 @@ export function NotFoundState({
   description = "La dirección que buscas no existe o ya no está disponible.",
   title = "Página no encontrada",
 }: StateOverrides) {
-  return <InterfaceState action={action} description={description} icon={SearchX} title={title} />;
+  return (
+    <InterfaceState
+      action={action}
+      description={description}
+      headingLevel="h1"
+      icon={SearchX}
+      title={title}
+    />
+  );
 }
