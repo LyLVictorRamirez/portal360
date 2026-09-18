@@ -1,0 +1,47 @@
+import type { ReactNode } from "react";
+
+import { Portal360Mark } from "../ui/portal-360-mark";
+import { Surface } from "../ui/surface";
+
+type AuthPageShellProps = Readonly<{
+  children: ReactNode;
+  description: string;
+  title: string;
+}>;
+
+export function AuthPageShell({ children, description, title }: AuthPageShellProps) {
+  return (
+    <main className="min-h-screen bg-canvas px-6 py-8 lg:px-10 lg:py-10">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16">
+        <section
+          aria-labelledby="portal-360-title"
+          className="max-w-xl border-l-2 border-primary pl-5"
+        >
+          <Portal360Mark size="md" />
+          <h1
+            className="mt-8 text-4xl font-semibold tracking-tight text-foreground"
+            id="portal-360-title"
+          >
+            Un punto claro para el trabajo diario.
+          </h1>
+          <p className="mt-4 max-w-lg text-base leading-7 text-muted">
+            Portal 360 reúne el trabajo del equipo en una experiencia ordenada y segura.
+          </p>
+        </section>
+
+        <section aria-labelledby="auth-page-title">
+          <Surface padding="md" tone="raised">
+            <h2
+              className="text-2xl font-semibold tracking-tight text-foreground"
+              id="auth-page-title"
+            >
+              {title}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-muted">{description}</p>
+            <div className="mt-8">{children}</div>
+          </Surface>
+        </section>
+      </div>
+    </main>
+  );
+}
