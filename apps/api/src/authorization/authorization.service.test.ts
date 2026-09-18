@@ -1,0 +1,62 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  AuthorizationRepository,
+  type AuthorizationQueryExecutor,
+} from "./authorization.repository.js";
+import { AuthorizationService } from "./authorization.service.js";
+
+test("unites permissions from every active role assigned to a user", async () => {
+  const database: AuthorizationQueryExecutor = {
+    async query(_query, values) {
+      assert.deepEqual(values, ["user-1"]);
+
+      return {
+        rows: [
+          {
+            permission_key: "authorization.roles.manage",
+            role_description: "Can manage roles.",
+            role_is_active: true,
+            role_is_default: false,
+            role_key: "custom-role-manager",
+            role_kind: "custom",
+            role_name: "Role manager",
+          },
+          {
+            permission_key: "app.access",
+            role_description: "Minimum access.",
+            role_is_active: true,
+            role_is_default: true,
+            role_key: "estandar",
+            role_kind: "system",
+            role_name: "Estándar",
+          },
+          {
+            permission_key: "authorization.users.read",
+            role_description: "Can manage roles.",
+            role_is_active: true,
+            role_is_default: false,
+            role_key: "custom-role-manager",
+            role_kind: "custom",
+            role_name: "Role manager",
+          },
+        ],
+      };
+    },
+  };
+  const service = new AuthorizationService(new AuthorizationRepository(database));
+
+  const authorization = await service.resolveUserAuthorization("user-1");
+
+  assert.deepEqual(authorization.permissions, [
+    "authorization.roles.manage",
+    "app.access",
+    "authorization.users.read",
+  ]);
+  assert.deepEqual(
+    authorization.roles.map((role) => role.key),
+    ["custom-role-manager", "estandar"],
+  );
+  assert.equal(await service.userHasPermission("user-1", "authorization.roles.manage"), true);
+});
