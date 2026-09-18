@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js",
     "auth:generate": "pnpm exec auth generate",
-    "auth:migrate": "pnpm exec auth migrate"
+    "auth:migrate": "pnpm exec auth migrate",
+    "authorization:migrate": "tsx src/authorization/migrate.ts"
   },
   "dependencies": {
     "@nestjs/common": "12.0.2",
