@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 
+import { recordAuthorizationAuditEvent } from "./authorization-audit.js";
 import { AUTHORIZATION_DATABASE } from "./authorization.repository.js";
 import { isAuthorizationPermission, type AuthorizationPermission } from "./permissions.js";
 import type {
@@ -79,6 +80,13 @@ const findPermissionKeysQuery = `
   select "key" as permission_key
   from "authorization"."permission"
   where "key" = any($1::text[])
+`;
+
+const findRolePermissionKeysQuery = `
+  select "permission_key"
+  from "authorization"."role_permission"
+  where "role_key" = $1
+  order by "permission_key"
 `;
 
 const insertRoleQuery = `
@@ -172,7 +180,10 @@ export class AuthorizationRolesRepository {
     };
   }
 
-  async createCustomRole(input: CreateCustomRoleInput): Promise<AuthorizationRoleDetails> {
+  async createCustomRole(
+    input: CreateCustomRoleInput,
+    actorUserId: string | null,
+  ): Promise<AuthorizationRoleDetails> {
     const permissionKeys = validatePermissionKeys(input.permissionKeys);
     const client = await this.database.connect();
 
@@ -188,17 +199,39 @@ export class AuthorizationRolesRepository {
       await ensurePermissionKeysExist(client, permissionKeys);
       await client.query(insertRoleQuery, [input.key, input.name, input.description]);
       await client.query(addRolePermissionsQuery, [input.key, permissionKeys]);
-      await client.query("COMMIT");
-
-      return {
+      const createdRole = {
         description: input.description,
         isActive: true,
         isDefault: false,
         key: input.key,
-        kind: "custom",
+        kind: "custom" as const,
         name: input.name,
         permissions: permissionKeys,
       };
+
+      await recordAuthorizationAuditEvent(client, {
+        actorUserId,
+        afterState: createdRole,
+        beforeState: null,
+        eventType: "authorization.role.created",
+        subjectKey: input.key,
+        subjectType: "role",
+      });
+
+      for (const permissionKey of permissionKeys) {
+        await recordAuthorizationAuditEvent(client, {
+          actorUserId,
+          afterState: { permissionKey, roleKey: input.key },
+          beforeState: null,
+          eventType: "authorization.role_permission.assigned",
+          subjectKey: `${input.key}:${permissionKey}`,
+          subjectType: "role_permission",
+        });
+      }
+
+      await client.query("COMMIT");
+
+      return createdRole;
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -207,7 +240,11 @@ export class AuthorizationRolesRepository {
     }
   }
 
-  async updateRole(roleKey: string, input: UpdateRoleInput): Promise<AuthorizationRoleDetails> {
+  async updateRole(
+    roleKey: string,
+    input: UpdateRoleInput,
+    actorUserId: string | null,
+  ): Promise<AuthorizationRoleDetails> {
     const permissionKeys = validatePermissionKeys(input.permissionKeys);
     const client = await this.database.connect();
 
@@ -226,6 +263,18 @@ export class AuthorizationRolesRepository {
       if (!role) {
         throw new Error("The authorization database returned an invalid role.");
       }
+
+      const currentPermissionResult = await client.query(findRolePermissionKeysQuery, [roleKey]);
+      const currentPermissionKeys = currentPermissionResult.rows.map((row) => {
+        const key = readString(row.permission_key, "permission key");
+
+        if (!isAuthorizationPermission(key)) {
+          throw new Error("Invalid permission returned by the authorization database.");
+        }
+
+        return key;
+      });
+      const roleBefore = { ...role, permissions: currentPermissionKeys };
 
       if (role.kind === "system" && input.isActive === false) {
         throw new AuthorizationRoleMutationError("System roles cannot be deactivated.");
@@ -258,9 +307,7 @@ export class AuthorizationRolesRepository {
         );
       }
 
-      await client.query("COMMIT");
-
-      return {
+      const roleAfter = {
         description: input.description,
         isActive: input.isActive ?? role.isActive,
         isDefault: role.isDefault,
@@ -269,6 +316,62 @@ export class AuthorizationRolesRepository {
         name: input.name,
         permissions: permissionKeys,
       };
+      const currentPermissionKeySet = new Set(currentPermissionKeys);
+      const newPermissionKeySet = new Set(permissionKeys);
+
+      if (roleBefore.name !== roleAfter.name || roleBefore.description !== roleAfter.description) {
+        await recordAuthorizationAuditEvent(client, {
+          actorUserId,
+          afterState: roleAfter,
+          beforeState: roleBefore,
+          eventType: "authorization.role.updated",
+          subjectKey: roleKey,
+          subjectType: "role",
+        });
+      }
+
+      if (roleBefore.isActive !== roleAfter.isActive) {
+        await recordAuthorizationAuditEvent(client, {
+          actorUserId,
+          afterState: roleAfter,
+          beforeState: roleBefore,
+          eventType: roleAfter.isActive
+            ? "authorization.role.activated"
+            : "authorization.role.deactivated",
+          subjectKey: roleKey,
+          subjectType: "role",
+        });
+      }
+
+      for (const permissionKey of currentPermissionKeys.filter(
+        (key) => !newPermissionKeySet.has(key),
+      )) {
+        await recordAuthorizationAuditEvent(client, {
+          actorUserId,
+          afterState: null,
+          beforeState: { permissionKey, roleKey },
+          eventType: "authorization.role_permission.removed",
+          subjectKey: `${roleKey}:${permissionKey}`,
+          subjectType: "role_permission",
+        });
+      }
+
+      for (const permissionKey of permissionKeys.filter(
+        (key) => !currentPermissionKeySet.has(key),
+      )) {
+        await recordAuthorizationAuditEvent(client, {
+          actorUserId,
+          afterState: { permissionKey, roleKey },
+          beforeState: null,
+          eventType: "authorization.role_permission.assigned",
+          subjectKey: `${roleKey}:${permissionKey}`,
+          subjectType: "role_permission",
+        });
+      }
+
+      await client.query("COMMIT");
+
+      return roleAfter;
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -277,7 +380,7 @@ export class AuthorizationRolesRepository {
     }
   }
 
-  async deleteCustomRole(roleKey: string): Promise<void> {
+  async deleteCustomRole(roleKey: string, actorUserId: string | null): Promise<void> {
     const client = await this.database.connect();
 
     try {
@@ -296,6 +399,18 @@ export class AuthorizationRolesRepository {
         throw new Error("The authorization database returned an invalid role.");
       }
 
+      const currentPermissionResult = await client.query(findRolePermissionKeysQuery, [roleKey]);
+      const permissionKeys = currentPermissionResult.rows.map((row) => {
+        const key = readString(row.permission_key, "permission key");
+
+        if (!isAuthorizationPermission(key)) {
+          throw new Error("Invalid permission returned by the authorization database.");
+        }
+
+        return key;
+      });
+      const roleBefore = { ...role, permissions: permissionKeys };
+
       if (role.kind === "system") {
         throw new AuthorizationRoleMutationError("System roles cannot be deleted.");
       }
@@ -307,6 +422,14 @@ export class AuthorizationRolesRepository {
       }
 
       await client.query(deleteRoleQuery, [roleKey]);
+      await recordAuthorizationAuditEvent(client, {
+        actorUserId,
+        afterState: null,
+        beforeState: roleBefore,
+        eventType: "authorization.role.deleted",
+        subjectKey: roleKey,
+        subjectType: "role",
+      });
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");

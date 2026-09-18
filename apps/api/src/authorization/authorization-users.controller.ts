@@ -12,13 +12,18 @@ import {
 } from "@nestjs/common";
 
 import { AuthorizationGuard } from "./authorization.guard.js";
+import { AuthorizationContext } from "./authorization-context.decorator.js";
 import {
   AuthorizationRoleAssignmentError,
   AuthorizationUserNotFoundError,
 } from "./authorization-users.repository.js";
 import { AuthorizationUsersService } from "./authorization-users.service.js";
 import { RequirePermissions } from "./require-permissions.decorator.js";
-import type { AuthorizationRole, AuthorizationUser } from "./authorization.types.js";
+import type {
+  AuthorizationRequestContext,
+  AuthorizationRole,
+  AuthorizationUser,
+} from "./authorization.types.js";
 
 @Controller("api/authorization/users")
 @UseGuards(AuthorizationGuard)
@@ -38,10 +43,15 @@ export class AuthorizationUsersController {
   async replaceUserRoles(
     @Param("userId") userId: string,
     @Body() body: unknown,
+    @AuthorizationContext() context: AuthorizationRequestContext,
   ): Promise<{ roles: AuthorizationRole[] }> {
     try {
       return {
-        roles: await this.authorizationUsersService.replaceUserRoles(userId, readRoleKeys(body)),
+        roles: await this.authorizationUsersService.replaceUserRoles(
+          userId,
+          readRoleKeys(body),
+          context.userId,
+        ),
       };
     } catch (error) {
       if (error instanceof AuthorizationUserNotFoundError) {

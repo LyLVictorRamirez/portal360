@@ -16,6 +16,7 @@ type RoleRow = Record<string, unknown> & {
 };
 
 class RoleMutationClient {
+  auditEventCount = 0;
   released = false;
 
   constructor(
@@ -28,6 +29,12 @@ class RoleMutationClient {
   ) {}
 
   async query(query: string): Promise<{ rowCount: number; rows: Record<string, unknown>[] }> {
+    if (query.includes('"audit_event"')) {
+      this.auditEventCount += 1;
+
+      return { rowCount: 1, rows: [] };
+    }
+
     if (query.includes("as has_assignments")) {
       return { rowCount: 1, rows: [{ has_assignments: this.options.hasAssignments ?? false }] };
     }
@@ -84,29 +91,39 @@ test("does not deactivate system roles or remove app.access from Estándar", asy
 
   await assert.rejects(
     () =>
-      deactivation.repository.updateRole("estandar", {
-        description: "Default role.",
-        isActive: false,
-        name: "Estándar",
-        permissionKeys: ["app.access"],
-      }),
+      deactivation.repository.updateRole(
+        "estandar",
+        {
+          description: "Default role.",
+          isActive: false,
+          name: "Estándar",
+          permissionKeys: ["app.access"],
+        },
+        null,
+      ),
     AuthorizationRoleMutationError,
   );
   await assert.rejects(
     () =>
-      permissionRemoval.repository.updateRole("estandar", {
-        description: "Default role.",
-        name: "Estándar",
-        permissionKeys: [],
-      }),
+      permissionRemoval.repository.updateRole(
+        "estandar",
+        {
+          description: "Default role.",
+          name: "Estándar",
+          permissionKeys: [],
+        },
+        null,
+      ),
     AuthorizationRoleMutationError,
   );
+  assert.equal(deactivation.client.auditEventCount, 0);
+  assert.equal(permissionRemoval.client.auditEventCount, 0);
   assert.equal(deactivation.client.released, true);
   assert.equal(permissionRemoval.client.released, true);
 });
 
 test("does not delete assigned custom roles", async () => {
-  const { repository } = createRepository(
+  const { client, repository } = createRepository(
     {
       role_description: "Custom role.",
       role_is_active: true,
@@ -119,13 +136,14 @@ test("does not delete assigned custom roles", async () => {
   );
 
   await assert.rejects(
-    () => repository.deleteCustomRole("custom-role"),
+    () => repository.deleteCustomRole("custom-role", null),
     AuthorizationRoleMutationError,
   );
+  assert.equal(client.auditEventCount, 0);
 });
 
 test("does not remove the last active authorization manager", async () => {
-  const { repository } = createRepository(
+  const { client, repository } = createRepository(
     {
       role_description: "Custom role.",
       role_is_active: true,
@@ -139,11 +157,16 @@ test("does not remove the last active authorization manager", async () => {
 
   await assert.rejects(
     () =>
-      repository.updateRole("custom-role", {
-        description: "Custom role.",
-        name: "Custom role",
-        permissionKeys: [],
-      }),
+      repository.updateRole(
+        "custom-role",
+        {
+          description: "Custom role.",
+          name: "Custom role",
+          permissionKeys: [],
+        },
+        null,
+      ),
     AuthorizationRoleMutationError,
   );
+  assert.equal(client.auditEventCount, 0);
 });

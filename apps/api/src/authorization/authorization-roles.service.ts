@@ -11,13 +11,20 @@ import type {
 } from "./authorization.types.js";
 
 export interface AuthorizationRolesStore {
-  createCustomRole(input: CreateCustomRoleInput): Promise<AuthorizationRoleDetails>;
-  deleteCustomRole(roleKey: string): Promise<void>;
+  createCustomRole(
+    input: CreateCustomRoleInput,
+    actorUserId: string | null,
+  ): Promise<AuthorizationRoleDetails>;
+  deleteCustomRole(roleKey: string, actorUserId: string | null): Promise<void>;
   listRoleCatalog(): Promise<{
     permissions: AuthorizationPermissionDefinition[];
     roles: AuthorizationRoleDetails[];
   }>;
-  updateRole(roleKey: string, input: UpdateRoleInput): Promise<AuthorizationRoleDetails>;
+  updateRole(
+    roleKey: string,
+    input: UpdateRoleInput,
+    actorUserId: string | null,
+  ): Promise<AuthorizationRoleDetails>;
 }
 
 @Injectable()
@@ -31,15 +38,22 @@ export class AuthorizationRolesService {
     return this.authorizationRolesRepository.listRoleCatalog();
   }
 
-  async createCustomRole(input: CreateCustomRoleInput): Promise<AuthorizationRoleDetails> {
-    return this.authorizationRolesRepository.createCustomRole(input);
+  async createCustomRole(
+    input: CreateCustomRoleInput,
+    actorUserId: string | null = null,
+  ): Promise<AuthorizationRoleDetails> {
+    return this.authorizationRolesRepository.createCustomRole(input, actorUserId);
   }
 
-  async updateRole(roleKey: string, input: UpdateRoleInput): Promise<AuthorizationRoleDetails> {
-    return this.authorizationRolesRepository.updateRole(roleKey, input);
+  async updateRole(
+    roleKey: string,
+    input: UpdateRoleInput,
+    actorUserId: string | null = null,
+  ): Promise<AuthorizationRoleDetails> {
+    return this.authorizationRolesRepository.updateRole(roleKey, input, actorUserId);
   }
 
-  async deleteCustomRole(roleKey: string): Promise<void> {
-    await this.authorizationRolesRepository.deleteCustomRole(roleKey);
+  async deleteCustomRole(roleKey: string, actorUserId: string | null = null): Promise<void> {
+    await this.authorizationRolesRepository.deleteCustomRole(roleKey, actorUserId);
   }
 }

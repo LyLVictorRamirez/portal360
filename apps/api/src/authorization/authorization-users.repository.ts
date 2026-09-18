@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 
+import { recordAuthorizationAuditEvent } from "./authorization-audit.js";
 import { AUTHORIZATION_DATABASE } from "./authorization.repository.js";
 import type {
   AuthorizationRole,
@@ -82,6 +83,14 @@ const insertUserRolesQuery = `
   on conflict ("user_id", "role_key") do nothing
 `;
 
+const findUserRoleKeysQuery = `
+  select "role_key"
+  from "authorization"."user_role"
+  where "user_id" = $1
+  order by "role_key"
+  for update
+`;
+
 const hasRoleManagerQuery = `
   select exists (
     select 1
@@ -107,7 +116,11 @@ export class AuthorizationUsersRepository {
     return readAuthorizationUsers(result.rows);
   }
 
-  async replaceUserRoles(userId: string, roleKeys: string[]): Promise<AuthorizationRole[]> {
+  async replaceUserRoles(
+    userId: string,
+    roleKeys: string[],
+    actorUserId: string | null,
+  ): Promise<AuthorizationRole[]> {
     const uniqueRoleKeys = [...new Set(roleKeys)];
 
     if (uniqueRoleKeys.length !== roleKeys.length) {
@@ -136,6 +149,11 @@ export class AuthorizationUsersRepository {
         throw new AuthorizationRoleAssignmentError("Every assigned role must exist and be active.");
       }
 
+      const currentRoleResult = await client.query(findUserRoleKeysQuery, [userId]);
+      const currentRoleKeys = currentRoleResult.rows.map((row) =>
+        readString(row.role_key, "role key"),
+      );
+
       await client.query(deleteUserRolesQuery, [userId]);
       await client.query(insertUserRolesQuery, [userId, uniqueRoleKeys]);
 
@@ -145,6 +163,31 @@ export class AuthorizationUsersRepository {
         throw new AuthorizationRoleAssignmentError(
           "At least one active user must retain authorization.roles.manage.",
         );
+      }
+
+      const currentRoleKeySet = new Set(currentRoleKeys);
+      const newRoleKeySet = new Set(uniqueRoleKeys);
+
+      for (const roleKey of currentRoleKeys.filter((key) => !newRoleKeySet.has(key))) {
+        await recordAuthorizationAuditEvent(client, {
+          actorUserId,
+          afterState: null,
+          beforeState: { roleKey, userId },
+          eventType: "authorization.user_role.removed",
+          subjectKey: `${userId}:${roleKey}`,
+          subjectType: "user_role",
+        });
+      }
+
+      for (const roleKey of uniqueRoleKeys.filter((key) => !currentRoleKeySet.has(key))) {
+        await recordAuthorizationAuditEvent(client, {
+          actorUserId,
+          afterState: { roleKey, userId },
+          beforeState: null,
+          eventType: "authorization.user_role.assigned",
+          subjectKey: `${userId}:${roleKey}`,
+          subjectType: "user_role",
+        });
       }
 
       await client.query("COMMIT");

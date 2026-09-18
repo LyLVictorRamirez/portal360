@@ -15,6 +15,7 @@ import {
 } from "@nestjs/common";
 
 import { AuthorizationGuard } from "./authorization.guard.js";
+import { AuthorizationContext } from "./authorization-context.decorator.js";
 import {
   AuthorizationRoleMutationError,
   AuthorizationRoleNotFoundError,
@@ -24,7 +25,10 @@ import {
 import { AuthorizationRolesService } from "./authorization-roles.service.js";
 import { isAuthorizationPermission, type AuthorizationPermission } from "./permissions.js";
 import { RequirePermissions } from "./require-permissions.decorator.js";
-import type { AuthorizationRoleDetails } from "./authorization.types.js";
+import type {
+  AuthorizationRequestContext,
+  AuthorizationRoleDetails,
+} from "./authorization.types.js";
 
 @Controller("api/authorization/roles")
 @UseGuards(AuthorizationGuard)
@@ -39,10 +43,16 @@ export class AuthorizationRolesController {
 
   @Post()
   @RequirePermissions("authorization.roles.manage")
-  async createCustomRole(@Body() body: unknown): Promise<{ role: AuthorizationRoleDetails }> {
+  async createCustomRole(
+    @Body() body: unknown,
+    @AuthorizationContext() context: AuthorizationRequestContext,
+  ): Promise<{ role: AuthorizationRoleDetails }> {
     try {
       return {
-        role: await this.authorizationRolesService.createCustomRole(readCreateRoleInput(body)),
+        role: await this.authorizationRolesService.createCustomRole(
+          readCreateRoleInput(body),
+          context.userId,
+        ),
       };
     } catch (error) {
       throw toHttpException(error);
@@ -54,10 +64,15 @@ export class AuthorizationRolesController {
   async updateRole(
     @Param("roleKey") roleKey: string,
     @Body() body: unknown,
+    @AuthorizationContext() context: AuthorizationRequestContext,
   ): Promise<{ role: AuthorizationRoleDetails }> {
     try {
       return {
-        role: await this.authorizationRolesService.updateRole(roleKey, readUpdateRoleInput(body)),
+        role: await this.authorizationRolesService.updateRole(
+          roleKey,
+          readUpdateRoleInput(body),
+          context.userId,
+        ),
       };
     } catch (error) {
       throw toHttpException(error);
@@ -67,9 +82,12 @@ export class AuthorizationRolesController {
   @Delete(":roleKey")
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("authorization.roles.manage")
-  async deleteCustomRole(@Param("roleKey") roleKey: string): Promise<void> {
+  async deleteCustomRole(
+    @Param("roleKey") roleKey: string,
+    @AuthorizationContext() context: AuthorizationRequestContext,
+  ): Promise<void> {
     try {
-      await this.authorizationRolesService.deleteCustomRole(roleKey);
+      await this.authorizationRolesService.deleteCustomRole(roleKey, context.userId);
     } catch (error) {
       throw toHttpException(error);
     }

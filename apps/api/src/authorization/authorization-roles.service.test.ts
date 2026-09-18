@@ -30,12 +30,12 @@ test("creates and lists custom roles with only fixed catalog permissions", async
         roles: [],
       };
     },
-    async updateRole(_roleKey, input) {
+    async updateRole(roleKey, input) {
       return {
         description: input.description,
         isActive: input.isActive ?? true,
         isDefault: false,
-        key: "custom-role",
+        key: roleKey,
         kind: "custom",
         name: input.name,
         permissions: input.permissionKeys,

@@ -28,6 +28,15 @@ export async function assignDefaultRole(
   const result = await database.query(assignDefaultRoleQuery, [userId]);
 
   if (result.rowCount === 1) {
+    await recordAuthorizationAuditEvent(database, {
+      actorUserId: null,
+      afterState: { roleKey: "estandar", userId },
+      beforeState: null,
+      eventType: "authorization.user_role.assigned",
+      subjectKey: `${userId}:estandar`,
+      subjectType: "user_role",
+    });
+
     return true;
   }
 
@@ -39,3 +48,4 @@ export async function assignDefaultRole(
 
   throw new Error("The standard authorization role is unavailable.");
 }
+import { recordAuthorizationAuditEvent } from "./authorization-audit.js";

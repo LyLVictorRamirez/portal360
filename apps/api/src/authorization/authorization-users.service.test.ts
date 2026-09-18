@@ -5,7 +5,12 @@ import type { AuthorizationUsersStore } from "./authorization-users.service.js";
 import { AuthorizationUsersService } from "./authorization-users.service.js";
 
 test("lists unverified users and delegates their role preassignment", async () => {
-  const calls: Array<{ roleKeys?: string[]; search?: string; userId?: string }> = [];
+  const calls: Array<{
+    actorUserId?: string | null;
+    roleKeys?: string[];
+    search?: string;
+    userId?: string;
+  }> = [];
   const store: AuthorizationUsersStore = {
     async listUsers(search) {
       calls.push({ search });
@@ -20,8 +25,8 @@ test("lists unverified users and delegates their role preassignment", async () =
         },
       ];
     },
-    async replaceUserRoles(userId, roleKeys) {
-      calls.push({ roleKeys, userId });
+    async replaceUserRoles(userId, roleKeys, actorUserId) {
+      calls.push({ actorUserId, roleKeys, userId });
 
       return [
         {
@@ -38,12 +43,15 @@ test("lists unverified users and delegates their role preassignment", async () =
   const service = new AuthorizationUsersService(store);
 
   const users = await service.listUsers(" pending ");
-  const roles = await service.replaceUserRoles("user-1", ["estandar"]);
+  const roles = await service.replaceUserRoles("user-1", ["estandar"], "admin-1");
 
   assert.equal(users[0]?.emailVerified, false);
   assert.deepEqual(
     roles.map((role) => role.key),
     ["estandar"],
   );
-  assert.deepEqual(calls, [{ search: "pending" }, { roleKeys: ["estandar"], userId: "user-1" }]);
+  assert.deepEqual(calls, [
+    { search: "pending" },
+    { actorUserId: "admin-1", roleKeys: ["estandar"], userId: "user-1" },
+  ]);
 });
