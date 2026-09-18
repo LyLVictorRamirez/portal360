@@ -23,6 +23,7 @@ export interface AuthorizedRequest extends IncomingMessage {
 @Injectable()
 export class AuthorizationGuard implements CanActivate {
   constructor(
+    @Inject(Reflector)
     private readonly reflector: Reflector,
     @Inject(AuthorizationContextService)
     private readonly authorizationContextService: AuthorizationContextResolver,
