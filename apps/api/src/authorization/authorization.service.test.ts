@@ -60,3 +60,47 @@ test("unites permissions from every active role assigned to a user", async () =>
   );
   assert.equal(await service.userHasPermission("user-1", "authorization.roles.manage"), true);
 });
+
+test("resolves the current database permissions on every request", async () => {
+  let queryCount = 0;
+  const database: AuthorizationQueryExecutor = {
+    async query() {
+      queryCount += 1;
+
+      return {
+        rows:
+          queryCount === 1
+            ? [
+                {
+                  permission_key: "app.access",
+                  role_description: "Minimum access.",
+                  role_is_active: true,
+                  role_is_default: true,
+                  role_key: "estandar",
+                  role_kind: "system",
+                  role_name: "Estándar",
+                },
+              ]
+            : [
+                {
+                  permission_key: "authorization.roles.manage",
+                  role_description: "Can manage roles.",
+                  role_is_active: true,
+                  role_is_default: false,
+                  role_key: "administrador",
+                  role_kind: "system",
+                  role_name: "Administrador",
+                },
+              ],
+      };
+    },
+  };
+  const service = new AuthorizationService(new AuthorizationRepository(database));
+
+  const beforeAssignmentChange = await service.resolveUserAuthorization("user-1");
+  const afterAssignmentChange = await service.resolveUserAuthorization("user-1");
+
+  assert.deepEqual(beforeAssignmentChange.permissions, ["app.access"]);
+  assert.deepEqual(afterAssignmentChange.permissions, ["authorization.roles.manage"]);
+  assert.equal(queryCount, 2);
+});

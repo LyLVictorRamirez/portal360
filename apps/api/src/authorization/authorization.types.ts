@@ -15,3 +15,8 @@ export interface UserAuthorization {
   permissions: AuthorizationPermission[];
   roles: AuthorizationRole[];
 }
+
+export interface AuthorizationRequestContext {
+  authorization: UserAuthorization;
+  userId: string;
+}
