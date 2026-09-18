@@ -67,20 +67,20 @@ Los componentes usarán esos tokens mediante utilidades de Tailwind o variables 
 
 ## Criterios de aceptación
 
-- [X] `apps/web` usa Tailwind CSS y conserva tokens globales semánticos definidos en `apps/web/src/app/globals.css`.
-- [X] Lucide React es la única fuente de iconos para navegación, acciones y estados de la plantilla.
-- [X] La ruta `/` muestra Inicio dentro de un Application Shell con Sidebar, Top Bar y contenido principal.
-- [X] La ruta `/login` se renderiza fuera del Application Shell.
-- [X] El Sidebar desktop puede alternar entre expandido y colapsado, y su preferencia se conserva tras una recarga.
-- [X] En pantallas pequeñas, el Sidebar está oculto inicialmente y se abre como panel temporal desde la Top Bar.
-- [X] El panel lateral móvil se cierra al seleccionar Inicio y no ocupa espacio horizontal persistente.
-- [X] La navegación inicial solo contiene Inicio como opción funcional y el menú de usuario en su ubicación visual.
-- [X] El encabezado de página reutilizable admite título, descripción opcional y acción principal opcional.
-- [X] La página inicial es neutra y no contiene KPIs, widgets, tablas, formularios ni módulos de negocio.
-- [X] `/login` muestra identidad, título, texto explicativo y la acción visual `Iniciar sesión` sin campos ni comportamiento de autenticación.
-- [X] Existen componentes reutilizables para carga, vacío, error, no autorizado y no encontrado.
-- [X] Una URL inexistente renderiza el estado no encontrado mediante el mecanismo estándar de Next.js.
-- [X] `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build` y `corepack pnpm format:check` terminan correctamente desde la raíz.
+- [x] `apps/web` usa Tailwind CSS y conserva tokens globales semánticos definidos en `apps/web/src/app/globals.css`.
+- [x] Lucide React es la única fuente de iconos para navegación, acciones y estados de la plantilla.
+- [x] La ruta `/` muestra Inicio dentro de un Application Shell con Sidebar, Top Bar y contenido principal.
+- [x] La ruta `/login` se renderiza fuera del Application Shell.
+- [x] El Sidebar desktop puede alternar entre expandido y colapsado, y su preferencia se conserva tras una recarga.
+- [x] En pantallas pequeñas, el Sidebar está oculto inicialmente y se abre como panel temporal desde la Top Bar.
+- [x] El panel lateral móvil se cierra al seleccionar Inicio y no ocupa espacio horizontal persistente.
+- [x] La navegación inicial solo contiene Inicio como opción funcional y el menú de usuario en su ubicación visual.
+- [x] El encabezado de página reutilizable admite título, descripción opcional y acción principal opcional.
+- [x] La página inicial es neutra y no contiene KPIs, widgets, tablas, formularios ni módulos de negocio.
+- [x] `/login` muestra identidad, título, texto explicativo y la acción visual `Iniciar sesión` sin campos ni comportamiento de autenticación.
+- [x] Existen componentes reutilizables para carga, vacío, error, no autorizado y no encontrado.
+- [x] Una URL inexistente renderiza el estado no encontrado mediante el mecanismo estándar de Next.js.
+- [x] `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build` y `corepack pnpm format:check` terminan correctamente desde la raíz.
 
 ## Decisiones
 
@@ -100,11 +100,11 @@ Los componentes usarán esos tokens mediante utilidades de Tailwind o variables 
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
-| Parpadeo visual al restaurar la preferencia del Sidebar | Leer y aplicar la preferencia exclusivamente en un componente cliente con un estado inicial controlado. |
-| Inaccesibilidad del panel móvil | Incluir etiquetas accesibles, foco operable y cierre explícito desde el control de navegación. |
-| Valores visuales dispersos al crear componentes | Usar tokens semánticos de `globals.css` como única fuente de colores, bordes, radios y superficies. |
+| Riesgo                                                   | Mitigación                                                                                                  |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Parpadeo visual al restaurar la preferencia del Sidebar  | Leer y aplicar la preferencia exclusivamente en un componente cliente con un estado inicial controlado.     |
+| Inaccesibilidad del panel móvil                          | Incluir etiquetas accesibles, foco operable y cierre explícito desde el control de navegación.              |
+| Valores visuales dispersos al crear componentes          | Usar tokens semánticos de `globals.css` como única fuente de colores, bordes, radios y superficies.         |
 | La plantilla se convierta prematuramente en un dashboard | Limitar la navegación a Inicio y excluir KPIs, widgets y módulos de negocio de los criterios de aceptación. |
 
 ## Qué **no** está en esta spec

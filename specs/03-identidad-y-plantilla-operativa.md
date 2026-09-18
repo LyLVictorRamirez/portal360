@@ -124,13 +124,13 @@ Ese contenido no representa Actividades, Personas ni compromisos reales.
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
-| La fuente remota no está disponible durante el build. | Usar la integración de fuente de Next.js con respaldo del sistema y validar el build de producción antes de aceptar el cambio. |
-| El contenido de muestra se interpreta como trabajo real. | Etiquetarlo explícitamente como muestra de plantilla y no mostrar cifras, fechas comprometidas ni nombres de personas reales. |
-| El nuevo diálogo o panel móvil deja escapar el foco. | Probar apertura, Tab, Shift+Tab, Escape y restauración de foco en escritorio y móvil. |
-| Los tokens se degradan con clases de color locales. | Revisar que componentes y rutas consumen tokens semánticos y prohibir valores de paleta directos fuera de `globals.css`. |
-| Una base de componentes crece antes de haber casos de uso reales. | Limitar esta spec a los patrones aprobados y dejar componentes especializados para sus specs funcionales. |
+| Riesgo                                                            | Mitigación                                                                                                                     |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| La fuente remota no está disponible durante el build.             | Usar la integración de fuente de Next.js con respaldo del sistema y validar el build de producción antes de aceptar el cambio. |
+| El contenido de muestra se interpreta como trabajo real.          | Etiquetarlo explícitamente como muestra de plantilla y no mostrar cifras, fechas comprometidas ni nombres de personas reales.  |
+| El nuevo diálogo o panel móvil deja escapar el foco.              | Probar apertura, Tab, Shift+Tab, Escape y restauración de foco en escritorio y móvil.                                          |
+| Los tokens se degradan con clases de color locales.               | Revisar que componentes y rutas consumen tokens semánticos y prohibir valores de paleta directos fuera de `globals.css`.       |
+| Una base de componentes crece antes de haber casos de uso reales. | Limitar esta spec a los patrones aprobados y dejar componentes especializados para sus specs funcionales.                      |
 
 ## Qué **no** está en esta spec
 

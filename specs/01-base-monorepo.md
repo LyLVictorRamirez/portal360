@@ -60,16 +60,16 @@ apps/api/.env.example          # DATABASE_URL=postgresql://usuario:clave@host:54
 
 ## Criterios de aceptación
 
-- [X] El repositorio contiene un workspace pnpm con `apps/web` y `apps/api`.
-- [X] `apps/web` inicia correctamente y sirve una aplicación Next.js con TypeScript.
-- [X] `apps/api` inicia correctamente y expone la aplicación NestJS sin errores de arranque.
-- [X] Desde la raíz, `pnpm lint`, `pnpm typecheck`, `pnpm test` y `pnpm build` finalizan con código de salida 0 para todas las aplicaciones.
-- [X] Cada aplicación declara sus scripts `dev`, `lint`, `typecheck`, `test` y `build`, salvo que el framework no permita uno sin una adaptación explícitamente documentada.
-- [X] ESLint y Prettier están configurados y se pueden ejecutar desde la raíz del workspace.
-- [X] `.nvmrc`, `engines.node` y `packageManager` declaran las versiones seleccionadas de Node y pnpm.
-- [X] Todas las dependencias directas usan versiones exactas y `pnpm-lock.yaml` está versionado.
-- [X] `apps/api/.env.example` contiene `DATABASE_URL` sin credenciales reales y los archivos `.env` reales están ignorados por Git.
-- [X] El README permite a una persona con Node y pnpm instalar, arrancar y validar el proyecto desde cero.
+- [x] El repositorio contiene un workspace pnpm con `apps/web` y `apps/api`.
+- [x] `apps/web` inicia correctamente y sirve una aplicación Next.js con TypeScript.
+- [x] `apps/api` inicia correctamente y expone la aplicación NestJS sin errores de arranque.
+- [x] Desde la raíz, `pnpm lint`, `pnpm typecheck`, `pnpm test` y `pnpm build` finalizan con código de salida 0 para todas las aplicaciones.
+- [x] Cada aplicación declara sus scripts `dev`, `lint`, `typecheck`, `test` y `build`, salvo que el framework no permita uno sin una adaptación explícitamente documentada.
+- [x] ESLint y Prettier están configurados y se pueden ejecutar desde la raíz del workspace.
+- [x] `.nvmrc`, `engines.node` y `packageManager` declaran las versiones seleccionadas de Node y pnpm.
+- [x] Todas las dependencias directas usan versiones exactas y `pnpm-lock.yaml` está versionado.
+- [x] `apps/api/.env.example` contiene `DATABASE_URL` sin credenciales reales y los archivos `.env` reales están ignorados por Git.
+- [x] El README permite a una persona con Node y pnpm instalar, arrancar y validar el proyecto desde cero.
 
 ## Decisiones
 

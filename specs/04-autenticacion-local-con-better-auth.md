@@ -1,6 +1,6 @@
 # SPEC 04 — Autenticación local con Better Auth
 
-> **Status:** Aprobada
+> **Status:** Implementada
 > **Depends on:** SPEC 01, SPEC 03
 > **Date:** 2026-09-17
 > **Objective:** Implementar autenticación local basada en Better Auth con registro público, verificación de correo, recuperación de contraseña y sesiones de 30 días gestionadas por `apps/api`.
@@ -48,12 +48,12 @@ Usará PostgreSQL con `DATABASE_URL` y el esquema dedicado `auth`.
 
 La migración de Better Auth creará como mínimo las tablas siguientes:
 
-| Tabla | Datos persistidos | Uso |
-| --- | --- | --- |
-| `auth.user` | `id`, `name`, `email`, `email_verified`, marcas de creación y actualización | Identidad local única por correo. |
-| `auth.account` | `id`, `user_id`, `provider_id`, `account_id`, hash de contraseña y marcas de tiempo | Credencial de correo y contraseña. |
-| `auth.session` | `id`, `user_id`, token, expiración, dirección IP, agente de usuario y marcas de tiempo | Sesión persistente de 30 días. |
-| `auth.verification` | `id`, identificador, valor de un solo uso, expiración y marcas de tiempo | Enlaces de verificación de correo y restablecimiento. |
+| Tabla               | Datos persistidos                                                                      | Uso                                                   |
+| ------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `auth.user`         | `id`, `name`, `email`, `email_verified`, marcas de creación y actualización            | Identidad local única por correo.                     |
+| `auth.account`      | `id`, `user_id`, `provider_id`, `account_id`, hash de contraseña y marcas de tiempo    | Credencial de correo y contraseña.                    |
+| `auth.session`      | `id`, `user_id`, token, expiración, dirección IP, agente de usuario y marcas de tiempo | Sesión persistente de 30 días.                        |
+| `auth.verification` | `id`, identificador, valor de un solo uso, expiración y marcas de tiempo               | Enlaces de verificación de correo y restablecimiento. |
 
 No se crearán tablas de roles, permisos, perfiles de negocio ni entidades TypeORM en esta spec.
 
@@ -128,15 +128,15 @@ La reescritura de Next.js usará una variable de servidor para el origen interno
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
-| El registro público recibe automatización o intentos repetidos. | Limitar registro, inicio y recuperación por IP y correo; dejar CAPTCHA para una fase posterior si el tráfico lo exige. |
-| Una contraseña mínima de 8 caracteres reduce la resistencia ante ataques. | Hacer el mínimo configurable, limitar intentos y exigir verificación de correo. |
-| SMTP no está configurado o entrega correos tarde. | Documentar variables, registrar enlaces solo en desarrollo y devolver errores operativos controlados en producción. |
-| La cuenta queda sin verificar y el usuario no entiende el siguiente paso. | Mostrar estado de espera, reenvío limitado y mensajes claros sin permitir acceso privado. |
-| El rol PostgreSQL no puede crear el esquema `auth`. | Validar permisos antes de ejecutar la migración y documentar el requisito de `CREATE` y acceso al esquema. |
-| Un despliegue configura mal el proxy o los atributos de cookie. | Probar registro, sesión, cierre y redirección en el dominio final además de localhost. |
-| La sesión de 30 días permanece en un equipo compartido. | Ofrecer cierre de sesión visible y revocar todas las sesiones después de restablecer la contraseña. |
+| Riesgo                                                                    | Mitigación                                                                                                             |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| El registro público recibe automatización o intentos repetidos.           | Limitar registro, inicio y recuperación por IP y correo; dejar CAPTCHA para una fase posterior si el tráfico lo exige. |
+| Una contraseña mínima de 8 caracteres reduce la resistencia ante ataques. | Hacer el mínimo configurable, limitar intentos y exigir verificación de correo.                                        |
+| SMTP no está configurado o entrega correos tarde.                         | Documentar variables, registrar enlaces solo en desarrollo y devolver errores operativos controlados en producción.    |
+| La cuenta queda sin verificar y el usuario no entiende el siguiente paso. | Mostrar estado de espera, reenvío limitado y mensajes claros sin permitir acceso privado.                              |
+| El rol PostgreSQL no puede crear el esquema `auth`.                       | Validar permisos antes de ejecutar la migración y documentar el requisito de `CREATE` y acceso al esquema.             |
+| Un despliegue configura mal el proxy o los atributos de cookie.           | Probar registro, sesión, cierre y redirección en el dominio final además de localhost.                                 |
+| La sesión de 30 días permanece en un equipo compartido.                   | Ofrecer cierre de sesión visible y revocar todas las sesiones después de restablecer la contraseña.                    |
 
 ## Qué **no** está en esta spec
 
