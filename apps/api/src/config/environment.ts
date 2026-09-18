@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 const DEFAULT_PASSWORD_MIN_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 128;
 
