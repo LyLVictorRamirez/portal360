@@ -15,5 +15,14 @@ export default async function ApplicationLayout({ children }: ApplicationLayoutP
     redirect("/login?returnTo=%2F");
   }
 
-  return <ApplicationShell>{children}</ApplicationShell>;
+  return (
+    <ApplicationShell
+      user={{
+        email: session.user.email,
+        name: session.user.name,
+      }}
+    >
+      {children}
+    </ApplicationShell>
+  );
 }

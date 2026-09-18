@@ -7,6 +7,10 @@ import { TopBar } from "./top-bar";
 
 type ApplicationShellProps = Readonly<{
   children: ReactNode;
+  user: {
+    email: string;
+    name: string;
+  };
 }>;
 
 const SIDEBAR_STORAGE_KEY = "portal-360:sidebar-collapsed";
@@ -23,7 +27,7 @@ function applySidebarCollapsedPreference(isCollapsed: boolean) {
   document.documentElement.dataset.sidebarCollapsed = String(isCollapsed);
 }
 
-export function ApplicationShell({ children }: ApplicationShellProps) {
+export function ApplicationShell({ children, user }: ApplicationShellProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const mobileSidebarOpenerRef = useRef<HTMLElement | null>(null);
@@ -118,6 +122,7 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
           mobileSidebarOpen={isMobileSidebarOpen}
           onOpenMobileSidebar={openMobileSidebar}
           onToggleSidebar={toggleSidebar}
+          user={user}
         />
         <main className="min-w-0 flex-1 px-6 py-8 lg:px-8">{children}</main>
       </div>
