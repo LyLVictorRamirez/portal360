@@ -8,9 +8,9 @@
     "start": "node dist/main.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test",
-    "auth:generate": "pnpm dlx auth@1.7.5 generate",
-    "auth:migrate": "pnpm dlx auth@1.7.5 migrate"
+    "test": "tsx --test",
+    "auth:generate": "pnpm exec auth generate",
+    "auth:migrate": "pnpm exec auth migrate"
   },
   "dependencies": {
     "@nestjs/common": "12.0.2",

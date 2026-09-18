@@ -121,7 +121,7 @@ La reescritura de Next.js usará una variable de servidor para el origen interno
 - **No:** invitaciones o aprobación manual; requieren administración de usuarios y autorización que pertenecen a otra spec.
 - **Sí:** verificación obligatoria de correo y recuperación por SMTP; confirma la propiedad del correo y permite recuperar el acceso.
 - **Sí:** desarrollo registra enlaces si no hay SMTP y producción falla de forma controlada; facilita pruebas locales sin ocultar una configuración incompleta en despliegue.
-- **Sí:** contraseña mínima configurable con valor inicial de 6 caracteres; respeta la decisión de producto y permite endurecerla sin cambiar el código.
+- **Sí:** contraseña mínima configurable con valor inicial de 8 caracteres; respeta la decisión de producto y permite endurecerla sin cambiar el código.
 - **Sí:** sesión de 30 días y revocación total tras restablecer la contraseña; combina persistencia de acceso y contención ante credenciales comprometidas.
 - **Sí:** proxy limitado a `/api/auth/*` mediante reescritura de Next.js; el navegador conserva un único origen y evita CORS para la sesión.
 - **No:** Microsoft Entra ID, roles y permisos; se definirán en specs independientes cuando exista el modelo de autorización.
@@ -131,7 +131,7 @@ La reescritura de Next.js usará una variable de servidor para el origen interno
 | Riesgo | Mitigación |
 | --- | --- |
 | El registro público recibe automatización o intentos repetidos. | Limitar registro, inicio y recuperación por IP y correo; dejar CAPTCHA para una fase posterior si el tráfico lo exige. |
-| Una contraseña mínima de 6 caracteres reduce la resistencia ante ataques. | Hacer el mínimo configurable, limitar intentos y exigir verificación de correo. |
+| Una contraseña mínima de 8 caracteres reduce la resistencia ante ataques. | Hacer el mínimo configurable, limitar intentos y exigir verificación de correo. |
 | SMTP no está configurado o entrega correos tarde. | Documentar variables, registrar enlaces solo en desarrollo y devolver errores operativos controlados en producción. |
 | La cuenta queda sin verificar y el usuario no entiende el siguiente paso. | Mostrar estado de espera, reenvío limitado y mensajes claros sin permitir acceso privado. |
 | El rol PostgreSQL no puede crear el esquema `auth`. | Validar permisos antes de ejecutar la migración y documentar el requisito de `CREATE` y acceso al esquema. |
