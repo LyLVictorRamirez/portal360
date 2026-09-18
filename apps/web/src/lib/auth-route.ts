@@ -9,14 +9,20 @@ export function getSafeReturnTo(value: string | null): string {
 }
 
 export function withReturnTo(path: string, returnTo: string): string {
-  if (returnTo === "/") {
+  const safeReturnTo = getSafeReturnTo(returnTo);
+
+  if (safeReturnTo === "/") {
     return path;
   }
 
   const url = new URL(path, "https://portal-360.invalid");
-  url.searchParams.set("returnTo", returnTo);
+  url.searchParams.set("returnTo", safeReturnTo);
 
   return `${url.pathname}${url.search}${url.hash}`;
+}
+
+export function getLoginUrl(returnTo: string | null): string {
+  return withReturnTo("/login", getSafeReturnTo(returnTo));
 }
 
 export function getBrowserCallbackUrl(path: string): string {

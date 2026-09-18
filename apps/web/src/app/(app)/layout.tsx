@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { ApplicationShell } from "../../components/layout/application-shell";
+import { getLoginUrl } from "../../lib/auth-route";
 import { getServerSession } from "../../lib/auth-session";
 
 type ApplicationLayoutProps = Readonly<{
@@ -12,7 +13,7 @@ export default async function ApplicationLayout({ children }: ApplicationLayoutP
   const session = await getServerSession();
 
   if (!session || !session.user.emailVerified) {
-    redirect("/login?returnTo=%2F");
+    redirect(getLoginUrl("/"));
   }
 
   return (

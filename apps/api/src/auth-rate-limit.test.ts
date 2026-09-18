@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { AUTH_RATE_LIMIT_WINDOW_SECONDS, AuthEmailRateLimiter } from "./auth-rate-limit.js";
+import {
+  AUTH_RATE_LIMIT_WINDOW_SECONDS,
+  AuthEmailRateLimiter,
+  isAuthEmailRateLimitPath,
+} from "./auth-rate-limit.js";
 
 test("limits repeated requests by normalized email and allows them after the window", () => {
   let currentTime = 0;
@@ -35,4 +39,12 @@ test("keeps rate limits isolated by endpoint and email", () => {
   assert.deepEqual(limiter.consume("/sign-in/email", "another@example.test"), {
     allowed: true,
   });
+});
+
+test("applies email rate limiting to every public credential flow", () => {
+  assert.equal(isAuthEmailRateLimitPath("/sign-up/email"), true);
+  assert.equal(isAuthEmailRateLimitPath("/sign-in/email"), true);
+  assert.equal(isAuthEmailRateLimitPath("/request-password-reset"), true);
+  assert.equal(isAuthEmailRateLimitPath("/send-verification-email"), true);
+  assert.equal(isAuthEmailRateLimitPath("/get-session"), false);
 });

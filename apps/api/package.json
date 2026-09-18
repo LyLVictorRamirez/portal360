@@ -8,7 +8,7 @@
     "start": "node dist/main.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test",
+    "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js",
     "auth:generate": "pnpm exec auth generate",
     "auth:migrate": "pnpm exec auth migrate"
   },

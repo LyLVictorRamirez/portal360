@@ -5,14 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
 import { authClient } from "../../lib/auth-client";
+import {
+  maximumPasswordLength,
+  minimumPasswordLength,
+  validateEmail,
+  validateName,
+  validatePassword,
+  validatePasswordConfirmation,
+} from "../../lib/auth-form-validation";
 import { getBrowserCallbackUrl, getSafeReturnTo, withReturnTo } from "../../lib/auth-route";
 import { Button } from "../ui/button";
 import { TextField } from "../ui/text-field";
 import { AuthPageShell } from "./auth-page-shell";
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const minimumPasswordLength = 8;
-const maximumPasswordLength = 128;
 const linkClassName =
   "font-semibold text-primary underline decoration-primary/30 underline-offset-4 hover:text-primary-hover";
 
@@ -30,26 +35,6 @@ function getFormError(error: unknown, fallback: string): string {
   }
 
   return fallback;
-}
-
-function validateEmail(email: string): string | undefined {
-  if (!email.trim()) {
-    return "Escribe tu correo electrónico.";
-  }
-
-  return emailPattern.test(email.trim()) ? undefined : "Escribe un correo electrónico válido.";
-}
-
-function validatePassword(password: string): string | undefined {
-  if (password.length < minimumPasswordLength) {
-    return `La contraseña debe tener al menos ${minimumPasswordLength} caracteres.`;
-  }
-
-  if (password.length > maximumPasswordLength) {
-    return `La contraseña no puede superar ${maximumPasswordLength} caracteres.`;
-  }
-
-  return undefined;
 }
 
 function FormError({ message }: Readonly<{ message: string | null }>) {
@@ -188,10 +173,9 @@ export function RegisterForm() {
     event.preventDefault();
     const nextErrors = {
       email: validateEmail(email),
-      name: name.trim() ? undefined : "Escribe tu nombre.",
+      name: validateName(name),
       password: validatePassword(password),
-      passwordConfirmation:
-        password === passwordConfirmation ? undefined : "Las contraseñas deben coincidir.",
+      passwordConfirmation: validatePasswordConfirmation(password, passwordConfirmation),
     };
     setErrors(nextErrors);
     setFormError(null);
@@ -476,8 +460,7 @@ export function PasswordResetForm() {
     event.preventDefault();
     const nextErrors = {
       password: validatePassword(password),
-      passwordConfirmation:
-        password === passwordConfirmation ? undefined : "Las contraseñas deben coincidir.",
+      passwordConfirmation: validatePasswordConfirmation(password, passwordConfirmation),
     };
     setErrors(nextErrors);
     setFormError(null);
