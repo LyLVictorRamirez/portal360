@@ -28,3 +28,13 @@ export interface AuthorizationUser {
   name: string;
   roles: AuthorizationRole[];
 }
+
+export interface AuthorizationPermissionDefinition {
+  description: string;
+  key: AuthorizationPermission;
+  name: string;
+}
+
+export interface AuthorizationRoleDetails extends AuthorizationRole {
+  permissions: AuthorizationPermission[];
+}
