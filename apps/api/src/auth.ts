@@ -3,6 +3,7 @@ import { createAuthMiddleware } from "better-auth/api";
 import { PostgresDialect } from "kysely";
 import { Pool } from "pg";
 
+import { assignDefaultRole } from "./authorization/authorization-assignments.js";
 import { AuthEmailService } from "./auth-email.service.js";
 import {
   AUTH_RATE_LIMIT_MESSAGE,
@@ -28,6 +29,15 @@ export const auth = betterAuth({
     }),
     schemaName: "auth",
     type: "postgres",
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await assignDefaultRole(authDatabasePool, user.id);
+        },
+      },
+    },
   },
   emailVerification: {
     sendOnSignUp: true,
