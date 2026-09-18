@@ -20,3 +20,11 @@ export interface AuthorizationRequestContext {
   authorization: UserAuthorization;
   userId: string;
 }
+
+export interface AuthorizationUser {
+  email: string;
+  emailVerified: boolean;
+  id: string;
+  name: string;
+  roles: AuthorizationRole[];
+}
