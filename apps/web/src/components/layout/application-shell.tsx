@@ -4,9 +4,11 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 
 import { AppSidebar } from "./app-sidebar";
 import { TopBar } from "./top-bar";
+import type { AuthorizationPermission } from "../../lib/authorization";
 
 type ApplicationShellProps = Readonly<{
   children: ReactNode;
+  permissions: readonly AuthorizationPermission[];
   user: {
     email: string;
     name: string;
@@ -27,7 +29,7 @@ function applySidebarCollapsedPreference(isCollapsed: boolean) {
   document.documentElement.dataset.sidebarCollapsed = String(isCollapsed);
 }
 
-export function ApplicationShell({ children, user }: ApplicationShellProps) {
+export function ApplicationShell({ children, permissions, user }: ApplicationShellProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const mobileSidebarOpenerRef = useRef<HTMLElement | null>(null);
@@ -111,6 +113,7 @@ export function ApplicationShell({ children, user }: ApplicationShellProps) {
         collapsed={isSidebarCollapsed}
         mobileOpen={isMobileSidebarOpen}
         onMobileClose={closeMobileSidebar}
+        permissions={permissions}
       />
       <div
         aria-hidden={isMobileSidebarOpen || undefined}

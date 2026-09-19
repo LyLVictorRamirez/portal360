@@ -21,12 +21,13 @@ export default async function ApplicationLayout({ children }: ApplicationLayoutP
 
   const applicationAccess = resolveApplicationAccess(session, await getServerAuthorization());
 
-  if (applicationAccess.kind === "unauthorized") {
+  if (applicationAccess.kind !== "authorized") {
     return <UnauthorizedState />;
   }
 
   return (
     <ApplicationShell
+      permissions={applicationAccess.authorization.permissions}
       user={{
         email: session.user.email,
         name: session.user.name,
