@@ -8,6 +8,7 @@ import {
   ClientValidationError,
   type CreateClientRecordInput,
   type ListClientsQuery,
+  type UpdateClientCodeSettingsRecordInput,
   type UpdateClientRecordInput,
 } from "./clients.contracts.js";
 import type { ClientStore } from "./clients.service.js";
@@ -29,6 +30,19 @@ function createClient(): Client {
   };
 }
 
+function createCodeSettings(): ClientCodeSettings {
+  return {
+    codeLength: 6,
+    createdAt,
+    createdByUserId: "user-1",
+    nextSequence: 2n,
+    prefix: "CLI",
+    updatedAt: createdAt,
+    updatedByUserId: "user-1",
+    version: 2,
+  };
+}
+
 test("trims a Client name before reserving and creating its generated code", async () => {
   let receivedInput: CreateClientRecordInput | undefined;
   const store: ClientStore = {
@@ -46,6 +60,9 @@ test("trims a Client name before reserving and creating its generated code", asy
       throw new Error("Not used by this test.");
     },
     async listClients(): Promise<ClientList> {
+      throw new Error("Not used by this test.");
+    },
+    async updateCodeSettings() {
       throw new Error("Not used by this test.");
     },
     async updateClient() {
@@ -75,6 +92,9 @@ test("rejects an empty or oversized Client name", async () => {
       throw new Error("Not used by this test.");
     },
     async listClients(): Promise<ClientList> {
+      throw new Error("Not used by this test.");
+    },
+    async updateCodeSettings(): Promise<ClientCodeSettings> {
       throw new Error("Not used by this test.");
     },
     async updateClient(): Promise<Client> {
@@ -112,6 +132,9 @@ test("lists 25 Clients per page with a trimmed search and status filter", async 
       receivedQuery = query;
       return { clients: [], page: query.page, pageSize: query.pageSize, total: 0 };
     },
+    async updateCodeSettings() {
+      throw new Error("Not used by this test.");
+    },
     async updateClient() {
       throw new Error("Not used by this test.");
     },
@@ -148,6 +171,9 @@ test("updates Client state with the version and authenticated actor", async () =
     async listClients(): Promise<ClientList> {
       throw new Error("Not used by this test.");
     },
+    async updateCodeSettings() {
+      throw new Error("Not used by this test.");
+    },
     async updateClient(clientId, input) {
       receivedClientId = clientId;
       receivedInput = input;
@@ -166,4 +192,47 @@ test("updates Client state with the version and authenticated actor", async () =
   assert.deepEqual(receivedInput, { actorUserId: "user-2", isActive: false, version: 1 });
   assert.equal(updatedClient.isActive, false);
   assert.equal(updatedClient.version, 2);
+});
+
+test("updates valid Client code settings with its version and authenticated actor", async () => {
+  let receivedInput: UpdateClientCodeSettingsRecordInput | undefined;
+  const store: ClientStore = {
+    async createClient(): Promise<Client> {
+      throw new Error("Not used by this test.");
+    },
+    async deleteClient() {
+      throw new Error("Not used by this test.");
+    },
+    async getClient() {
+      throw new Error("Not used by this test.");
+    },
+    async getCodeSettings(): Promise<ClientCodeSettings> {
+      throw new Error("Not used by this test.");
+    },
+    async listClients(): Promise<ClientList> {
+      throw new Error("Not used by this test.");
+    },
+    async updateCodeSettings(input) {
+      receivedInput = input;
+      return createCodeSettings();
+    },
+    async updateClient() {
+      throw new Error("Not used by this test.");
+    },
+  };
+  const service = new ClientService(store);
+
+  const settings = await service.updateCodeSettings(
+    { codeLength: 7, nextSequence: 10n, prefix: "CLI", version: 1 },
+    "user-2",
+  );
+
+  assert.deepEqual(receivedInput, {
+    actorUserId: "user-2",
+    codeLength: 7,
+    nextSequence: 10n,
+    prefix: "CLI",
+    version: 1,
+  });
+  assert.equal(settings.nextSequence, 2n);
 });

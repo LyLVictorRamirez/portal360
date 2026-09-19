@@ -117,11 +117,35 @@ class ConcurrentClientsTransaction {
       };
     }
 
-    if (query.includes('update "business"."client_code_settings"')) {
+    if (query.includes('set "next_sequence" = $1')) {
       this.database.settings.nextSequence = BigInt(values[0] as string);
       this.database.settings.version += 1;
 
       return { rowCount: 1, rows: [] };
+    }
+
+    if (query.includes('set "prefix" = $1')) {
+      const [prefix, codeLength, nextSequence] = values as [string, number, string];
+      this.database.settings.prefix = prefix;
+      this.database.settings.codeLength = codeLength;
+      this.database.settings.nextSequence = BigInt(nextSequence);
+      this.database.settings.version += 1;
+
+      return {
+        rowCount: 1,
+        rows: [
+          {
+            code_length: this.database.settings.codeLength,
+            created_at: timestamp,
+            created_by_user_id: null,
+            next_sequence: this.database.settings.nextSequence.toString(),
+            prefix: this.database.settings.prefix,
+            updated_at: timestamp,
+            updated_by_user_id: "user-1",
+            version: this.database.settings.version,
+          },
+        ],
+      };
     }
 
     if (query === "COMMIT" || query === "ROLLBACK") {
@@ -177,6 +201,24 @@ test("rolls back a Client creation when the configured code length is exhausted"
 
   assert.deepEqual(database.clients, []);
   assert.equal(database.settings.nextSequence, 1000n);
+});
+
+test("updates Client code settings after locking their current version", async () => {
+  const database = new ConcurrentClientsDatabase();
+  const repository = new ClientRepository(database);
+
+  const settings = await repository.updateCodeSettings({
+    actorUserId: "user-1",
+    codeLength: 7,
+    nextSequence: 10n,
+    prefix: "CLI",
+    version: 1,
+  });
+
+  assert.equal(settings.prefix, "CLI");
+  assert.equal(settings.codeLength, 7);
+  assert.equal(settings.nextSequence, 10n);
+  assert.equal(settings.version, 2);
 });
 
 test("rejects a stale Client update without overwriting the current version", async () => {

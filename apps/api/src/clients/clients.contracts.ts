@@ -48,6 +48,17 @@ export interface UpdateClientRecordInput extends UpdateClientInput {
   actorUserId: string;
 }
 
+export interface UpdateClientCodeSettingsInput {
+  codeLength: number;
+  nextSequence: bigint;
+  prefix: string;
+  version: number;
+}
+
+export interface UpdateClientCodeSettingsRecordInput extends UpdateClientCodeSettingsInput {
+  actorUserId: string;
+}
+
 export interface ListClientsInput {
   page?: number;
   query?: string;

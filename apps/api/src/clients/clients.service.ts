@@ -10,6 +10,8 @@ import {
   type ListClientsQuery,
   ClientValidationError,
   type UpdateClientInput,
+  type UpdateClientCodeSettingsInput,
+  type UpdateClientCodeSettingsRecordInput,
   type UpdateClientRecordInput,
 } from "./clients.contracts.js";
 import { ClientRepository } from "./clients.repository.js";
@@ -22,6 +24,7 @@ export interface ClientStore {
   getClient(clientId: string): Promise<Client>;
   getCodeSettings(): Promise<ClientCodeSettings>;
   listClients(query: ListClientsQuery): Promise<ClientList>;
+  updateCodeSettings(input: UpdateClientCodeSettingsRecordInput): Promise<ClientCodeSettings>;
   updateClient(clientId: string, input: UpdateClientRecordInput): Promise<Client>;
 }
 
@@ -68,6 +71,16 @@ export class ClientService {
   ): Promise<Client> {
     return this.clientRepository.updateClient(normalizeClientId(clientId), {
       ...normalizeClientUpdate(input),
+      actorUserId: normalizeActorUserId(actorUserId),
+    });
+  }
+
+  async updateCodeSettings(
+    input: UpdateClientCodeSettingsInput,
+    actorUserId: string,
+  ): Promise<ClientCodeSettings> {
+    return this.clientRepository.updateCodeSettings({
+      ...normalizeCodeSettingsUpdate(input),
       actorUserId: normalizeActorUserId(actorUserId),
     });
   }
@@ -149,4 +162,45 @@ function normalizeSearchQuery(value: unknown): string | null {
   }
 
   return value.trim() || null;
+}
+
+function normalizeCodeSettingsUpdate(
+  value: UpdateClientCodeSettingsInput,
+): UpdateClientCodeSettingsInput {
+  if (typeof value !== "object" || value === null) {
+    throw new ClientValidationError("Client code settings update must be an object.");
+  }
+
+  if (typeof value.prefix !== "string" || !/^[A-Z0-9]{1,10}$/.test(value.prefix)) {
+    throw new ClientValidationError(
+      "Client code prefix must contain 1 to 10 uppercase letters or numbers.",
+    );
+  }
+
+  if (
+    !Number.isSafeInteger(value.codeLength) ||
+    value.codeLength < 3 ||
+    value.codeLength > 20 ||
+    value.prefix.length >= value.codeLength
+  ) {
+    throw new ClientValidationError(
+      "Client code length must be between 3 and 20 and leave room for its sequence.",
+    );
+  }
+
+  if (typeof value.nextSequence !== "bigint" || value.nextSequence < 1n) {
+    throw new ClientValidationError("Client next sequence must be a positive integer.");
+  }
+
+  if (value.nextSequence.toString().length > value.codeLength - value.prefix.length) {
+    throw new ClientValidationError(
+      "Client next sequence does not fit the configured code length.",
+    );
+  }
+
+  if (!Number.isSafeInteger(value.version) || value.version < 1) {
+    throw new ClientValidationError("Client code settings version must be a positive integer.");
+  }
+
+  return value;
 }

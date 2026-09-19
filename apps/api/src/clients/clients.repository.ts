@@ -4,6 +4,7 @@ import {
   type Client,
   ClientCodeExhaustedError,
   ClientCodeSettingsNotFoundError,
+  ClientValidationError,
   type ClientCodeSettings,
   type ClientList,
   type CreateClientRecordInput,
@@ -11,6 +12,7 @@ import {
   ClientNotFoundError,
   ClientRelatedRecordsError,
   ClientVersionConflictError,
+  type UpdateClientCodeSettingsRecordInput,
   type UpdateClientRecordInput,
 } from "./clients.contracts.js";
 
@@ -80,6 +82,18 @@ const advanceCodeSettingsSequenceQuery = `
       "updated_by_user_id" = $2,
       "version" = "version" + 1
   where "id" = true
+`;
+
+const updateCodeSettingsQuery = `
+  update "business"."client_code_settings"
+  set "prefix" = $1,
+      "code_length" = $2,
+      "next_sequence" = $3,
+      "updated_at" = current_timestamp,
+      "updated_by_user_id" = $4,
+      "version" = "version" + 1
+  where "id" = true
+  returning ${codeSettingsSelection}
 `;
 
 const findClientByIdQuery = `
@@ -188,6 +202,57 @@ export class ClientRepository {
       await transaction.query("COMMIT");
 
       return readClient(createdRow);
+    } catch (error) {
+      await transaction.query("ROLLBACK");
+      throw error;
+    } finally {
+      transaction.release();
+    }
+  }
+
+  async updateCodeSettings(
+    input: UpdateClientCodeSettingsRecordInput,
+  ): Promise<ClientCodeSettings> {
+    const transaction = await this.database.connect();
+
+    try {
+      await transaction.query("BEGIN");
+      const currentResult = await transaction.query(findCodeSettingsForUpdateQuery);
+      const currentRow = currentResult.rows[0];
+
+      if (!currentRow) {
+        throw new ClientCodeSettingsNotFoundError("Client code settings do not exist.");
+      }
+
+      const currentSettings = readCodeSettings(currentRow);
+
+      if (currentSettings.version !== input.version) {
+        throw new ClientVersionConflictError(
+          "The Client code settings were updated by another person. Reload them before saving again.",
+        );
+      }
+
+      if (input.nextSequence < currentSettings.nextSequence) {
+        throw new ClientValidationError(
+          "The next Client sequence cannot be reduced below the last reserved sequence.",
+        );
+      }
+
+      const updatedResult = await transaction.query(updateCodeSettingsQuery, [
+        input.prefix,
+        input.codeLength,
+        input.nextSequence.toString(),
+        input.actorUserId,
+      ]);
+      const updatedRow = updatedResult.rows[0];
+
+      if (!updatedRow) {
+        throw new Error("The business database did not return the updated Client code settings.");
+      }
+
+      await transaction.query("COMMIT");
+
+      return readCodeSettings(updatedRow);
     } catch (error) {
       await transaction.query("ROLLBACK");
       throw error;

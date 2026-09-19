@@ -20,6 +20,11 @@ class ProtectedController {
   protectedRoute() {}
 }
 
+class ClientProtectedController {
+  @RequirePermissions("clients.manage")
+  protectedRoute() {}
+}
+
 function createExecutionContext(
   request: AuthorizedRequest,
   handler: () => void = ProtectedController.prototype.protectedRoute,
@@ -87,4 +92,23 @@ test("allows a verified session that has every required permission", async () =>
   const guard = new AuthorizationGuard(new Reflector(), contextService);
 
   assert.equal(await guard.canActivate(createExecutionContext(request)), true);
+});
+
+test("allows a Client manager through the Client permission boundary", async () => {
+  const request = { headers: {} } as AuthorizedRequest;
+  const contextService: AuthorizationContextResolver = {
+    resolve: async () => ({
+      authorization: {
+        permissions: ["clients.manage"],
+        roles: [],
+      },
+      userId: "user-1",
+    }),
+  };
+  const guard = new AuthorizationGuard(new Reflector(), contextService);
+
+  assert.equal(
+    await guard.canActivate(createExecutionContext(request, ClientProtectedController.prototype.protectedRoute)),
+    true,
+  );
 });
