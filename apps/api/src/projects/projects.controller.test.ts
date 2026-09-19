@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ConflictException } from "@nestjs/common";
+import { ConflictException, NotFoundException } from "@nestjs/common";
 
 import {
   type CreateProjectInput,
@@ -9,10 +9,12 @@ import {
   type Project,
   type ProjectCodeSettings,
   type ProjectList,
+  ProjectNotFoundError,
   ProjectRelatedRecordsError,
   ProjectVersionConflictError,
 } from "./projects.contracts.js";
 import { ProjectsController, type ProjectsControllerStore } from "./projects.controller.js";
+import { requiredPermissionsMetadataKey } from "../authorization/require-permissions.decorator.js";
 
 const timestamp = new Date("2026-09-19T00:00:00.000Z");
 const requestContext = { authorization: { permissions: [], roles: [] }, userId: "user-1" };
@@ -76,6 +78,20 @@ function createStore(overrides: Partial<ProjectsControllerStore> = {}): Projects
     ...overrides,
   };
 }
+
+test("declares the Project permission boundary for every route", () => {
+  for (const [route, permissions] of [
+    [ProjectsController.prototype.listProjects, ["projects.read"]],
+    [ProjectsController.prototype.createProject, ["projects.manage"]],
+    [ProjectsController.prototype.getCodeSettings, ["projects.settings.manage"]],
+    [ProjectsController.prototype.updateCodeSettings, ["projects.settings.manage"]],
+    [ProjectsController.prototype.getProject, ["projects.read"]],
+    [ProjectsController.prototype.updateProject, ["projects.manage"]],
+    [ProjectsController.prototype.deleteProject, ["projects.manage"]],
+  ]) {
+    assert.deepEqual(Reflect.getMetadata(requiredPermissionsMetadataKey, route), permissions);
+  }
+});
 
 test("lists Projects with the requested pagination, search, Client, and status", async () => {
   let receivedInput: ListProjectsInput | undefined;
@@ -184,6 +200,21 @@ test("maps a stale Project update to HTTP 409", async () => {
         requestContext,
       ),
     (error: unknown) => error instanceof ConflictException && error.getStatus() === 409,
+  );
+});
+
+test("maps a missing Project to HTTP 404", async () => {
+  const controller = new ProjectsController(
+    createStore({
+      async getProject() {
+        throw new ProjectNotFoundError("Project not found.");
+      },
+    }),
+  );
+
+  await assert.rejects(
+    () => controller.getProject("5d676d8c-9939-4a25-bdda-1a4df8b17873"),
+    (error: unknown) => error instanceof NotFoundException && error.getStatus() === 404,
   );
 });
 

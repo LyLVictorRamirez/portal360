@@ -13,9 +13,12 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 
 import { AuthorizationContext } from "../authorization/authorization-context.decorator.js";
+import { AuthorizationGuard } from "../authorization/authorization.guard.js";
+import { RequirePermissions } from "../authorization/require-permissions.decorator.js";
 import type { AuthorizationRequestContext } from "../authorization/authorization.types.js";
 import {
   type CreateProjectInput,
@@ -80,10 +83,12 @@ export interface ProjectsControllerStore {
 }
 
 @Controller("api/projects")
+@UseGuards(AuthorizationGuard)
 export class ProjectsController {
   constructor(@Inject(ProjectService) private readonly projectService: ProjectsControllerStore) {}
 
   @Get()
+  @RequirePermissions("projects.read")
   async listProjects(
     @Query("page") page: string | undefined,
     @Query("query") query: string | undefined,
@@ -106,6 +111,7 @@ export class ProjectsController {
   }
 
   @Post()
+  @RequirePermissions("projects.manage")
   async createProject(
     @Body() body: unknown,
     @AuthorizationContext() context: AuthorizationRequestContext,
@@ -122,6 +128,7 @@ export class ProjectsController {
   }
 
   @Get("settings/code")
+  @RequirePermissions("projects.settings.manage")
   async getCodeSettings(): Promise<{ settings: ProjectCodeSettingsResponse }> {
     try {
       return { settings: toCodeSettingsResponse(await this.projectService.getCodeSettings()) };
@@ -131,6 +138,7 @@ export class ProjectsController {
   }
 
   @Put("settings/code")
+  @RequirePermissions("projects.settings.manage")
   async updateCodeSettings(
     @Body() body: unknown,
     @AuthorizationContext() context: AuthorizationRequestContext,
@@ -150,6 +158,7 @@ export class ProjectsController {
   }
 
   @Get(":projectId")
+  @RequirePermissions("projects.read")
   async getProject(@Param("projectId") projectId: string): Promise<{ project: ProjectResponse }> {
     try {
       return { project: toProjectResponse(await this.projectService.getProject(projectId)) };
@@ -159,6 +168,7 @@ export class ProjectsController {
   }
 
   @Put(":projectId")
+  @RequirePermissions("projects.manage")
   async updateProject(
     @Param("projectId") projectId: string,
     @Body() body: unknown,
@@ -181,6 +191,7 @@ export class ProjectsController {
 
   @Delete(":projectId")
   @HttpCode(HttpStatus.NO_CONTENT)
+  @RequirePermissions("projects.manage")
   async deleteProject(@Param("projectId") projectId: string): Promise<void> {
     try {
       await this.projectService.deleteProject(projectId);
