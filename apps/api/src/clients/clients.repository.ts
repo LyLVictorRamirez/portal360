@@ -8,6 +8,10 @@ import {
   type ClientList,
   type CreateClientRecordInput,
   type ListClientsQuery,
+  ClientNotFoundError,
+  ClientRelatedRecordsError,
+  ClientVersionConflictError,
+  type UpdateClientRecordInput,
 } from "./clients.contracts.js";
 
 export const CLIENTS_DATABASE = Symbol("CLIENTS_DATABASE");
@@ -78,6 +82,29 @@ const advanceCodeSettingsSequenceQuery = `
   where "id" = true
 `;
 
+const findClientByIdQuery = `
+  select ${clientSelection}
+  from "business"."client"
+  where "id" = $1
+`;
+
+const updateClientQuery = `
+  update "business"."client"
+  set "name" = coalesce($2::varchar, "name"),
+      "is_active" = coalesce($3::boolean, "is_active"),
+      "updated_at" = current_timestamp,
+      "updated_by_user_id" = $4,
+      "version" = "version" + 1
+  where "id" = $1 and "version" = $5
+  returning ${clientSelection}
+`;
+
+const deleteClientQuery = `
+  delete from "business"."client"
+  where "id" = $1
+  returning "id"
+`;
+
 const listClientsQuery = `
   select ${clientSelection}
   from "business"."client"
@@ -115,6 +142,17 @@ export class ClientRepository {
     }
 
     return readCodeSettings(row);
+  }
+
+  async getClient(clientId: string): Promise<Client> {
+    const result = await this.database.query(findClientByIdQuery, [clientId]);
+    const row = result.rows[0];
+
+    if (!row) {
+      throw new ClientNotFoundError(`Client ${clientId} does not exist.`);
+    }
+
+    return readClient(row);
   }
 
   async createClient(input: CreateClientRecordInput): Promise<Client> {
@@ -177,6 +215,49 @@ export class ClientRepository {
       pageSize: query.pageSize,
       total: readPositiveOrZeroInteger(countRow.total, "Client count"),
     };
+  }
+
+  async updateClient(clientId: string, input: UpdateClientRecordInput): Promise<Client> {
+    const result = await this.database.query(updateClientQuery, [
+      clientId,
+      input.name ?? null,
+      input.isActive ?? null,
+      input.actorUserId,
+      input.version,
+    ]);
+    const row = result.rows[0];
+
+    if (row) {
+      return readClient(row);
+    }
+
+    const currentResult = await this.database.query(findClientByIdQuery, [clientId]);
+
+    if (!currentResult.rows[0]) {
+      throw new ClientNotFoundError(`Client ${clientId} does not exist.`);
+    }
+
+    throw new ClientVersionConflictError(
+      "The Client was updated by another person. Reload it before saving again.",
+    );
+  }
+
+  async deleteClient(clientId: string): Promise<void> {
+    try {
+      const result = await this.database.query(deleteClientQuery, [clientId]);
+
+      if (!result.rows[0]) {
+        throw new ClientNotFoundError(`Client ${clientId} does not exist.`);
+      }
+    } catch (error) {
+      if (isForeignKeyViolation(error)) {
+        throw new ClientRelatedRecordsError(
+          "A Client with related business records cannot be deleted.",
+        );
+      }
+
+      throw error;
+    }
   }
 }
 
@@ -281,4 +362,13 @@ function readString(value: unknown, field: string): string {
   }
 
   return value;
+}
+
+function isForeignKeyViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23503"
+  );
 }

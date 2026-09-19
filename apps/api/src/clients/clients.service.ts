@@ -9,6 +9,8 @@ import {
   type ListClientsInput,
   type ListClientsQuery,
   ClientValidationError,
+  type UpdateClientInput,
+  type UpdateClientRecordInput,
 } from "./clients.contracts.js";
 import { ClientRepository } from "./clients.repository.js";
 
@@ -16,8 +18,11 @@ const clientListPageSize = 25;
 
 export interface ClientStore {
   createClient(input: CreateClientRecordInput): Promise<Client>;
+  deleteClient(clientId: string): Promise<void>;
+  getClient(clientId: string): Promise<Client>;
   getCodeSettings(): Promise<ClientCodeSettings>;
   listClients(query: ListClientsQuery): Promise<ClientList>;
+  updateClient(clientId: string, input: UpdateClientRecordInput): Promise<Client>;
 }
 
 @Injectable()
@@ -35,6 +40,10 @@ export class ClientService {
     return this.clientRepository.createClient({ actorUserId: actor, name });
   }
 
+  async getClient(clientId: string): Promise<Client> {
+    return this.clientRepository.getClient(normalizeClientId(clientId));
+  }
+
   async listClients(input: ListClientsInput = {}): Promise<ClientList> {
     const page = input.page ?? 1;
 
@@ -50,6 +59,21 @@ export class ClientService {
       pageSize: clientListPageSize,
       query: normalizeSearchQuery(input.query),
     });
+  }
+
+  async updateClient(
+    clientId: string,
+    input: UpdateClientInput,
+    actorUserId: string,
+  ): Promise<Client> {
+    return this.clientRepository.updateClient(normalizeClientId(clientId), {
+      ...normalizeClientUpdate(input),
+      actorUserId: normalizeActorUserId(actorUserId),
+    });
+  }
+
+  async deleteClient(clientId: string): Promise<void> {
+    await this.clientRepository.deleteClient(normalizeClientId(clientId));
   }
 }
 
@@ -73,6 +97,46 @@ function normalizeClientName(value: unknown): string {
   }
 
   return name;
+}
+
+function normalizeClientId(value: unknown): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new ClientValidationError("Client id must be a non-empty string.");
+  }
+
+  return value;
+}
+
+function normalizeClientUpdate(value: UpdateClientInput): UpdateClientInput {
+  if (typeof value !== "object" || value === null) {
+    throw new ClientValidationError("Client update must be an object.");
+  }
+
+  if (!Number.isSafeInteger(value.version) || value.version < 1) {
+    throw new ClientValidationError("Client version must be a positive integer.");
+  }
+
+  const name = value.name === undefined ? undefined : normalizeClientName(value.name);
+
+  if (value.isActive !== undefined && typeof value.isActive !== "boolean") {
+    throw new ClientValidationError("Client active state must be a boolean.");
+  }
+
+  if (name === undefined && value.isActive === undefined) {
+    throw new ClientValidationError("A Client update must change its name or active state.");
+  }
+
+  const update: UpdateClientInput = { version: value.version };
+
+  if (name !== undefined) {
+    update.name = name;
+  }
+
+  if (value.isActive !== undefined) {
+    update.isActive = value.isActive;
+  }
+
+  return update;
 }
 
 function normalizeSearchQuery(value: unknown): string | null {

@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ClientCodeExhaustedError, type Client } from "./clients.contracts.js";
+import {
+  ClientCodeExhaustedError,
+  ClientRelatedRecordsError,
+  ClientVersionConflictError,
+  type Client,
+} from "./clients.contracts.js";
 import {
   ClientRepository,
   type ClientsDatabase,
@@ -172,4 +177,80 @@ test("rolls back a Client creation when the configured code length is exhausted"
 
   assert.deepEqual(database.clients, []);
   assert.equal(database.settings.nextSequence, 1000n);
+});
+
+test("rejects a stale Client update without overwriting the current version", async () => {
+  const queries: Array<{ query: string; values?: unknown[] }> = [];
+  const database: ClientsDatabase = {
+    async connect() {
+      throw new Error("Not used by this test.");
+    },
+    async query(query, values) {
+      queries.push({ query, values });
+
+      if (query.includes('update "business"."client"')) {
+        return { rowCount: 0, rows: [] };
+      }
+
+      if (query.includes('from "business"."client"')) {
+        return {
+          rowCount: 1,
+          rows: [
+            {
+              code: "CLI-001",
+              created_at: timestamp,
+              created_by_user_id: "user-1",
+              id: "f6323093-e2fb-4875-a787-d1542064d138",
+              is_active: true,
+              name: "Cliente Uno",
+              updated_at: timestamp,
+              updated_by_user_id: "user-2",
+              version: 2,
+            },
+          ],
+        };
+      }
+
+      throw new Error(`Unexpected query: ${query}`);
+    },
+  };
+  const repository = new ClientRepository(database);
+
+  await assert.rejects(
+    () =>
+      repository.updateClient("f6323093-e2fb-4875-a787-d1542064d138", {
+        actorUserId: "user-1",
+        isActive: false,
+        version: 1,
+      }),
+    ClientVersionConflictError,
+  );
+  assert.deepEqual(queries[0]?.values, [
+    "f6323093-e2fb-4875-a787-d1542064d138",
+    null,
+    false,
+    "user-1",
+    1,
+  ]);
+});
+
+test("maps a relationship restriction to a controlled Client deletion error", async () => {
+  const database: ClientsDatabase = {
+    async connect() {
+      throw new Error("Not used by this test.");
+    },
+    async query(query) {
+      if (query.includes('delete from "business"."client"')) {
+        throw { code: "23503" };
+      }
+
+      throw new Error(`Unexpected query: ${query}`);
+    },
+  };
+  const repository = new ClientRepository(database);
+
+  await assert.rejects(
+    () => repository.deleteClient("f6323093-e2fb-4875-a787-d1542064d138"),
+    ClientRelatedRecordsError,
+  );
 });
