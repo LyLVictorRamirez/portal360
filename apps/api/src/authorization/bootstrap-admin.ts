@@ -48,7 +48,7 @@ const recordBootstrapAuditEventQuery = `
     'user_role',
     $2,
     null,
-    jsonb_build_object('userId', $1, 'roleKey', 'administrador')
+    jsonb_build_object('userId', $1::text, 'roleKey', 'administrador')
   )
 `;
 
@@ -132,7 +132,10 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1]?.endsWith("bootstrap-admin.ts")) {
+if (
+  process.argv[1]?.endsWith("bootstrap-admin.ts") ||
+  process.argv[1]?.endsWith("bootstrap-admin.js")
+) {
   void main().catch((error: unknown) => {
     console.error("Administrator bootstrap failed.", error);
     process.exitCode = 1;

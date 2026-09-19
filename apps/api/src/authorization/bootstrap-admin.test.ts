@@ -74,6 +74,10 @@ test("promotes a verified user once and records the bootstrap audit event", asyn
     database.client.queries.filter((entry) => entry.query.includes('"audit_event"')).length,
     1,
   );
+  assert.match(
+    database.client.queries.find((entry) => entry.query.includes('"audit_event"'))?.query ?? "",
+    /jsonb_build_object\('userId', \$1::text, 'roleKey', 'administrador'\)/,
+  );
   assert.equal(database.client.released, true);
 });
 

@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Put,
@@ -28,7 +29,10 @@ import type {
 @Controller("api/authorization/users")
 @UseGuards(AuthorizationGuard)
 export class AuthorizationUsersController {
-  constructor(private readonly authorizationUsersService: AuthorizationUsersService) {}
+  constructor(
+    @Inject(AuthorizationUsersService)
+    private readonly authorizationUsersService: AuthorizationUsersService,
+  ) {}
 
   @Get()
   @RequirePermissions("authorization.users.read")

@@ -7,6 +7,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   NotFoundException,
   Param,
   Patch,
@@ -33,7 +34,10 @@ import type {
 @Controller("api/authorization/roles")
 @UseGuards(AuthorizationGuard)
 export class AuthorizationRolesController {
-  constructor(private readonly authorizationRolesService: AuthorizationRolesService) {}
+  constructor(
+    @Inject(AuthorizationRolesService)
+    private readonly authorizationRolesService: AuthorizationRolesService,
+  ) {}
 
   @Get()
   @RequirePermissions("authorization.roles.read")
