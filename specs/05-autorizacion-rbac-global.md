@@ -1,6 +1,6 @@
 # SPEC 05 — Autorización RBAC global parametrizable
 
-> **Status:** Aprobada
+> **Status:** Implementada
 > **Depends on:** SPEC 03, SPEC 04
 > **Date:** 2026-09-18
 > **Objective:** Implementar una autorización RBAC global y parametrizable que asigne múltiples roles a cada persona y controle la administración de usuarios y roles sin sustituir Better Auth.
@@ -47,23 +47,23 @@ Better Auth continúa siendo la fuente de identidad, credenciales y sesiones en 
 
 La autorización se implementará con tablas propias en el esquema `authorization` y referencias a `auth.user(id)`.
 
-| Tabla | Campos principales | Regla |
-| --- | --- | --- |
-| `authorization.permission` | `key`, `name`, `description` | Catálogo fijo sembrado por migración; no tiene CRUD público. |
-| `authorization.role` | `key`, `name`, `description`, `kind`, `is_active`, `is_default`, `created_at`, `updated_at` | `key` es inmutable y único; `kind` acepta `system` o `custom`. |
-| `authorization.role_permission` | `role_key`, `permission_key` | Relación muchos a muchos entre roles y permisos. |
-| `authorization.user_role` | `user_id`, `role_key`, `assigned_at`, `assigned_by_user_id` | Una persona puede tener varios roles; la pareja usuario–rol es única. |
-| `authorization.audit_event` | `id`, `occurred_at`, `event_type`, `actor_user_id`, `subject_type`, `subject_key`, `before_state`, `after_state` | Solo inserciones; conserva el cambio completo y no se expone por HTTP en esta spec. |
-| `authorization.schema_migration` | `name`, `applied_at` | Registra las migraciones SQL propias ejecutadas por el comando de autorización. |
+| Tabla                            | Campos principales                                                                                               | Regla                                                                               |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `authorization.permission`       | `key`, `name`, `description`                                                                                     | Catálogo fijo sembrado por migración; no tiene CRUD público.                        |
+| `authorization.role`             | `key`, `name`, `description`, `kind`, `is_active`, `is_default`, `created_at`, `updated_at`                      | `key` es inmutable y único; `kind` acepta `system` o `custom`.                      |
+| `authorization.role_permission`  | `role_key`, `permission_key`                                                                                     | Relación muchos a muchos entre roles y permisos.                                    |
+| `authorization.user_role`        | `user_id`, `role_key`, `assigned_at`, `assigned_by_user_id`                                                      | Una persona puede tener varios roles; la pareja usuario–rol es única.               |
+| `authorization.audit_event`      | `id`, `occurred_at`, `event_type`, `actor_user_id`, `subject_type`, `subject_key`, `before_state`, `after_state` | Solo inserciones; conserva el cambio completo y no se expone por HTTP en esta spec. |
+| `authorization.schema_migration` | `name`, `applied_at`                                                                                             | Registra las migraciones SQL propias ejecutadas por el comando de autorización.     |
 
 La migración de autorización creará los datos iniciales siguientes:
 
-| Rol | `key` | `kind` | `is_default` | Permisos iniciales |
-| --- | --- | --- | --- | --- |
-| Administrador | `administrador` | `system` | `false` | Todos los permisos del catálogo. |
-| Líder | `lider` | `system` | `false` | `app.access`. |
-| Miembro | `miembro` | `system` | `false` | `app.access`. |
-| Estándar | `estandar` | `system` | `true` | `app.access`, obligatorio e inalterable en su asignación. |
+| Rol           | `key`           | `kind`   | `is_default` | Permisos iniciales                                        |
+| ------------- | --------------- | -------- | ------------ | --------------------------------------------------------- |
+| Administrador | `administrador` | `system` | `false`      | Todos los permisos del catálogo.                          |
+| Líder         | `lider`         | `system` | `false`      | `app.access`.                                             |
+| Miembro       | `miembro`       | `system` | `false`      | `app.access`.                                             |
+| Estándar      | `estandar`      | `system` | `true`       | `app.access`, obligatorio e inalterable en su asignación. |
 
 El catálogo inicial de `authorization.permission` contiene exactamente estas claves:
 
@@ -150,14 +150,14 @@ Las operaciones administrativas escriben `before_state` y `after_state` estructu
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
-| Una instalación no ejecuta la migración de autorización después de la de Better Auth. | El ejecutor registra versiones, valida las tablas requeridas y el procedimiento de despliegue exige ejecutar ambos comandos en orden. |
-| El registro crea una cuenta sin el rol predeterminado por un fallo de integración. | Asignar el rol mediante un flujo idempotente, cubrirlo con pruebas y dejar la cuenta sin acceso privado mientras no tenga `app.access`. |
-| Un cambio administrativo bloquea a todos los administradores. | Rechazar en transacción los cambios que dejen sin una persona con `authorization.roles.manage`. |
-| Un Administrador amplía accidentalmente los privilegios del rol Estándar. | Conservar obligatoriamente `app.access`, auditar el cambio y comunicar que los permisos de roles de sistema modifican el acceso de las cuentas presentes y futuras. |
-| La consulta de permisos en cada solicitud añade carga a PostgreSQL. | Añadir índices a las relaciones de asignación y permisos; no introducir caché hasta contar con mediciones reales. |
-| La bitácora crece sin una política de retención. | Mantenerla fuera de interfaz en esta fase y definir retención, exportación o alertas en una spec de auditoría posterior. |
+| Riesgo                                                                                | Mitigación                                                                                                                                                          |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Una instalación no ejecuta la migración de autorización después de la de Better Auth. | El ejecutor registra versiones, valida las tablas requeridas y el procedimiento de despliegue exige ejecutar ambos comandos en orden.                               |
+| El registro crea una cuenta sin el rol predeterminado por un fallo de integración.    | Asignar el rol mediante un flujo idempotente, cubrirlo con pruebas y dejar la cuenta sin acceso privado mientras no tenga `app.access`.                             |
+| Un cambio administrativo bloquea a todos los administradores.                         | Rechazar en transacción los cambios que dejen sin una persona con `authorization.roles.manage`.                                                                     |
+| Un Administrador amplía accidentalmente los privilegios del rol Estándar.             | Conservar obligatoriamente `app.access`, auditar el cambio y comunicar que los permisos de roles de sistema modifican el acceso de las cuentas presentes y futuras. |
+| La consulta de permisos en cada solicitud añade carga a PostgreSQL.                   | Añadir índices a las relaciones de asignación y permisos; no introducir caché hasta contar con mediciones reales.                                                   |
+| La bitácora crece sin una política de retención.                                      | Mantenerla fuera de interfaz en esta fase y definir retención, exportación o alertas en una spec de auditoría posterior.                                            |
 
 ## Qué **no** está en esta spec
 
