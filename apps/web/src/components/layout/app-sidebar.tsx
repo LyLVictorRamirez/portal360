@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Shield, Users, X } from "lucide-react";
+import { Building2, Home, Settings2, Shield, Users, X } from "lucide-react";
 import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
-import { getVisibleAdministrationNavigation } from "../../lib/administration-navigation";
+import {
+  getVisibleAdministrationNavigation,
+  getVisibleClientNavigation,
+} from "../../lib/administration-navigation";
 import type { AuthorizationPermission } from "../../lib/authorization";
 import { IconButton } from "../ui/icon-button";
 import { Portal360Mark } from "../ui/portal-360-mark";
@@ -19,8 +22,13 @@ const primaryNavigation = [
 ];
 
 const administrationNavigationIcons = {
+  "client-code-settings": Settings2,
   roles: Shield,
   users: Users,
+};
+
+const clientNavigationIcons = {
+  clients: Building2,
 };
 
 type AppSidebarProps = Readonly<{
@@ -64,6 +72,7 @@ function SidebarContent({
 }: SidebarContentProps) {
   const pathname = usePathname();
   const visibleAdministrationNavigation = getVisibleAdministrationNavigation(permissions);
+  const visibleClientNavigation = getVisibleClientNavigation(permissions);
 
   return (
     <>
@@ -93,6 +102,34 @@ function SidebarContent({
       <nav aria-label="Navegación principal" className="flex-1 px-3 py-5">
         <ul className="space-y-1">
           {primaryNavigation.map(({ href, icon: Icon, label }) => {
+            const isActive = isCurrentRoute(pathname, href);
+
+            return (
+              <li key={href}>
+                <Link
+                  aria-current={isActive ? "page" : undefined}
+                  aria-label={label}
+                  data-sidebar-nav-link
+                  className={`flex h-11 items-center rounded-r-md border-l-2 text-sm font-medium transition-colors duration-150 ${
+                    collapsed ? "justify-center px-0" : "gap-3 px-4"
+                  } ${
+                    isActive
+                      ? "border-primary bg-surface-selected text-foreground"
+                      : "border-transparent text-muted hover:bg-surface-muted hover:text-foreground"
+                  }`}
+                  href={href}
+                  onClick={onNavigate}
+                >
+                  <Icon aria-hidden="true" size={18} strokeWidth={1.75} />
+                  <span data-sidebar-nav-label className={collapsed ? "sr-only" : undefined}>
+                    {label}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+          {visibleClientNavigation.map(({ href, id, label }) => {
+            const Icon = clientNavigationIcons[id];
             const isActive = isCurrentRoute(pathname, href);
 
             return (

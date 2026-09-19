@@ -1,5 +1,8 @@
 export const authorizationPermissionKeys = [
   "app.access",
+  "clients.read",
+  "clients.manage",
+  "clients.settings.manage",
   "authorization.users.read",
   "authorization.users.manage",
   "authorization.roles.read",
