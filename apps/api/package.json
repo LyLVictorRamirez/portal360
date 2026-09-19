@@ -12,6 +12,7 @@
     "auth:generate": "pnpm exec auth generate",
     "auth:migrate": "pnpm exec auth migrate",
     "authorization:migrate": "tsx src/authorization/migrate.ts",
+    "business:migrate": "tsx src/business/migrate.ts",
     "authorization:bootstrap-admin": "tsx src/authorization/bootstrap-admin.ts"
   },
   "dependencies": {

@@ -215,3 +215,8 @@ Una Spec permanece en **Draft** hasta aprobación explícita y solo puede consid
 - Trazabilidad sin convertir el sistema en vigilancia individual.
 - Soluciones simples, mantenibles y verificables.
 - Añadir complejidad solo cuando una necesidad real la justifique.
+
+
+## Base modelo de datos
+
+En el archivo /specs/docs/modelo-datos.md se encuentran algunas propuestas trabajadas al modelo de datos

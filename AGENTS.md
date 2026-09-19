@@ -1,35 +1,74 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
+## Overview and Structure
 
-Portal 360 is a pnpm workspace monorepo. `apps/web` contains the Next.js App Router frontend; route files live in `apps/web/src/app`. `apps/api` contains the NestJS API, with the bootstrap in `src/main.ts`, modules in `src/*.module.ts`, and controllers in `src/*.controller.ts`. Shared packages do not exist yet—add one only when real reuse justifies it. Project decisions and delivery scope live in `specs/`; read the relevant approved spec before changing behavior.
+Portal 360 is an internal work-management application. It is a pnpm workspace monorepo:
 
-Generated output (`.next/`, `dist/`, `coverage/`, `node_modules/`) is ignored. Never commit real `.env` files. Use `apps/api/.env.example` as the safe template for `DATABASE_URL`.
+- `apps/web`: Next.js App Router frontend. Routes live in `src/app`, reusable UI in
+  `src/components`, and client/server helpers in `src/lib`.
+- `apps/api`: NestJS modular-monolith API. Bootstrap is `src/main.ts`; authorization code lives in
+  `src/authorization`; database migrations live in `migrations/`.
+- `specs`: the functional source of truth for delivery scope and decisions. Read the relevant spec
+  before changing behavior. Implement only specs whose status permits development.
 
-## Build, Test, and Development Commands
+`apps/web/AGENTS.md` contains additional, mandatory Next.js guidance. Read it before modifying the
+frontend. Do not introduce a shared package, microservice, CQRS, event sourcing, queue, or another
+architectural layer without a demonstrated requirement.
 
-Use Node `24.21.0` and pnpm `12.4.1`, both pinned in the root files. Run commands from the repository root:
+## Local Development
+
+Use Node `24.21.0` and pnpm `12.4.1`, as pinned in `.nvmrc` and `package.json`. Run commands from
+the repository root:
 
 ```powershell
-corepack pnpm install --frozen-lockfile  # reproducible install
-corepack pnpm dev                        # web :3000 and API :3001
-corepack pnpm lint                       # lint every app
-corepack pnpm typecheck                  # TypeScript checks
-corepack pnpm test                       # Node test runner per app
-corepack pnpm build                      # production builds
-corepack pnpm format:check               # verify Prettier formatting
+corepack pnpm install --frozen-lockfile
+corepack pnpm dev
+corepack pnpm lint
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm build
+corepack pnpm format:check
 ```
 
-Run one application with `corepack pnpm --filter @portal-360/web dev` or `@portal-360/api`.
+Run one app with `corepack pnpm --filter @portal-360/web <script>` or
+`corepack pnpm --filter @portal-360/api <script>`. The web app runs on port 3000 and the API on
+port 3001.
 
-## Coding Style & Naming Conventions
+The API uses Better Auth for identity and its own PostgreSQL `authorization` schema for RBAC.
+When database-backed work is involved, use the provided scripts deliberately:
 
-Use TypeScript, double quotes, semicolons, trailing commas, and 100-column lines; Prettier enforces these choices. ESLint applies the shared JavaScript and TypeScript recommended rules. Use kebab-case for new filenames when a framework does not impose a convention. Nest classes use PascalCase (`AppModule`); controller and module filenames use `*.controller.ts` and `*.module.ts`. Keep UI routes inside `src/app` and avoid premature shared abstractions.
+```powershell
+corepack pnpm --filter @portal-360/api auth:migrate
+corepack pnpm --filter @portal-360/api authorization:migrate
+corepack pnpm --filter @portal-360/api authorization:bootstrap-admin <verified-email>
+```
 
-## Testing Guidelines
+Never commit `.env` files, credentials, or generated output (`node_modules`, `.next`, `dist`,
+`coverage`, `.test-dist`). Use each app's `.env.example` as the safe template.
 
-Tests run through Node's built-in test runner. Add focused `*.test.ts` files alongside the unit they cover when test coverage is introduced. There is no coverage threshold yet. Always run `lint`, `typecheck`, `test`, and `build` before requesting review.
+## Engineering Conventions
 
-## Commit & Pull Request Guidelines
+- Use TypeScript, double quotes, semicolons, trailing commas, and 100-column lines. Let Prettier
+  and ESLint enforce formatting rather than making unrelated formatting changes.
+- Use kebab-case for new filenames unless the framework requires a different name. Nest classes are
+  PascalCase; Nest modules and controllers use `*.module.ts` and `*.controller.ts`.
+- Keep UI routes in `apps/web/src/app`; do not bypass the application's typed helpers and shared UI
+  components when a suitable one already exists.
+- Add focused `*.test.ts` tests alongside the unit or behavior changed. Tests use Node's built-in
+  test runner.
+- Preserve authorization boundaries: Better Auth owns identity, credentials, and sessions; Portal
+  360 RBAC owns role and permission data. Do not place authorization claims in sessions or expose
+  audit data unless a spec explicitly requires it.
+- Treat migrations and authorization changes as security-sensitive. Preserve idempotency,
+  transactional integrity, least privilege, and the documented system-role invariants.
 
-Current history uses `SpecNN - Paso NN Descripción breve` (for example, `Spec01 - Paso 03 Crear apps/api`). Keep commits scoped to one implementation step. Pull requests should state the linked spec or issue, summarize behavior and validation commands, and include screenshots for visible frontend changes. Do not commit generated files, secrets, or unrelated formatting changes.
+## Delivery Workflow
+
+Before requesting review, run the relevant focused tests and, for a complete implementation,
+`lint`, `typecheck`, `test`, `build`, and `format:check` from the root. Report any validation not
+run and why.
+
+Keep commits scoped to one implementation step. Follow the existing convention:
+`SpecNN - Paso NN Descripción breve`. Pull requests should identify the relevant spec, summarize the
+behavior and validation, and include screenshots for visible frontend changes. Do not include
+unrelated edits.
