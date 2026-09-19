@@ -55,7 +55,12 @@ Los datos de negocio de esta entrega se almacenan en el esquema `business`.
 
 Las futuras tablas que relacionen un Cliente guardarán `client_id uuid not null references business.client(id) on delete restrict`.
 
-Los campos `created_by_user_id` y `updated_by_user_id` serán `text not null references auth.user(id) on delete restrict`.
+Los campos de actor de `business.client` serán `text not null references auth.user(id) on delete restrict`.
+
+Los campos `created_by_user_id` y `updated_by_user_id` de `business.client_code_settings`
+podrán ser nulos únicamente en la fila inicial sembrada por la migración, porque una instalación
+nueva todavía no tiene un usuario al cual atribuirla. Toda actualización posterior de la
+configuración guardará ambos actores como referencias no nulas a `auth.user(id)`.
 
 El nombre se almacenará en `varchar(200)`, será obligatorio después de eliminar espacios externos y podrá repetirse.
 

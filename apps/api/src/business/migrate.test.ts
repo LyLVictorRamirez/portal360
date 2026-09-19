@@ -6,6 +6,40 @@ import test from "node:test";
 
 import { readBusinessMigrations, runBusinessMigrations } from "./migrate.js";
 
+test("defines the business client schema and initial CLI-001 configuration", async () => {
+  const migrations = await readBusinessMigrations();
+
+  assert.deepEqual(
+    migrations.map((migration) => migration.name),
+    ["0003-business-clients.sql"],
+  );
+
+  const [migration] = migrations;
+
+  assert.match(migration.sql, /create extension if not exists pgcrypto/i);
+  assert.match(migration.sql, /create schema if not exists "business"/i);
+
+  for (const table of ["client", "client_code_settings"]) {
+    assert.match(migration.sql, new RegExp(`create table "business"\\."${table}"`, "i"));
+  }
+
+  assert.match(migration.sql, /"id" uuid primary key default gen_random_uuid\(\)/i);
+  assert.match(migration.sql, /"code" varchar\(21\) not null unique/i);
+  assert.match(migration.sql, /client_prevent_code_mutation/i);
+  assert.match(migration.sql, /client_name_trimmed_check/i);
+  assert.match(migration.sql, /client_version_positive_check/i);
+  assert.match(migration.sql, /on delete restrict/i);
+  assert.match(migration.sql, /"prefix" ~ '\^\[A-Z0-9\]\{1,10\}\$'/);
+  assert.match(migration.sql, /"code_length" between 3 and 20/i);
+  assert.match(migration.sql, /"next_sequence" > 0/i);
+  assert.match(migration.sql, /client_code_settings_enforce_lifecycle/i);
+  assert.match(
+    migration.sql,
+    /values \(true, 'CLI', 6, 1\)\s*on conflict \("id"\) do nothing/i,
+  );
+  assert.doesNotMatch(migration.sql, /"authorization"/i);
+});
+
 test("reads only business migrations in filename order", async () => {
   const directory = await mkdtemp(join(tmpdir(), "portal-360-business-migrations-"));
 
