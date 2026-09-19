@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Home, Settings2, Shield, Users, X } from "lucide-react";
+import { Building2, FolderKanban, Home, Settings2, Shield, Users, X } from "lucide-react";
 import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import {
   getVisibleAdministrationNavigation,
-  getVisibleClientNavigation,
+  getVisibleBusinessNavigation,
 } from "../../lib/administration-navigation";
 import type { AuthorizationPermission } from "../../lib/authorization";
 import { IconButton } from "../ui/icon-button";
@@ -22,13 +22,14 @@ const primaryNavigation = [
 ];
 
 const administrationNavigationIcons = {
-  "client-code-settings": Settings2,
+  "code-settings": Settings2,
   roles: Shield,
   users: Users,
 };
 
-const clientNavigationIcons = {
+const businessNavigationIcons = {
   clients: Building2,
+  projects: FolderKanban,
 };
 
 type AppSidebarProps = Readonly<{
@@ -72,7 +73,7 @@ function SidebarContent({
 }: SidebarContentProps) {
   const pathname = usePathname();
   const visibleAdministrationNavigation = getVisibleAdministrationNavigation(permissions);
-  const visibleClientNavigation = getVisibleClientNavigation(permissions);
+  const visibleBusinessNavigation = getVisibleBusinessNavigation(permissions);
 
   return (
     <>
@@ -128,8 +129,8 @@ function SidebarContent({
               </li>
             );
           })}
-          {visibleClientNavigation.map(({ href, id, label }) => {
-            const Icon = clientNavigationIcons[id];
+          {visibleBusinessNavigation.map(({ href, id, label }) => {
+            const Icon = businessNavigationIcons[id];
             const isActive = isCurrentRoute(pathname, href);
 
             return (

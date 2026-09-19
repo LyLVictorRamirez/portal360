@@ -3,7 +3,7 @@ import test from "node:test";
 
 import {
   getVisibleAdministrationNavigation,
-  getVisibleClientNavigation,
+  getVisibleBusinessNavigation,
 } from "./administration-navigation.ts";
 
 test("hides the administration section without an authorization permission", () => {
@@ -36,9 +36,9 @@ test("shows both administration options when their permissions are present", () 
   );
 });
 
-test("shows Clientes only to people with Client reading permission", () => {
-  assert.deepEqual(getVisibleClientNavigation(["app.access"]), []);
-  assert.deepEqual(getVisibleClientNavigation(["app.access", "clients.read"]), [
+test("shows Clientes and Proyectos only to people with their reading permission", () => {
+  assert.deepEqual(getVisibleBusinessNavigation(["app.access"]), []);
+  assert.deepEqual(getVisibleBusinessNavigation(["app.access", "clients.read"]), [
     {
       href: "/clientes",
       id: "clients",
@@ -46,14 +46,28 @@ test("shows Clientes only to people with Client reading permission", () => {
       permissionKeys: ["clients.read"],
     },
   ]);
+  assert.deepEqual(getVisibleBusinessNavigation(["app.access", "projects.read"]), [
+    {
+      href: "/proyectos",
+      id: "projects",
+      label: "Proyectos",
+      permissionKeys: ["projects.read"],
+    },
+  ]);
 });
 
-test("shows Client code settings only to people with its dedicated permission", () => {
+test("shows the single code settings entry with either dedicated permission", () => {
   assert.deepEqual(getVisibleAdministrationNavigation(["app.access", "clients.read"]), []);
   assert.deepEqual(
     getVisibleAdministrationNavigation(["app.access", "clients.settings.manage"]).map(
       (item) => item.id,
     ),
-    ["client-code-settings"],
+    ["code-settings"],
+  );
+  assert.deepEqual(
+    getVisibleAdministrationNavigation(["app.access", "projects.settings.manage"]).map(
+      (item) => item.id,
+    ),
+    ["code-settings"],
   );
 });

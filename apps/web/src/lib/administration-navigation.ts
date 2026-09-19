@@ -2,24 +2,24 @@ import type { AuthorizationPermission } from "./authorization.ts";
 
 type AdministrationNavigationItem = Readonly<{
   href: string;
-  id: "client-code-settings" | "roles" | "users";
+  id: "code-settings" | "roles" | "users";
   label: string;
   permissionKeys: readonly AuthorizationPermission[];
 }>;
 
-type ClientNavigationItem = Readonly<{
-  href: "/clientes";
-  id: "clients";
-  label: "Clientes";
-  permissionKeys: readonly ["clients.read"];
+type BusinessNavigationItem = Readonly<{
+  href: "/clientes" | "/proyectos";
+  id: "clients" | "projects";
+  label: "Clientes" | "Proyectos";
+  permissionKeys: readonly AuthorizationPermission[];
 }>;
 
 const administrationNavigation = [
   {
-    href: "/administracion/configuracion/clientes",
-    id: "client-code-settings",
-    label: "Códigos de Clientes",
-    permissionKeys: ["clients.settings.manage"],
+    href: "/administracion/configuracion/codigos",
+    id: "code-settings",
+    label: "Códigos",
+    permissionKeys: ["clients.settings.manage", "projects.settings.manage"],
   },
   {
     href: "/administracion/usuarios",
@@ -35,14 +35,20 @@ const administrationNavigation = [
   },
 ] as const satisfies readonly AdministrationNavigationItem[];
 
-const clientNavigation = [
+const businessNavigation = [
   {
     href: "/clientes",
     id: "clients",
     label: "Clientes",
     permissionKeys: ["clients.read"],
   },
-] as const satisfies readonly ClientNavigationItem[];
+  {
+    href: "/proyectos",
+    id: "projects",
+    label: "Proyectos",
+    permissionKeys: ["projects.read"],
+  },
+] as const satisfies readonly BusinessNavigationItem[];
 
 export function getVisibleAdministrationNavigation(
   permissions: readonly AuthorizationPermission[],
@@ -52,10 +58,10 @@ export function getVisibleAdministrationNavigation(
   );
 }
 
-export function getVisibleClientNavigation(
+export function getVisibleBusinessNavigation(
   permissions: readonly AuthorizationPermission[],
-): readonly ClientNavigationItem[] {
-  return clientNavigation.filter(({ permissionKeys }) =>
+): readonly BusinessNavigationItem[] {
+  return businessNavigation.filter(({ permissionKeys }) =>
     permissionKeys.some((permission) => permissions.includes(permission)),
   );
 }
