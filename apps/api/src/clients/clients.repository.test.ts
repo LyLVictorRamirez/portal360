@@ -4,13 +4,11 @@ import test from "node:test";
 import {
   ClientCodeExhaustedError,
   ClientRelatedRecordsError,
+  ClientValidationError,
   ClientVersionConflictError,
   type Client,
 } from "./clients.contracts.js";
-import {
-  ClientRepository,
-  type ClientsDatabase,
-} from "./clients.repository.js";
+import { ClientRepository, type ClientsDatabase } from "./clients.repository.js";
 
 const timestamp = new Date("2026-09-18T00:00:00.000Z");
 
@@ -177,10 +175,7 @@ test("reserves a distinct Client code for simultaneous creations", async () => {
     repository.createClient({ actorUserId: "user-2", name: "Cliente Dos" }),
   ]);
 
-  assert.deepEqual(
-    clients.map((client) => client.code).sort(),
-    ["CLI-001", "CLI-002"],
-  );
+  assert.deepEqual(clients.map((client) => client.code).sort(), ["CLI-001", "CLI-002"]);
   assert.equal(new Set(database.clients.map((client) => client.code)).size, 2);
   assert.equal(database.settings.nextSequence, 3n);
 });
@@ -219,6 +214,42 @@ test("updates Client code settings after locking their current version", async (
   assert.equal(settings.codeLength, 7);
   assert.equal(settings.nextSequence, 10n);
   assert.equal(settings.version, 2);
+});
+
+test("rejects stale settings and prevents lowering the reserved Client sequence", async () => {
+  const database = new ConcurrentClientsDatabase({
+    codeLength: 6,
+    nextSequence: 12n,
+    prefix: "CLI",
+    version: 4,
+  });
+  const repository = new ClientRepository(database);
+
+  await assert.rejects(
+    () =>
+      repository.updateCodeSettings({
+        actorUserId: "user-1",
+        codeLength: 7,
+        nextSequence: 12n,
+        prefix: "CLI",
+        version: 3,
+      }),
+    ClientVersionConflictError,
+  );
+  await assert.rejects(
+    () =>
+      repository.updateCodeSettings({
+        actorUserId: "user-1",
+        codeLength: 7,
+        nextSequence: 11n,
+        prefix: "CLI",
+        version: 4,
+      }),
+    ClientValidationError,
+  );
+
+  assert.equal(database.settings.nextSequence, 12n);
+  assert.equal(database.settings.version, 4);
 });
 
 test("rejects a stale Client update without overwriting the current version", async () => {

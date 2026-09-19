@@ -236,3 +236,51 @@ test("updates valid Client code settings with its version and authenticated acto
   });
   assert.equal(settings.nextSequence, 2n);
 });
+
+test("rejects an invalid Client code configuration before it reaches storage", async () => {
+  let updateAttempts = 0;
+  const store = {
+    async createClient(): Promise<Client> {
+      throw new Error("Not used by this test.");
+    },
+    async deleteClient(): Promise<void> {
+      throw new Error("Not used by this test.");
+    },
+    async getClient(): Promise<Client> {
+      throw new Error("Not used by this test.");
+    },
+    async getCodeSettings(): Promise<ClientCodeSettings> {
+      throw new Error("Not used by this test.");
+    },
+    async listClients(): Promise<ClientList> {
+      throw new Error("Not used by this test.");
+    },
+    async updateCodeSettings(): Promise<ClientCodeSettings> {
+      updateAttempts += 1;
+      throw new Error("Not used by this test.");
+    },
+    async updateClient(): Promise<Client> {
+      throw new Error("Not used by this test.");
+    },
+  } satisfies ClientStore;
+  const service = new ClientService(store);
+
+  await assert.rejects(
+    () =>
+      service.updateCodeSettings(
+        { codeLength: 6, nextSequence: 2n, prefix: "cli", version: 1 },
+        "user-1",
+      ),
+    ClientValidationError,
+  );
+  await assert.rejects(
+    () =>
+      service.updateCodeSettings(
+        { codeLength: 6, nextSequence: 1000n, prefix: "CLI", version: 1 },
+        "user-1",
+      ),
+    ClientValidationError,
+  );
+
+  assert.equal(updateAttempts, 0);
+});

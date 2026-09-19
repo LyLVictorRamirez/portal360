@@ -7,14 +7,12 @@ import {
   type Client,
   type ClientCodeSettings,
   type ClientList,
+  ClientRelatedRecordsError,
   ClientVersionConflictError,
   type ListClientsInput,
   type UpdateClientCodeSettingsInput,
 } from "./clients.contracts.js";
-import {
-  ClientsController,
-  type ClientsControllerStore,
-} from "./clients.controller.js";
+import { ClientsController, type ClientsControllerStore } from "./clients.controller.js";
 
 const timestamp = new Date("2026-09-19T00:00:00.000Z");
 const requestContext = { authorization: { permissions: [], roles: [] }, userId: "user-1" };
@@ -147,6 +145,21 @@ test("maps a stale Client update to HTTP 409", async () => {
         { isActive: false, version: 1 },
         requestContext,
       ),
+    (error: unknown) => error instanceof ConflictException && error.getStatus() === 409,
+  );
+});
+
+test("maps deletion blocked by Client relations to HTTP 409", async () => {
+  const controller = new ClientsController(
+    createStore({
+      async deleteClient() {
+        throw new ClientRelatedRecordsError("Disable the Client instead.");
+      },
+    }),
+  );
+
+  await assert.rejects(
+    () => controller.deleteClient("f6323093-e2fb-4875-a787-d1542064d138"),
     (error: unknown) => error instanceof ConflictException && error.getStatus() === 409,
   );
 });
