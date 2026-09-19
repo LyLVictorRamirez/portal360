@@ -45,11 +45,11 @@ La identidad de los actores sigue perteneciendo a `auth.user` y la autorización
 
 Los datos de negocio de esta entrega se almacenan en el esquema `business`.
 
-| Tabla | Campos principales | Reglas |
-| --- | --- | --- |
-| `business.client` | `id`, `code`, `name`, `is_active`, `version`, `created_at`, `created_by_user_id`, `updated_at`, `updated_by_user_id` | `id` es UUID y clave primaria; `code` es único e inmutable; `name` admite duplicados; `version` controla concurrencia. |
-| `business.client_code_settings` | `id`, `prefix`, `code_length`, `next_sequence`, `version`, `created_at`, `created_by_user_id`, `updated_at`, `updated_by_user_id` | Solo existe una fila con `id = true`; controla los futuros códigos y no reescribe códigos existentes. |
-| `business.schema_migration` | `name`, `applied_at` | Registra las migraciones propias aplicadas por `business:migrate`. |
+| Tabla                           | Campos principales                                                                                                                | Reglas                                                                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `business.client`               | `id`, `code`, `name`, `is_active`, `version`, `created_at`, `created_by_user_id`, `updated_at`, `updated_by_user_id`              | `id` es UUID y clave primaria; `code` es único e inmutable; `name` admite duplicados; `version` controla concurrencia. |
+| `business.client_code_settings` | `id`, `prefix`, `code_length`, `next_sequence`, `version`, `created_at`, `created_by_user_id`, `updated_at`, `updated_by_user_id` | Solo existe una fila con `id = true`; controla los futuros códigos y no reescribe códigos existentes.                  |
+| `business.schema_migration`     | `name`, `applied_at`                                                                                                              | Registra las migraciones propias aplicadas por `business:migrate`.                                                     |
 
 `business.client.id` será `uuid` con valor generado por PostgreSQL mediante `gen_random_uuid()`.
 
@@ -91,23 +91,23 @@ Los campos técnicos indican quién y cuándo creó o actualizó un registro exi
 
 El catálogo RBAC se amplía con estas claves:
 
-| Permiso | Asignación inicial | Uso |
-| --- | --- | --- |
-| `clients.read` | `administrador`, `lider`, `miembro` | Consultar el listado, el detalle y Clientes inactivos. |
-| `clients.manage` | `administrador`, `lider` | Crear, editar, activar, desactivar y eliminar Clientes. |
-| `clients.settings.manage` | `administrador` | Consultar y cambiar la configuración de códigos. |
+| Permiso                   | Asignación inicial                  | Uso                                                     |
+| ------------------------- | ----------------------------------- | ------------------------------------------------------- |
+| `clients.read`            | `administrador`, `lider`, `miembro` | Consultar el listado, el detalle y Clientes inactivos.  |
+| `clients.manage`          | `administrador`, `lider`            | Crear, editar, activar, desactivar y eliminar Clientes. |
+| `clients.settings.manage` | `administrador`                     | Consultar y cambiar la configuración de códigos.        |
 
 Las rutas HTTP serán:
 
-| Método y ruta | Permiso | Comportamiento |
-| --- | --- | --- |
-| `GET /api/clients` | `clients.read` | Lista paginada con búsqueda por código o nombre y filtro de estado. |
-| `POST /api/clients` | `clients.manage` | Crea un Cliente con código reservado y devuelve su versión inicial. |
-| `GET /api/clients/:clientId` | `clients.read` | Devuelve el detalle de un Cliente. |
-| `PUT /api/clients/:clientId` | `clients.manage` | Actualiza el nombre o estado cuando la versión enviada coincide. |
-| `DELETE /api/clients/:clientId` | `clients.manage` | Elimina definitivamente un Cliente sin relaciones. |
-| `GET /api/clients/settings/code` | `clients.settings.manage` | Devuelve la configuración actual. |
-| `PUT /api/clients/settings/code` | `clients.settings.manage` | Actualiza la configuración cuando la versión enviada coincide. |
+| Método y ruta                    | Permiso                   | Comportamiento                                                      |
+| -------------------------------- | ------------------------- | ------------------------------------------------------------------- |
+| `GET /api/clients`               | `clients.read`            | Lista paginada con búsqueda por código o nombre y filtro de estado. |
+| `POST /api/clients`              | `clients.manage`          | Crea un Cliente con código reservado y devuelve su versión inicial. |
+| `GET /api/clients/:clientId`     | `clients.read`            | Devuelve el detalle de un Cliente.                                  |
+| `PUT /api/clients/:clientId`     | `clients.manage`          | Actualiza el nombre o estado cuando la versión enviada coincide.    |
+| `DELETE /api/clients/:clientId`  | `clients.manage`          | Elimina definitivamente un Cliente sin relaciones.                  |
+| `GET /api/clients/settings/code` | `clients.settings.manage` | Devuelve la configuración actual.                                   |
+| `PUT /api/clients/settings/code` | `clients.settings.manage` | Actualiza la configuración cuando la versión enviada coincide.      |
 
 Una solicitud sin sesión recibe `401`.
 
@@ -171,14 +171,14 @@ Una actualización que use una versión obsoleta recibe `409 Conflict` con un er
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
-| Dos creaciones concurrentes intentan usar el mismo consecutivo. | Reservar consecutivo y crear Cliente dentro de una sola transacción con bloqueo y conservar una restricción única sobre `code`. |
+| Riesgo                                                                            | Mitigación                                                                                                                                          |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dos creaciones concurrentes intentan usar el mismo consecutivo.                   | Reservar consecutivo y crear Cliente dentro de una sola transacción con bloqueo y conservar una restricción única sobre `code`.                     |
 | La configuración deja el consecutivo sin espacio dentro de la longitud permitida. | Validar prefijo, longitud y siguiente consecutivo al guardar; rechazar nuevas creaciones al agotar los dígitos y comunicar la ampliación necesaria. |
-| Un despliegue omite la migración de negocio. | Exponer `business:migrate`, registrar las versiones aplicadas y documentar su ejecución después de las migraciones de autenticación y autorización. |
-| Un Usuario elimina un Cliente que posteriormente tenga trabajo asociado. | Declarar en las futuras relaciones `on delete restrict`, mapear el rechazo a un error controlado y ofrecer desactivación como alternativa. |
-| Dos personas editan el mismo Cliente o configuración. | Exigir la versión actual y devolver `409 Conflict` sin sobrescribir el registro. |
-| El permiso de configuración se concede a un rol adicional. | Mostrar la ruta según `clients.settings.manage`; la asignación inicial queda solo en Administrador y cambios posteriores son trazables por RBAC. |
+| Un despliegue omite la migración de negocio.                                      | Exponer `business:migrate`, registrar las versiones aplicadas y documentar su ejecución después de las migraciones de autenticación y autorización. |
+| Un Usuario elimina un Cliente que posteriormente tenga trabajo asociado.          | Declarar en las futuras relaciones `on delete restrict`, mapear el rechazo a un error controlado y ofrecer desactivación como alternativa.          |
+| Dos personas editan el mismo Cliente o configuración.                             | Exigir la versión actual y devolver `409 Conflict` sin sobrescribir el registro.                                                                    |
+| El permiso de configuración se concede a un rol adicional.                        | Mostrar la ruta según `clients.settings.manage`; la asignación inicial queda solo en Administrador y cambios posteriores son trazables por RBAC.    |
 
 ## Qué **no** está en esta spec
 

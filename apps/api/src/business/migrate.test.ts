@@ -33,10 +33,7 @@ test("defines the business client schema and initial CLI-001 configuration", asy
   assert.match(migration.sql, /"code_length" between 3 and 20/i);
   assert.match(migration.sql, /"next_sequence" > 0/i);
   assert.match(migration.sql, /client_code_settings_enforce_lifecycle/i);
-  assert.match(
-    migration.sql,
-    /values \(true, 'CLI', 6, 1\)\s*on conflict \("id"\) do nothing/i,
-  );
+  assert.match(migration.sql, /values \(true, 'CLI', 6, 1\)\s*on conflict \("id"\) do nothing/i);
   assert.doesNotMatch(migration.sql, /"authorization"/i);
 });
 
@@ -93,7 +90,10 @@ test("applies only pending business migrations in one transaction", async () => 
 
   assert.deepEqual(applied, ["0004-business-next.sql"]);
   assert.equal(queries[0]?.query, "BEGIN");
-  assert.equal(queries.some((entry) => entry.query === 'CREATE SCHEMA IF NOT EXISTS "business"'), true);
+  assert.equal(
+    queries.some((entry) => entry.query === 'CREATE SCHEMA IF NOT EXISTS "business"'),
+    true,
+  );
   assert.equal(
     queries.some((entry) => entry.query.includes('"business"."schema_migration"')),
     true,
@@ -102,8 +102,14 @@ test("applies only pending business migrations in one transaction", async () => 
     queries.some((entry) => entry.query.includes("pg_advisory_xact_lock(360006)")),
     true,
   );
-  assert.equal(queries.some((entry) => entry.query === "pending migration"), true);
-  assert.equal(queries.some((entry) => entry.query === "already applied"), false);
+  assert.equal(
+    queries.some((entry) => entry.query === "pending migration"),
+    true,
+  );
+  assert.equal(
+    queries.some((entry) => entry.query === "already applied"),
+    false,
+  );
   assert.deepEqual(
     queries.find((entry) => entry.query.includes('INSERT INTO "business"."schema_migration"'))
       ?.values,
@@ -112,7 +118,9 @@ test("applies only pending business migrations in one transaction", async () => 
   assert.equal(queries.at(-1)?.query, "COMMIT");
   assert.equal(released, true);
   assert.equal(
-    queries.some((entry) => entry.query.includes('"authorization"') || entry.query.includes('"auth"')),
+    queries.some(
+      (entry) => entry.query.includes('"authorization"') || entry.query.includes('"auth"'),
+    ),
     false,
   );
 });
@@ -143,11 +151,17 @@ test("rolls back a failed business migration without recording it", async () => 
   } as Parameters<typeof runBusinessMigrations>[0];
 
   await assert.rejects(
-    () => runBusinessMigrations(pool, [{ name: "0003-business-clients.sql", sql: "invalid migration" }]),
+    () =>
+      runBusinessMigrations(pool, [
+        { name: "0003-business-clients.sql", sql: "invalid migration" },
+      ]),
     /migration failed/,
   );
 
-  assert.equal(queries.some((entry) => entry.query === "ROLLBACK"), true);
+  assert.equal(
+    queries.some((entry) => entry.query === "ROLLBACK"),
+    true,
+  );
   assert.equal(
     queries.some((entry) => entry.query.includes('INSERT INTO "business"."schema_migration"')),
     false,

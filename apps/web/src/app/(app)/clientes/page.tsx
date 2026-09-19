@@ -10,5 +10,9 @@ export default async function ClientsPage() {
     return <UnauthorizedState description="No tienes permiso para consultar Clientes." />;
   }
 
-  return <ClientManagement canManageClients={hasAuthorizationPermission(authorization, "clients.manage")} />;
+  return (
+    <ClientManagement
+      canManageClients={hasAuthorizationPermission(authorization, "clients.manage")}
+    />
+  );
 }

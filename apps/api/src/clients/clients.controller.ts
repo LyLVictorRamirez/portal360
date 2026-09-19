@@ -128,7 +128,10 @@ export class ClientsController {
     try {
       return {
         settings: toCodeSettingsResponse(
-          await this.clientService.updateCodeSettings(readUpdateCodeSettingsInput(body), context.userId),
+          await this.clientService.updateCodeSettings(
+            readUpdateCodeSettingsInput(body),
+            context.userId,
+          ),
         ),
       };
     } catch (error) {
@@ -156,7 +159,11 @@ export class ClientsController {
     try {
       return {
         client: toClientResponse(
-          await this.clientService.updateClient(clientId, readUpdateClientInput(body), context.userId),
+          await this.clientService.updateClient(
+            clientId,
+            readUpdateClientInput(body),
+            context.userId,
+          ),
         ),
       };
     } catch (error) {

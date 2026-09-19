@@ -243,7 +243,9 @@ export function ClientManagement({ canManageClients }: ClientManagementProps) {
               ? "No hay Clientes que coincidan con los filtros seleccionados."
               : "Crea el primer Cliente para empezar a relacionar el trabajo de Portal 360."
           }
-          title={query.trim() || status !== "all" ? "No encontramos Clientes" : "Aún no hay Clientes"}
+          title={
+            query.trim() || status !== "all" ? "No encontramos Clientes" : "Aún no hay Clientes"
+          }
         />
       ) : null}
       {list && list.clients.length > 0 ? (
@@ -258,7 +260,11 @@ export function ClientManagement({ canManageClients }: ClientManagementProps) {
           </div>
           <DataTable columns={columns} label="Clientes registrados" rows={list.clients} />
           <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-            <Button disabled={list.page <= 1} onClick={() => setPage(list.page - 1)} variant="secondary">
+            <Button
+              disabled={list.page <= 1}
+              onClick={() => setPage(list.page - 1)}
+              variant="secondary"
+            >
               Anterior
             </Button>
             <Button
@@ -277,7 +283,9 @@ export function ClientManagement({ canManageClients }: ClientManagementProps) {
           client={editor.client}
           mode={editor.mode}
           onClientSaved={(client, created) => {
-            refreshWithMessage(created ? `Se creó ${client.name}.` : `Se actualizó ${client.name}.`);
+            refreshWithMessage(
+              created ? `Se creó ${client.name}.` : `Se actualizó ${client.name}.`,
+            );
           }}
           onOpenChange={(open) => {
             if (!open) {
@@ -313,7 +321,9 @@ function createColumns(
 ): DataTableColumn<Client>[] {
   return [
     {
-      cell: (client) => <span className="font-semibold tabular-nums text-primary">{client.code}</span>,
+      cell: (client) => (
+        <span className="font-semibold tabular-nums text-primary">{client.code}</span>
+      ),
       header: "Código",
       id: "code",
     },

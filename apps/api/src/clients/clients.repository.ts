@@ -326,7 +326,9 @@ export class ClientRepository {
   }
 }
 
-export function formatClientCode(settings: Pick<ClientCodeSettings, "codeLength" | "nextSequence" | "prefix">): string {
+export function formatClientCode(
+  settings: Pick<ClientCodeSettings, "codeLength" | "nextSequence" | "prefix">,
+): string {
   const sequenceWidth = settings.codeLength - settings.prefix.length;
   const sequence = settings.nextSequence.toString();
 

@@ -108,7 +108,9 @@ test("allows a Client manager through the Client permission boundary", async () 
   const guard = new AuthorizationGuard(new Reflector(), contextService);
 
   assert.equal(
-    await guard.canActivate(createExecutionContext(request, ClientProtectedController.prototype.protectedRoute)),
+    await guard.canActivate(
+      createExecutionContext(request, ClientProtectedController.prototype.protectedRoute),
+    ),
     true,
   );
 });

@@ -89,7 +89,9 @@ test("reads code settings and distinguishes unauthorized, validation, and confli
   const settings = await getClientCodeSettings(async (input, init) => {
     assert.equal(input.toString(), "/api/clients/settings/code");
     assert.deepEqual(init, { cache: "no-store" });
-    return Response.json({ settings: { codeLength: 6, nextSequence: "2", prefix: "CLI", version: 2 } });
+    return Response.json({
+      settings: { codeLength: 6, nextSequence: "2", prefix: "CLI", version: 2 },
+    });
   });
 
   assert.deepEqual(settings, {

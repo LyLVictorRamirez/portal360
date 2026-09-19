@@ -133,7 +133,8 @@ export function ClientEditorDialog({
         >
           {!isCreating && client ? (
             <p className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
-              Código asignado: <code className="font-semibold tabular-nums text-primary">{client.code}</code>
+              Código asignado:{" "}
+              <code className="font-semibold tabular-nums text-primary">{client.code}</code>
             </p>
           ) : null}
 
