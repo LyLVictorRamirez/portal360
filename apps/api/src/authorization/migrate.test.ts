@@ -8,7 +8,7 @@ test("keeps the RBAC schema, catalog, and system-role safeguards in the authoriz
 
   assert.deepEqual(
     migrations.map((migration) => migration.name),
-    ["0002-authorization-rbac.sql"],
+    ["0002-authorization-rbac.sql", "0003-authorization-clients-permissions.sql"],
   );
 
   const [migration] = migrations;
@@ -41,6 +41,35 @@ test("keeps the RBAC schema, catalog, and system-role safeguards in the authoriz
   assert.match(migration.sql, /role_permission_requires_standard_access/);
   assert.match(migration.sql, /audit_event_prevent_mutation/);
   assert.doesNotMatch(migration.sql, /alter table "auth"/i);
+});
+
+test("adds idempotent Client permissions with the agreed system-role grants", async () => {
+  const migrations = await readAuthorizationMigrations();
+  const migration = migrations.find(
+    (candidate) => candidate.name === "0003-authorization-clients-permissions.sql",
+  );
+
+  assert.ok(migration);
+
+  for (const permission of ["clients.read", "clients.manage", "clients.settings.manage"]) {
+    assert.match(migration.sql, new RegExp(`'${permission}'`));
+  }
+
+  for (const grant of [
+    ["administrador", "clients.read"],
+    ["administrador", "clients.manage"],
+    ["administrador", "clients.settings.manage"],
+    ["lider", "clients.read"],
+    ["lider", "clients.manage"],
+    ["miembro", "clients.read"],
+  ]) {
+    assert.match(migration.sql, new RegExp(`\\('${grant[0]}', '${grant[1]}'\\)`));
+  }
+
+  assert.match(migration.sql, /on conflict \("key"\) do nothing/i);
+  assert.match(migration.sql, /on conflict \("role_key", "permission_key"\) do nothing/i);
+  assert.match(migration.sql, /update "authorization"\."role"/i);
+  assert.doesNotMatch(migration.sql, /delete from "authorization"/i);
 });
 
 test("applies only pending authorization migrations in one transaction", async () => {
