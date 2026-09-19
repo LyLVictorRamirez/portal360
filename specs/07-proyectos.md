@@ -190,6 +190,7 @@ Una solicitud sin sesión recibe `401` y una sesión sin el permiso requerido re
 - **Sí:** nombre repetible y descripción opcional; el código es el identificador funcional único en esta fase.
 - **Sí:** fechas de calendario obligatorias y validación de orden; reflejan el inicio explícito y el compromiso final con el Cliente sin introducir programación horaria.
 - **Sí:** estados manuales con transiciones libres; el modelo de datos los define como simples y las reglas operativas de cierre pertenecen a una entrega posterior.
+- **Sí:** el formulario de creación inicia en `planned`, pero permite elegir cualquier estado válido antes de guardar; facilita el registro inicial sin restringir las transiciones manuales acordadas.
 - **Sí:** borrado físico sin relaciones y futuras claves foráneas `on delete restrict`; evita registros huérfanos sin implementar todavía borrado lógico o restauración.
 - **Sí:** permisos fijos `projects.read`, `projects.manage` y `projects.settings.manage`; conserva el modelo RBAC versionado de SPEC 05.
 - **No:** responsable único, avance manual, Etapas o Actividades; son conceptos confirmados pero requieren una spec independiente para sus reglas y relaciones.
