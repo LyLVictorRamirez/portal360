@@ -58,8 +58,8 @@ const codeSettingsSelection = `
 
 const findCodeSettingsQuery = `
   select ${codeSettingsSelection}
-  from "business"."client_code_settings"
-  where "id" = true
+  from "business"."entity_code_settings"
+  where "entity_type" = 'client'
 `;
 
 const findCodeSettingsForUpdateQuery = `${findCodeSettingsQuery} for update`;
@@ -76,23 +76,23 @@ const insertClientQuery = `
 `;
 
 const advanceCodeSettingsSequenceQuery = `
-  update "business"."client_code_settings"
+  update "business"."entity_code_settings"
   set "next_sequence" = $1,
       "updated_at" = current_timestamp,
       "updated_by_user_id" = $2,
       "version" = "version" + 1
-  where "id" = true
+  where "entity_type" = 'client'
 `;
 
 const updateCodeSettingsQuery = `
-  update "business"."client_code_settings"
+  update "business"."entity_code_settings"
   set "prefix" = $1,
       "code_length" = $2,
       "next_sequence" = $3,
       "updated_at" = current_timestamp,
       "updated_by_user_id" = $4,
       "version" = "version" + 1
-  where "id" = true
+  where "entity_type" = 'client'
   returning ${codeSettingsSelection}
 `;
 

@@ -166,6 +166,42 @@ class ConcurrentClientsTransaction {
   }
 }
 
+test("reads Client settings from the client row of the shared code settings table", async () => {
+  const queries: string[] = [];
+  const database: ClientsDatabase = {
+    async connect() {
+      throw new Error("Not used by this test.");
+    },
+    async query(query) {
+      queries.push(query);
+
+      return {
+        rowCount: 1,
+        rows: [
+          {
+            code_length: 6,
+            created_at: timestamp,
+            created_by_user_id: null,
+            next_sequence: "2",
+            prefix: "CLI",
+            updated_at: timestamp,
+            updated_by_user_id: "user-1",
+            version: 2,
+          },
+        ],
+      };
+    },
+  };
+  const repository = new ClientRepository(database);
+
+  const settings = await repository.getCodeSettings();
+
+  assert.equal(settings.nextSequence, 2n);
+  assert.match(queries[0] ?? "", /from "business"\."entity_code_settings"/i);
+  assert.match(queries[0] ?? "", /where "entity_type" = 'client'/i);
+  assert.doesNotMatch(queries[0] ?? "", /client_code_settings/i);
+});
+
 test("reserves a distinct Client code for simultaneous creations", async () => {
   const database = new ConcurrentClientsDatabase();
   const repository = new ClientRepository(database);
