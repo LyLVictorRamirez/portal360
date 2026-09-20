@@ -155,7 +155,6 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
   }
 
   const clientOptions = clientOptionsState.kind === "ready" ? clientOptionsState.clients : [];
-  const activeClients = clientOptions.filter((client) => client.isActive);
   const list = state.kind === "ready" ? state.list : null;
   const totalPages = useMemo(
     () => (list ? Math.max(1, Math.ceil(list.total / list.pageSize)) : 1),
@@ -174,7 +173,6 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
         actions={
           canManageProjects ? (
             <Button
-              disabled={clientOptionsState.kind !== "ready" || activeClients.length === 0}
               onClick={() => {
                 setActionError(null);
                 setEditor({ mode: "create", project: null });
@@ -279,7 +277,6 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
           action={
             canManageProjects && !query.trim() && status === "all" && clientFilterId === "all" ? (
               <Button
-                disabled={clientOptionsState.kind !== "ready" || activeClients.length === 0}
                 onClick={() => {
                   setActionError(null);
                   setEditor({ mode: "create", project: null });
@@ -334,8 +331,6 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
 
       {editor ? (
         <ProjectEditorDialog
-          activeClients={activeClients}
-          clientOptionsState={clientOptionsState.kind}
           mode={editor.mode}
           onOpenChange={(open) => {
             if (!open) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { ClientSearchField } from "./client-search-field";
 import { Button } from "../../../components/ui/button";
 import { Dialog } from "../../../components/ui/dialog";
 import { SelectField } from "../../../components/ui/select-field";
@@ -18,11 +19,8 @@ import {
 } from "../../../lib/projects-client";
 
 export type ProjectEditorMode = "create" | "edit" | "view";
-type ClientOptionsState = "error" | "loading" | "ready" | "unauthorized";
 
 type ProjectEditorDialogProps = {
-  activeClients: readonly Client[];
-  clientOptionsState: ClientOptionsState;
   mode: ProjectEditorMode;
   onOpenChange: (open: boolean) => void;
   onProjectSaved: (project: Project, created: boolean) => void;
@@ -63,8 +61,6 @@ function getSaveErrorMessage(kind: "conflict" | "error" | "unauthorized" | "vali
 }
 
 export function ProjectEditorDialog({
-  activeClients,
-  clientOptionsState,
   mode,
   onOpenChange,
   onProjectSaved,
@@ -73,13 +69,13 @@ export function ProjectEditorDialog({
 }: ProjectEditorDialogProps) {
   const isViewMode = mode === "view";
   const isCreateMode = mode === "create";
-  const [clientId, setClientId] = useState("");
   const [committedEndDate, setCommittedEndDate] = useState("");
   const [description, setDescription] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [startDate, setStartDate] = useState("");
   const [status, setStatus] = useState<ProjectStatus>("planned");
 
@@ -88,16 +84,16 @@ export function ProjectEditorDialog({
       return;
     }
 
-    setClientId(isCreateMode ? (activeClients[0]?.id ?? "") : (project?.client.id ?? ""));
     setCommittedEndDate(project?.committedEndDate ?? "");
     setDescription(project?.description ?? "");
     setFormError(null);
     setName(project?.name ?? "");
     setIsSaving(false);
     setSaveError(null);
+    setSelectedClient(null);
     setStartDate(project?.startDate ?? "");
     setStatus(project?.status ?? "planned");
-  }, [activeClients, isCreateMode, open, project]);
+  }, [isCreateMode, open, project]);
 
   function closeDialog() {
     if (!isSaving) {
@@ -108,6 +104,7 @@ export function ProjectEditorDialog({
   async function saveProject() {
     const normalizedName = name.trim();
     const normalizedDescription = description.trim() || null;
+    const clientId = selectedClient?.id;
 
     if (!normalizedName || normalizedName.length > 200) {
       setFormError("El nombre es obligatorio y debe tener máximo 200 caracteres.");
@@ -140,7 +137,7 @@ export function ProjectEditorDialog({
 
     const result = isCreateMode
       ? await createProject({
-          clientId,
+          clientId: clientId ?? "",
           committedEndDate,
           description: normalizedDescription,
           name: normalizedName,
@@ -231,20 +228,11 @@ export function ProjectEditorDialog({
           }}
         >
           {isCreateMode ? (
-            <SelectField
-              disabled={clientOptionsState !== "ready" || activeClients.length === 0 || isSaving}
-              helpText="Solo se muestran Clientes activos."
-              id="project-client"
-              label="Cliente"
-              onChange={(event) => setClientId(event.target.value)}
-              value={clientId}
-            >
-              {activeClients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.code} · {client.name}
-                </option>
-              ))}
-            </SelectField>
+            <ClientSearchField
+              disabled={isSaving}
+              onSelectedClientChange={setSelectedClient}
+              selectedClient={selectedClient}
+            />
           ) : (
             <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
               <p className="font-medium text-foreground">Cliente</p>
