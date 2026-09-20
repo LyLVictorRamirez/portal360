@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+import type { CodeSettingsEntity } from "./code-settings-access";
 import { Button } from "../../../../../components/ui/button";
 import {
   ErrorState,
@@ -15,8 +16,10 @@ import {
   getProjectCodeSettings,
   updateProjectCodeSettings,
 } from "../../../../../lib/projects-client";
-
-type CodeSettingsEntity = "client" | "project";
+import {
+  getRequirementCodeSettings,
+  updateRequirementCodeSettings,
+} from "../../../../../lib/requirements-client";
 
 type CodeSettings = Readonly<{
   codeLength: number;
@@ -74,6 +77,12 @@ const entityContent: Record<
     loadTitle: "Consultando códigos de Proyectos",
     plural: "Proyectos",
     singular: "Proyecto",
+  },
+  requirement: {
+    formTitle: "Formato para nuevos Requerimientos",
+    loadTitle: "Consultando códigos de Requerimientos",
+    plural: "Requerimientos",
+    singular: "Requerimiento",
   },
 };
 
@@ -284,14 +293,28 @@ export function CodeSettingsSection({ entity }: CodeSettingsSectionProps) {
 }
 
 async function getCodeSettings(entity: CodeSettingsEntity): Promise<CodeSettingsResult> {
-  return entity === "client" ? getClientCodeSettings() : getProjectCodeSettings();
+  switch (entity) {
+    case "client":
+      return getClientCodeSettings();
+    case "project":
+      return getProjectCodeSettings();
+    case "requirement":
+      return getRequirementCodeSettings();
+  }
 }
 
 async function updateCodeSettings(
   entity: CodeSettingsEntity,
   input: CodeSettings,
 ): Promise<CodeSettingsResult> {
-  return entity === "client" ? updateClientCodeSettings(input) : updateProjectCodeSettings(input);
+  switch (entity) {
+    case "client":
+      return updateClientCodeSettings(input);
+    case "project":
+      return updateProjectCodeSettings(input);
+    case "requirement":
+      return updateRequirementCodeSettings(input);
+  }
 }
 
 function toDraft(settings: CodeSettings): SettingsDraft {

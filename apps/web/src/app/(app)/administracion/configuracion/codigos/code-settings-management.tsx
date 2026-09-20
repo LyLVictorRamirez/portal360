@@ -1,22 +1,19 @@
+import type { CodeSettingsEntity } from "./code-settings-access";
 import { CodeSettingsSection } from "./code-settings-section";
 import { PageHeader } from "../../../../../components/ui/page-header";
 import { Surface } from "../../../../../components/ui/surface";
 
 type CodeSettingsManagementProps = Readonly<{
-  canManageClientCodes: boolean;
-  canManageProjectCodes: boolean;
+  entities: readonly CodeSettingsEntity[];
 }>;
 
-export function CodeSettingsManagement({
-  canManageClientCodes,
-  canManageProjectCodes,
-}: CodeSettingsManagementProps) {
-  const hasBothSections = canManageClientCodes && canManageProjectCodes;
+export function CodeSettingsManagement({ entities }: CodeSettingsManagementProps) {
+  const hasMultipleSections = entities.length > 1;
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-8">
       <PageHeader
-        description="Define el formato de los códigos que se asignarán a nuevos Clientes y Proyectos. Cada configuración conserva su consecutivo independiente."
+        description="Define el formato de los códigos para nuevos Clientes, Proyectos y Requerimientos. Cada entidad conserva su consecutivo independiente."
         title="Códigos"
       />
 
@@ -28,9 +25,10 @@ export function CodeSettingsManagement({
         </p>
       </Surface>
 
-      <div className={hasBothSections ? "grid gap-6 xl:grid-cols-2" : "max-w-3xl"}>
-        {canManageClientCodes ? <CodeSettingsSection entity="client" /> : null}
-        {canManageProjectCodes ? <CodeSettingsSection entity="project" /> : null}
+      <div className={hasMultipleSections ? "grid gap-6 xl:grid-cols-2" : "max-w-3xl"}>
+        {entities.map((entity) => (
+          <CodeSettingsSection entity={entity} key={entity} />
+        ))}
       </div>
     </div>
   );
