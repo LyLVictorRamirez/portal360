@@ -11,7 +11,11 @@ test("defines the business client schema and initial CLI-001 configuration", asy
 
   assert.deepEqual(
     migrations.map((migration) => migration.name),
-    ["0003-business-clients.sql", "0004-business-projects-and-code-settings.sql"],
+    [
+      "0003-business-clients.sql",
+      "0004-business-projects-and-code-settings.sql",
+      "0005-business-requirements-and-code-settings.sql",
+    ],
   );
 
   const migration = migrations[0];
@@ -68,6 +72,34 @@ test("migrates client code settings and defines the project schema", async () =>
   assert.match(migration.sql, /on delete restrict/i);
   assert.doesNotMatch(migration.sql, /alter table "business"\."client"/i);
   assert.doesNotMatch(migration.sql, /update "business"\."client"[\s\S]*"code"/i);
+});
+
+test("adds requirement code settings and schema without changing existing settings", async () => {
+  const migrations = await readBusinessMigrations();
+  const migration = migrations.find(
+    ({ name }) => name === "0005-business-requirements-and-code-settings.sql",
+  );
+
+  assert.ok(migration);
+  assert.match(migration.sql, /drop constraint "entity_code_settings_type_check"/i);
+  assert.match(migration.sql, /"entity_type" in \('client', 'project', 'requirement'\)/i);
+  assert.match(
+    migration.sql,
+    /values \('requirement', 'REQ', 6, 1\)\s*on conflict \("entity_type"\) do nothing/i,
+  );
+  assert.match(migration.sql, /create table "business"\."requirement"/i);
+  assert.match(migration.sql, /"client_id" uuid not null references "business"\."client"/i);
+  assert.match(migration.sql, /"code" varchar\(21\) not null unique/i);
+  assert.match(migration.sql, /requirement_optional_dates_check/i);
+  assert.match(
+    migration.sql,
+    /"status" in \([\s\S]*'new',[\s\S]*'in_analysis',[\s\S]*'quoted',[\s\S]*'approved',[\s\S]*'in_execution',[\s\S]*'closed',[\s\S]*'cancelled'/i,
+  );
+  assert.match(migration.sql, /requirement_status_dates_check/i);
+  assert.match(migration.sql, /requirement_prevent_identity_mutation/i);
+  assert.match(migration.sql, /on delete restrict/i);
+  assert.doesNotMatch(migration.sql, /update "business"\."entity_code_settings"/i);
+  assert.doesNotMatch(migration.sql, /delete from "business"\."entity_code_settings"/i);
 });
 
 test("reads only business migrations in filename order", async () => {
