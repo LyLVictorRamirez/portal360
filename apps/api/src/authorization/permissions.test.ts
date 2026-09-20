@@ -20,3 +20,16 @@ test("recognizes the fixed Project permission catalog", () => {
   assert.equal(isAuthorizationPermission("projects.delete"), false);
   assert.equal(authorizationPermissionKeys.includes("projects.read"), true);
 });
+
+test("recognizes the fixed Requirement permission catalog", () => {
+  for (const permission of [
+    "requirements.read",
+    "requirements.manage",
+    "requirements.settings.manage",
+  ]) {
+    assert.equal(isAuthorizationPermission(permission), true);
+  }
+
+  assert.equal(isAuthorizationPermission("requirements.delete"), false);
+  assert.equal(authorizationPermissionKeys.includes("requirements.read"), true);
+});
