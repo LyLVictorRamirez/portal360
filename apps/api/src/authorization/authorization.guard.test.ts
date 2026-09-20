@@ -30,6 +30,11 @@ class ProjectProtectedController {
   protectedRoute() {}
 }
 
+class RequirementProtectedController {
+  @RequirePermissions("requirements.manage")
+  protectedRoute() {}
+}
+
 function createExecutionContext(
   request: AuthorizedRequest,
   handler: () => void = ProtectedController.prototype.protectedRoute,
@@ -136,6 +141,27 @@ test("allows a Project manager through the Project permission boundary", async (
   assert.equal(
     await guard.canActivate(
       createExecutionContext(request, ProjectProtectedController.prototype.protectedRoute),
+    ),
+    true,
+  );
+});
+
+test("allows a Requirement manager through the Requirement permission boundary", async () => {
+  const request = { headers: {} } as AuthorizedRequest;
+  const contextService: AuthorizationContextResolver = {
+    resolve: async () => ({
+      authorization: {
+        permissions: ["requirements.manage"],
+        roles: [],
+      },
+      userId: "user-1",
+    }),
+  };
+  const guard = new AuthorizationGuard(new Reflector(), contextService);
+
+  assert.equal(
+    await guard.canActivate(
+      createExecutionContext(request, RequirementProtectedController.prototype.protectedRoute),
     ),
     true,
   );

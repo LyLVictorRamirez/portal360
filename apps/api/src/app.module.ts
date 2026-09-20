@@ -6,6 +6,7 @@ import { AuthorizationModule } from "./authorization/authorization.module.js";
 import { auth } from "./auth.js";
 import { ClientsModule } from "./clients/clients.module.js";
 import { ProjectsModule } from "./projects/projects.module.js";
+import { RequirementsModule } from "./requirements/requirements.module.js";
 
 @Module({
   controllers: [AppController],
@@ -13,6 +14,7 @@ import { ProjectsModule } from "./projects/projects.module.js";
     AuthorizationModule,
     ClientsModule,
     ProjectsModule,
+    RequirementsModule,
     AuthModule.forRoot({
       auth,
       disableGlobalAuthGuard: true,
