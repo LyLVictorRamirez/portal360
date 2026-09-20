@@ -1,6 +1,6 @@
 # SPEC 07 — Entidad de Proyectos y configuración unificada de códigos
 
-> **Status:** Aprobada
+> **Status:** Implementada
 > **Depends on:** SPEC 03, SPEC 05, SPEC 06
 > **Date:** 2026-09-19
 > **Objective:** Incorporar Proyectos asociados de forma inmutable a un Cliente, con códigos configurables desde una única pantalla y administración autorizada.
@@ -57,18 +57,18 @@ Los datos de Cliente, Proyecto y sus configuraciones de código pertenecen al es
 La migración reemplazará `business.client_code_settings` por `business.entity_code_settings` sin
 modificar `business.client` ni sus códigos existentes.
 
-| Tabla                              | Campos principales                                                                                                                     | Reglas                                                                                                                        |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `business.entity_code_settings`    | `entity_type`, `prefix`, `code_length`, `next_sequence`, `version`, `created_at`, `created_by_user_id`, `updated_at`, `updated_by_user_id` | `entity_type` es la clave primaria y acepta solo `client` o `project`; cada entidad tiene su propia fila y consecutivo.      |
-| `business.project`                 | `id`, `client_id`, `code`, `name`, `description`, `start_date`, `committed_end_date`, `status`, `version`, campos técnicos          | `id` es UUID; `client_id` es obligatorio e inmutable; `code` es único e inmutable; `version` controla concurrencia.         |
-| `business.schema_migration`        | `name`, `applied_at`                                                                                                                   | Registra la migración de negocio, según la infraestructura creada en SPEC 06.                                                |
+| Tabla                           | Campos principales                                                                                                                         | Reglas                                                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `business.entity_code_settings` | `entity_type`, `prefix`, `code_length`, `next_sequence`, `version`, `created_at`, `created_by_user_id`, `updated_at`, `updated_by_user_id` | `entity_type` es la clave primaria y acepta solo `client` o `project`; cada entidad tiene su propia fila y consecutivo. |
+| `business.project`              | `id`, `client_id`, `code`, `name`, `description`, `start_date`, `committed_end_date`, `status`, `version`, campos técnicos                 | `id` es UUID; `client_id` es obligatorio e inmutable; `code` es único e inmutable; `version` controla concurrencia.     |
+| `business.schema_migration`     | `name`, `applied_at`                                                                                                                       | Registra la migración de negocio, según la infraestructura creada en SPEC 06.                                           |
 
 La tabla `business.entity_code_settings` tendrá exactamente dos filas iniciales:
 
-| `entity_type` | Prefijo | `code_length` | `next_sequence` | Código inicial esperado |
-| ------------- | ------- | ------------- | --------------- | ----------------------- |
-| `client`      | Valor migrado desde la configuración vigente de Cliente | Valor migrado | Valor migrado | Conserva la siguiente emisión de Cliente. |
-| `project`     | `PRY`   | `6`           | `1`             | `PRY-001`               |
+| `entity_type` | Prefijo                                                 | `code_length` | `next_sequence` | Código inicial esperado                   |
+| ------------- | ------------------------------------------------------- | ------------- | --------------- | ----------------------------------------- |
+| `client`      | Valor migrado desde la configuración vigente de Cliente | Valor migrado | Valor migrado   | Conserva la siguiente emisión de Cliente. |
+| `project`     | `PRY`                                                   | `6`           | `1`             | `PRY-001`                                 |
 
 Las restricciones de una configuración de código son las siguientes:
 
@@ -113,30 +113,30 @@ Las reglas de `business.project` son las siguientes:
 
 El catálogo RBAC se amplía así:
 
-| Permiso                    | Asignación inicial                  | Uso                                                                 |
-| -------------------------- | ----------------------------------- | ------------------------------------------------------------------- |
-| `projects.read`            | `administrador`, `lider`, `miembro` | Listar, buscar y consultar Proyectos.                               |
+| Permiso                    | Asignación inicial                  | Uso                                                                |
+| -------------------------- | ----------------------------------- | ------------------------------------------------------------------ |
+| `projects.read`            | `administrador`, `lider`, `miembro` | Listar, buscar y consultar Proyectos.                              |
 | `projects.manage`          | `administrador`, `lider`            | Crear, editar, cambiar estado y eliminar Proyectos sin relaciones. |
 | `projects.settings.manage` | `administrador`                     | Consultar y modificar la configuración de códigos de Proyecto.     |
 
 Los endpoints de configuración conservan una autorización independiente por entidad:
 
-| Método y ruta                     | Permiso                    | Comportamiento                                                                    |
-| --------------------------------- | -------------------------- | --------------------------------------------------------------------------------- |
-| `GET /api/clients/settings/code`  | `clients.settings.manage`  | Devuelve solo la fila `client` de `business.entity_code_settings`.               |
-| `PUT /api/clients/settings/code`  | `clients.settings.manage`  | Actualiza solo la fila `client` con concurrencia optimista.                       |
-| `GET /api/projects/settings/code` | `projects.settings.manage` | Devuelve solo la fila `project` de `business.entity_code_settings`.              |
-| `PUT /api/projects/settings/code` | `projects.settings.manage` | Actualiza solo la fila `project` con concurrencia optimista.                      |
+| Método y ruta                     | Permiso                    | Comportamiento                                                      |
+| --------------------------------- | -------------------------- | ------------------------------------------------------------------- |
+| `GET /api/clients/settings/code`  | `clients.settings.manage`  | Devuelve solo la fila `client` de `business.entity_code_settings`.  |
+| `PUT /api/clients/settings/code`  | `clients.settings.manage`  | Actualiza solo la fila `client` con concurrencia optimista.         |
+| `GET /api/projects/settings/code` | `projects.settings.manage` | Devuelve solo la fila `project` de `business.entity_code_settings`. |
+| `PUT /api/projects/settings/code` | `projects.settings.manage` | Actualiza solo la fila `project` con concurrencia optimista.        |
 
 Las rutas HTTP de Proyecto serán:
 
-| Método y ruta                    | Permiso           | Comportamiento                                                                                 |
-| -------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
-| `GET /api/projects`              | `projects.read`   | Lista paginada, busca por código o nombre, filtra por Cliente y estado, y ordena por actualización descendente. |
-| `POST /api/projects`             | `projects.manage` | Crea un Proyecto para un Cliente activo, reserva su código y devuelve la versión inicial.     |
-| `GET /api/projects/:projectId`   | `projects.read`   | Devuelve el detalle del Proyecto y la referencia visible de su Cliente.                        |
-| `PUT /api/projects/:projectId`   | `projects.manage` | Actualiza nombre, descripción, fechas o estado si la versión enviada coincide.                 |
-| `DELETE /api/projects/:projectId`| `projects.manage` | Elimina definitivamente un Proyecto sin relaciones.                                            |
+| Método y ruta                     | Permiso           | Comportamiento                                                                                                  |
+| --------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| `GET /api/projects`               | `projects.read`   | Lista paginada, busca por código o nombre, filtra por Cliente y estado, y ordena por actualización descendente. |
+| `POST /api/projects`              | `projects.manage` | Crea un Proyecto para un Cliente activo, reserva su código y devuelve la versión inicial.                       |
+| `GET /api/projects/:projectId`    | `projects.read`   | Devuelve el detalle del Proyecto y la referencia visible de su Cliente.                                         |
+| `PUT /api/projects/:projectId`    | `projects.manage` | Actualiza nombre, descripción, fechas o estado si la versión enviada coincide.                                  |
+| `DELETE /api/projects/:projectId` | `projects.manage` | Elimina definitivamente un Proyecto sin relaciones.                                                             |
 
 Una solicitud sin sesión recibe `401` y una sesión sin el permiso requerido recibe `403`.
 
@@ -156,26 +156,26 @@ Una solicitud sin sesión recibe `401` y una sesión sin el permiso requerido re
 
 ## Criterios de aceptación
 
-- [ ] Ejecutar `corepack pnpm --filter @portal-360/api business:migrate` transforma la configuración existente de Cliente en la fila `client` de `business.entity_code_settings`, crea la fila `project` y conserva los códigos de Cliente existentes.
-- [ ] `business.entity_code_settings` contiene exactamente las filas `client` y `project`, cada una con prefijo, longitud, consecutivo, versión y trazabilidad técnica independientes.
-- [ ] La configuración migrada de Cliente conserva su siguiente consecutivo y una configuración inicial de Proyecto `PRY`, longitud `6` y consecutivo `1` genera `PRY-001`.
-- [ ] Dos creaciones simultáneas de Proyectos no reciben el mismo código y una creación de Cliente no bloquea innecesariamente la secuencia de Proyecto.
-- [ ] Cambiar una configuración de código no modifica ningún código ya emitido y una versión obsoleta responde `409 Conflict`.
-- [ ] El esquema `business` contiene `project` con UUID, Cliente obligatorio, código único e inmutable, nombre, descripción opcional, fechas, estado, versión y referencias técnicas a `auth.user`.
-- [ ] No se puede crear ni actualizar un Proyecto cuya fecha final comprometida sea anterior a su fecha de inicio.
-- [ ] Un Proyecto solo acepta los estados técnicos `planned`, `active`, `paused`, `finalized` y `cancelled`, y la interfaz muestra sus etiquetas en español.
-- [ ] Un Proyecto solo puede crearse para un Cliente activo y nunca puede trasladarse a otro Cliente mediante la API ni la interfaz.
-- [ ] Los Proyectos de un Cliente desactivado siguen siendo consultables, pero crear uno nuevo para ese Cliente recibe un error de validación controlado.
-- [ ] `Administrador` y `Líder` pueden gestionar Proyectos; `Miembro` puede consultarlos; `Estándar` no puede acceder al módulo.
-- [ ] Solo quien tiene `projects.settings.manage` puede leer o modificar la configuración de Proyecto, y solo quien tiene `clients.settings.manage` puede leer o modificar la de Cliente.
-- [ ] `/administracion/configuracion/codigos` muestra exclusivamente las secciones autorizadas a la persona actual y no recibe por API los valores de una sección para la que carece de permiso.
-- [ ] `/proyectos` pagina 25 resultados, busca por código o nombre, filtra por Cliente y estado, y se ordena inicialmente por actualización más reciente.
-- [ ] El selector de creación solo permite Clientes activos y la edición presenta el Cliente existente como información no modificable.
-- [ ] Una edición con `version` obsoleta no sobrescribe datos y la interfaz comunica la necesidad de recargar.
-- [ ] Un Proyecto sin relaciones puede eliminarse de forma definitiva y una relación futura con `on delete restrict` impide eliminarlo.
-- [ ] El navegador usa únicamente `/api/projects/*` para Proyecto y los endpoints existentes `/api/clients/settings/code` para la configuración de Cliente; Next.js reenvía ambos al backend en el mismo origen.
-- [ ] La interfaz muestra estados de carga, vacío, error, validación, conflicto y no autorizado mediante los componentes accesibles de SPEC 03.
-- [ ] `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build` y `corepack pnpm format:check` finalizan con código 0 desde la raíz.
+- [x] Ejecutar `corepack pnpm --filter @portal-360/api business:migrate` transforma la configuración existente de Cliente en la fila `client` de `business.entity_code_settings`, crea la fila `project` y conserva los códigos de Cliente existentes.
+- [x] `business.entity_code_settings` contiene exactamente las filas `client` y `project`, cada una con prefijo, longitud, consecutivo, versión y trazabilidad técnica independientes.
+- [x] La configuración migrada de Cliente conserva su siguiente consecutivo y una configuración inicial de Proyecto `PRY`, longitud `6` y consecutivo `1` genera `PRY-001`.
+- [x] Dos creaciones simultáneas de Proyectos no reciben el mismo código y una creación de Cliente no bloquea innecesariamente la secuencia de Proyecto.
+- [x] Cambiar una configuración de código no modifica ningún código ya emitido y una versión obsoleta responde `409 Conflict`.
+- [x] El esquema `business` contiene `project` con UUID, Cliente obligatorio, código único e inmutable, nombre, descripción opcional, fechas, estado, versión y referencias técnicas a `auth.user`.
+- [x] No se puede crear ni actualizar un Proyecto cuya fecha final comprometida sea anterior a su fecha de inicio.
+- [x] Un Proyecto solo acepta los estados técnicos `planned`, `active`, `paused`, `finalized` y `cancelled`, y la interfaz muestra sus etiquetas en español.
+- [x] Un Proyecto solo puede crearse para un Cliente activo y nunca puede trasladarse a otro Cliente mediante la API ni la interfaz.
+- [x] Los Proyectos de un Cliente desactivado siguen siendo consultables, pero crear uno nuevo para ese Cliente recibe un error de validación controlado.
+- [x] `Administrador` y `Líder` pueden gestionar Proyectos; `Miembro` puede consultarlos; `Estándar` no puede acceder al módulo.
+- [x] Solo quien tiene `projects.settings.manage` puede leer o modificar la configuración de Proyecto, y solo quien tiene `clients.settings.manage` puede leer o modificar la de Cliente.
+- [x] `/administracion/configuracion/codigos` muestra exclusivamente las secciones autorizadas a la persona actual y no recibe por API los valores de una sección para la que carece de permiso.
+- [x] `/proyectos` pagina 25 resultados, busca por código o nombre, filtra por Cliente y estado, y se ordena inicialmente por actualización más reciente.
+- [x] El selector de creación solo permite Clientes activos y la edición presenta el Cliente existente como información no modificable.
+- [x] Una edición con `version` obsoleta no sobrescribe datos y la interfaz comunica la necesidad de recargar.
+- [x] Un Proyecto sin relaciones puede eliminarse de forma definitiva y una relación futura con `on delete restrict` impide eliminarlo.
+- [x] El navegador usa únicamente `/api/projects/*` para Proyecto y los endpoints existentes `/api/clients/settings/code` para la configuración de Cliente; Next.js reenvía ambos al backend en el mismo origen.
+- [x] La interfaz muestra estados de carga, vacío, error, validación, conflicto y no autorizado mediante los componentes accesibles de SPEC 03.
+- [x] `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build` y `corepack pnpm format:check` finalizan con código 0 desde la raíz.
 
 ## Decisiones
 
@@ -197,13 +197,13 @@ Una solicitud sin sesión recibe `401` y una sesión sin el permiso requerido re
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
-| La migración puede perder la configuración o el consecutivo vigente de Cliente. | Ejecutar la transformación dentro de una transacción, copiar la fila actual a `entity_type = 'client'` y cubrirla con pruebas de migración y de emisión posterior. |
-| Dos tipos de código comparten una tabla y podrían reservar el mismo consecutivo. | Bloquear la fila específica por `entity_type`, conservar la restricción primaria y probar creaciones concurrentes de ambas entidades. |
-| Una persona con permiso de una sección obtendría por error la configuración de la otra. | Proteger cada endpoint por su permiso propio y devolver desde la pantalla solo las secciones previamente autorizadas. |
-| Desactivar un Cliente puede dejar Proyectos visibles que parezcan editables. | Conservar la consulta y edición de los Proyectos existentes, pero validar el estado activo únicamente al crear un Proyecto nuevo y comunicarlo en la interfaz. |
-| Las futuras Etapas impedirán eliminaciones que hoy sí son válidas. | Declarar desde esta spec la clave foránea futura con `on delete restrict` y mapear su rechazo a un error controlado cuando la relación exista. |
+| Riesgo                                                                                  | Mitigación                                                                                                                                                         |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| La migración puede perder la configuración o el consecutivo vigente de Cliente.         | Ejecutar la transformación dentro de una transacción, copiar la fila actual a `entity_type = 'client'` y cubrirla con pruebas de migración y de emisión posterior. |
+| Dos tipos de código comparten una tabla y podrían reservar el mismo consecutivo.        | Bloquear la fila específica por `entity_type`, conservar la restricción primaria y probar creaciones concurrentes de ambas entidades.                              |
+| Una persona con permiso de una sección obtendría por error la configuración de la otra. | Proteger cada endpoint por su permiso propio y devolver desde la pantalla solo las secciones previamente autorizadas.                                              |
+| Desactivar un Cliente puede dejar Proyectos visibles que parezcan editables.            | Conservar la consulta y edición de los Proyectos existentes, pero validar el estado activo únicamente al crear un Proyecto nuevo y comunicarlo en la interfaz.     |
+| Las futuras Etapas impedirán eliminaciones que hoy sí son válidas.                      | Declarar desde esta spec la clave foránea futura con `on delete restrict` y mapear su rechazo a un error controlado cuando la relación exista.                     |
 
 ## Qué **no** está en esta spec
 

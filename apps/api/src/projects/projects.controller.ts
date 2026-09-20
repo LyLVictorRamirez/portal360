@@ -220,7 +220,11 @@ function readCreateProjectInput(body: unknown): CreateProjectInput {
     throw new BadRequestException("committedEndDate is required.");
   }
 
-  if (record.description !== undefined && record.description !== null && typeof record.description !== "string") {
+  if (
+    record.description !== undefined &&
+    record.description !== null &&
+    typeof record.description !== "string"
+  ) {
     throw new BadRequestException("description must be a string or null when provided.");
   }
 
@@ -328,7 +332,9 @@ function readRequiredStatus(value: unknown): ProjectStatus {
     value !== "finalized" &&
     value !== "cancelled"
   ) {
-    throw new BadRequestException("status must be planned, active, paused, finalized, or cancelled.");
+    throw new BadRequestException(
+      "status must be planned, active, paused, finalized, or cancelled.",
+    );
   }
 
   return value;

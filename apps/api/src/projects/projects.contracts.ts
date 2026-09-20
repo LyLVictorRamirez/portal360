@@ -77,8 +77,7 @@ export interface UpdateProjectCodeSettingsInput {
   version: number;
 }
 
-export interface UpdateProjectCodeSettingsRecordInput
-  extends UpdateProjectCodeSettingsInput {
+export interface UpdateProjectCodeSettingsRecordInput extends UpdateProjectCodeSettingsInput {
   actorUserId: string;
 }
 

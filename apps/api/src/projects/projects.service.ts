@@ -101,10 +101,7 @@ function normalizeProjectCreation(
   }
 
   const startDate = normalizeDate(value.startDate, "Project start date");
-  const committedEndDate = normalizeDate(
-    value.committedEndDate,
-    "Project committed end date",
-  );
+  const committedEndDate = normalizeDate(value.committedEndDate, "Project committed end date");
   validateDateOrder(startDate, committedEndDate);
 
   return {
@@ -127,9 +124,12 @@ function normalizeProjectUpdate(value: UpdateProjectInput): UpdateProjectInput {
   }
 
   const name = value.name === undefined ? undefined : normalizeProjectName(value.name);
-  const description = value.description === undefined ? undefined : normalizeDescription(value.description);
+  const description =
+    value.description === undefined ? undefined : normalizeDescription(value.description);
   const startDate =
-    value.startDate === undefined ? undefined : normalizeDate(value.startDate, "Project start date");
+    value.startDate === undefined
+      ? undefined
+      : normalizeDate(value.startDate, "Project start date");
   const committedEndDate =
     value.committedEndDate === undefined
       ? undefined
@@ -284,7 +284,9 @@ function normalizeDate(value: unknown, field: string): string {
 
 function normalizeProjectStatus(value: unknown): ProjectStatus {
   if (!(projectStatuses as readonly string[]).includes(value as string)) {
-    throw new ProjectValidationError("Project status must be planned, active, paused, finalized, or cancelled.");
+    throw new ProjectValidationError(
+      "Project status must be planned, active, paused, finalized, or cancelled.",
+    );
   }
 
   return value as ProjectStatus;

@@ -47,10 +47,7 @@ test("migrates client code settings and defines the project schema", async () =>
 
   assert.ok(migration);
   assert.match(migration.sql, /create table "business"\."entity_code_settings"/i);
-  assert.match(
-    migration.sql,
-    /"entity_type" in \('client', 'project'\)/i,
-  );
+  assert.match(migration.sql, /"entity_type" in \('client', 'project'\)/i);
   assert.match(
     migration.sql,
     /insert into "business"\."entity_code_settings"[\s\S]*from "business"\."client_code_settings"/i,

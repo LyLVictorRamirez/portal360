@@ -237,7 +237,9 @@ export class ProjectRepository {
 
     try {
       await transaction.query("BEGIN");
-      const clientResult = await transaction.query(findClientForProjectCreationQuery, [input.clientId]);
+      const clientResult = await transaction.query(findClientForProjectCreationQuery, [
+        input.clientId,
+      ]);
       const clientRow = clientResult.rows[0];
 
       if (!clientRow) {
@@ -463,11 +465,15 @@ function readDate(value: unknown, field: string): Date {
 }
 
 function readDateOnly(value: unknown, field: string): string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new Error(`Invalid ${field} returned by the business database.`);
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
   }
 
-  return value;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  throw new Error(`Invalid ${field} returned by the business database.`);
 }
 
 function readNullableString(value: unknown, field: string): string | null {

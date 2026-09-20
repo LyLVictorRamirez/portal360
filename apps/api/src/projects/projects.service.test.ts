@@ -206,7 +206,11 @@ test("normalizes a Project update and allows clearing its optional description",
       async updateProject(projectId, input) {
         receivedProjectId = projectId;
         receivedInput = input;
-        return { ...createProject(), description: input.description ?? null, version: input.version + 1 };
+        return {
+          ...createProject(),
+          description: input.description ?? null,
+          version: input.version + 1,
+        };
       },
     }),
   );

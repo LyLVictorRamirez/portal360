@@ -145,7 +145,14 @@ function settingsRow(settings: {
 }
 
 function projectRow(
-  overrides: Partial<{ code: string; id: string; status: string; version: number }> = {},
+  overrides: Partial<{
+    code: string;
+    committed_end_date: Date | string;
+    id: string;
+    start_date: Date | string;
+    status: string;
+    version: number;
+  }> = {},
 ): Record<string, unknown> {
   return {
     client_code: "CLI-001",
@@ -224,7 +231,10 @@ test("reads Project settings from the project row of the shared code settings ta
     },
     async query(query) {
       queries.push(query);
-      return { rowCount: 1, rows: [settingsRow({ codeLength: 6, nextSequence: 1n, prefix: "PRY", version: 1 })] };
+      return {
+        rowCount: 1,
+        rows: [settingsRow({ codeLength: 6, nextSequence: 1n, prefix: "PRY", version: 1 })],
+      };
     },
   };
   const repository = new ProjectRepository(database);
@@ -234,6 +244,35 @@ test("reads Project settings from the project row of the shared code settings ta
   assert.equal(settings.prefix, "PRY");
   assert.match(queries[0] ?? "", /from "business"\."entity_code_settings"/i);
   assert.match(queries[0] ?? "", /where "entity_type" = 'project'/i);
+});
+
+test("normalizes calendar dates returned as Date objects by the business database", async () => {
+  const database: ProjectsDatabase = {
+    async connect() {
+      throw new Error("Not used by this test.");
+    },
+    async query(query) {
+      if (query.includes('from "business"."project" as "project"')) {
+        return {
+          rowCount: 1,
+          rows: [
+            projectRow({
+              committed_end_date: new Date("2026-10-31T00:00:00.000Z"),
+              start_date: new Date("2026-10-01T00:00:00.000Z"),
+            }),
+          ],
+        };
+      }
+
+      throw new Error(`Unexpected query: ${query}`);
+    },
+  };
+  const repository = new ProjectRepository(database);
+
+  const project = await repository.getProject("5d676d8c-9939-4a25-bdda-1a4df8b17873");
+
+  assert.equal(project.startDate, "2026-10-01");
+  assert.equal(project.committedEndDate, "2026-10-31");
 });
 
 test("updates Project code settings after locking their current version", async () => {

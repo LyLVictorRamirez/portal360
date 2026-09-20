@@ -9,7 +9,12 @@ test("proxies only Better Auth, authorization, Client, and Project API paths to 
   assert.ok(Array.isArray(rewrites));
   assert.deepEqual(
     rewrites.map((rewrite) => rewrite.source),
-    ["/api/auth/:path*", "/api/authorization/:path*", "/api/clients/:path*", "/api/projects/:path*"],
+    [
+      "/api/auth/:path*",
+      "/api/authorization/:path*",
+      "/api/clients/:path*",
+      "/api/projects/:path*",
+    ],
   );
   assert.match(rewrites[0]?.destination ?? "", /\/api\/auth\/:path\*$/);
   assert.match(rewrites[1]?.destination ?? "", /\/api\/authorization\/:path\*$/);
