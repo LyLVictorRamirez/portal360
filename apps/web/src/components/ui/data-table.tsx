@@ -1,5 +1,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
+
 export type DataTableAlignment = "left" | "center" | "right";
 
 export type DataTableColumn<Row> = {
@@ -44,12 +46,12 @@ export function DataTable<Row extends { id: string }>({
       tabIndex={0}
       {...props}
     >
-      <table className="min-w-2xl w-full border-collapse">
+      <Table className="min-w-2xl w-full border-collapse">
         <caption className="sr-only">{label}</caption>
-        <thead className="bg-surface-muted">
-          <tr>
+        <TableHeader className="bg-surface-muted">
+          <TableRow>
             {columns.map(({ align = "left", header, id }) => (
-              <th
+              <TableHead
                 key={id}
                 scope="col"
                 className={[
@@ -58,15 +60,15 @@ export function DataTable<Row extends { id: string }>({
                 ].join(" ")}
               >
                 {header}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody className="bg-surface">
+          </TableRow>
+        </TableHeader>
+        <TableBody className="bg-surface">
           {rows.map((row, rowIndex) => (
-            <tr key={row.id}>
+            <TableRow key={row.id}>
               {columns.map(({ align = "left", cell, id }) => (
-                <td
+                <TableCell
                   key={id}
                   className={[
                     "wrap-break-word px-4 py-3 text-sm leading-5 text-foreground",
@@ -77,12 +79,12 @@ export function DataTable<Row extends { id: string }>({
                     .join(" ")}
                 >
                   {cell(row)}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

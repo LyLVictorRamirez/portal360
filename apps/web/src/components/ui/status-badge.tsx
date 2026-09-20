@@ -1,5 +1,7 @@
 import type { HTMLAttributes } from "react";
 
+import { Badge } from "./badge";
+
 export type StatusBadgeTone = "neutral" | "info" | "success" | "warning" | "danger";
 
 type StatusBadgeProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
@@ -25,7 +27,7 @@ const dotClassNames: Record<StatusBadgeTone, string> = {
 
 export function StatusBadge({ className, label, tone = "neutral", ...props }: StatusBadgeProps) {
   return (
-    <span
+    <Badge
       className={[
         "inline-flex min-h-6 items-center gap-1.5 rounded-full border px-2 text-xs font-semibold",
         toneClassNames[tone],
@@ -40,6 +42,6 @@ export function StatusBadge({ className, label, tone = "neutral", ...props }: St
         className={["size-1.5 rounded-full", dotClassNames[tone]].join(" ")}
       />
       {label}
-    </span>
+    </Badge>
   );
 }

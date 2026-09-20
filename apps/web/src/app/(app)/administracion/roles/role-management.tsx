@@ -305,7 +305,7 @@ function createColumns(
                   Editar
                 </Button>
                 {role.kind === "custom" ? (
-                  <Button onClick={() => onDelete(role)} size="sm" variant="quiet">
+                  <Button onClick={() => onDelete(role)} size="sm" variant="ghost">
                     Eliminar
                   </Button>
                 ) : null}

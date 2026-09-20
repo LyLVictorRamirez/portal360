@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 
 import { ClientSearchField } from "../proyectos/client-search-field";
 import { Button } from "../../../components/ui/button";
-import { Dialog } from "../../../components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../../components/ui/dialog";
 import { SelectField } from "../../../components/ui/select-field";
 import { StatusBadge, type StatusBadgeTone } from "../../../components/ui/status-badge";
 import { TextareaField } from "../../../components/ui/textarea-field";
@@ -222,191 +228,199 @@ export function RequirementEditorDialog({
     : "El Cliente y el código del Requerimiento no se pueden modificar.";
 
   return (
-    <Dialog description={descriptionText} onOpenChange={closeDialog} open={open} title={title}>
-      {isViewMode && requirement ? (
-        <div className="space-y-5">
-          <dl className="grid gap-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="font-medium text-muted">Código</dt>
-              <dd className="mt-1 font-semibold tabular-nums text-primary">{requirement.code}</dd>
+    <Dialog onOpenChange={closeDialog} open={open}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{descriptionText}</DialogDescription>
+        </DialogHeader>
+        {isViewMode && requirement ? (
+          <div className="space-y-5">
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="font-medium text-muted">Código</dt>
+                <dd className="mt-1 font-semibold tabular-nums text-primary">{requirement.code}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted">Estado</dt>
+                <dd className="mt-1">
+                  <StatusBadge
+                    label={requirementStatusLabels[requirement.status]}
+                    tone={requirementStatusTones[requirement.status]}
+                  />
+                </dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="font-medium text-muted">Cliente</dt>
+                <dd className="mt-1 text-foreground">
+                  {requirement.client.name}{" "}
+                  <span className="font-mono text-muted">({requirement.client.code})</span>
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted">Solicitud</dt>
+                <dd className="mt-1 text-foreground">{requirement.requestedOn}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted">Compromiso</dt>
+                <dd className="mt-1 text-foreground">{requirement.committedOn ?? "Sin fecha"}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted">Cotización</dt>
+                <dd className="mt-1 text-foreground">{requirement.quotedOn ?? "Sin fecha"}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted">Aprobación</dt>
+                <dd className="mt-1 text-foreground">{requirement.approvedOn ?? "Sin fecha"}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="font-medium text-muted">Aprobado por</dt>
+                <dd className="mt-1 text-foreground">
+                  {requirement.approvedByUserId ?? "Sin aprobación registrada"}
+                </dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="font-medium text-muted">Descripción</dt>
+                <dd className="mt-1 whitespace-pre-wrap text-foreground">
+                  {requirement.description || "Sin descripción"}
+                </dd>
+              </div>
+            </dl>
+            <div className="flex justify-end border-t border-border pt-4">
+              <Button onClick={closeDialog} type="button" variant="secondary">
+                Cerrar
+              </Button>
             </div>
-            <div>
-              <dt className="font-medium text-muted">Estado</dt>
-              <dd className="mt-1">
-                <StatusBadge
-                  label={requirementStatusLabels[requirement.status]}
-                  tone={requirementStatusTones[requirement.status]}
-                />
-              </dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="font-medium text-muted">Cliente</dt>
-              <dd className="mt-1 text-foreground">
-                {requirement.client.name}{" "}
-                <span className="font-mono text-muted">({requirement.client.code})</span>
-              </dd>
-            </div>
-            <div>
-              <dt className="font-medium text-muted">Solicitud</dt>
-              <dd className="mt-1 text-foreground">{requirement.requestedOn}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-muted">Compromiso</dt>
-              <dd className="mt-1 text-foreground">{requirement.committedOn ?? "Sin fecha"}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-muted">Cotización</dt>
-              <dd className="mt-1 text-foreground">{requirement.quotedOn ?? "Sin fecha"}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-muted">Aprobación</dt>
-              <dd className="mt-1 text-foreground">{requirement.approvedOn ?? "Sin fecha"}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="font-medium text-muted">Aprobado por</dt>
-              <dd className="mt-1 text-foreground">
-                {requirement.approvedByUserId ?? "Sin aprobación registrada"}
-              </dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="font-medium text-muted">Descripción</dt>
-              <dd className="mt-1 whitespace-pre-wrap text-foreground">
-                {requirement.description || "Sin descripción"}
-              </dd>
-            </div>
-          </dl>
-          <div className="flex justify-end border-t border-border pt-4">
-            <Button onClick={closeDialog} type="button" variant="secondary">
-              Cerrar
-            </Button>
           </div>
-        </div>
-      ) : (
-        <form
-          className="space-y-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void saveRequirement();
-          }}
-        >
-          {isCreateMode ? (
-            <ClientSearchField
-              disabled={isSaving}
-              onSelectedClientChange={setSelectedClient}
-              selectedClient={selectedClient}
-            />
-          ) : (
-            <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
-              <p className="font-medium text-foreground">Cliente</p>
-              <p>
-                {requirement?.client.name}{" "}
-                <span className="font-mono">({requirement?.client.code})</span>
-              </p>
-            </div>
-          )}
-
-          <TextField
-            disabled={isSaving}
-            id="requirement-name"
-            label="Nombre"
-            maxLength={200}
-            onChange={(event) => setName(event.target.value)}
-            required
-            value={name}
-          />
-
-          <TextareaField
-            disabled={isSaving}
-            helpText={`${description.length}/2.000`}
-            id="requirement-description"
-            label="Descripción"
-            maxLength={2000}
-            onChange={(event) => setDescription(event.target.value)}
-            value={description}
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField
-              disabled={isSaving}
-              id="requirement-requested-on"
-              label="Fecha de solicitud"
-              onChange={(event) => setRequestedOn(event.target.value)}
-              required
-              type="date"
-              value={requestedOn}
-            />
-            <TextField
-              disabled={isSaving}
-              id="requirement-committed-on"
-              label="Fecha comprometida"
-              min={requestedOn || undefined}
-              onChange={(event) => setCommittedOn(event.target.value)}
-              type="date"
-              value={committedOn}
-            />
-          </div>
-
-          {!isCreateMode ? (
-            <>
-              <SelectField
+        ) : (
+          <form
+            className="space-y-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveRequirement();
+            }}
+          >
+            {isCreateMode ? (
+              <ClientSearchField
                 disabled={isSaving}
-                helpText="Solo se muestran las transiciones disponibles para el estado actual."
-                id="requirement-status"
-                label="Estado"
-                onChange={(event) => setStatus(event.target.value as RequirementStatus)}
-                value={status}
-              >
-                {availableStatusTransitions[requirement?.status ?? "new"].map((availableStatus) => (
-                  <option key={availableStatus} value={availableStatus}>
-                    {requirementStatusLabels[availableStatus]}
-                  </option>
-                ))}
-              </SelectField>
+                onSelectedClientChange={setSelectedClient}
+                selectedClient={selectedClient}
+              />
+            ) : (
+              <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
+                <p className="font-medium text-foreground">Cliente</p>
+                <p>
+                  {requirement?.client.name}{" "}
+                  <span className="font-mono">({requirement?.client.code})</span>
+                </p>
+              </div>
+            )}
 
-              {isQuotedOrLater(status) ? (
-                <TextField
+            <TextField
+              disabled={isSaving}
+              id="requirement-name"
+              label="Nombre"
+              maxLength={200}
+              onChange={(event) => setName(event.target.value)}
+              required
+              value={name}
+            />
+
+            <TextareaField
+              disabled={isSaving}
+              helpText={`${description.length}/2.000`}
+              id="requirement-description"
+              label="Descripción"
+              maxLength={2000}
+              onChange={(event) => setDescription(event.target.value)}
+              value={description}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                disabled={isSaving}
+                id="requirement-requested-on"
+                label="Fecha de solicitud"
+                onChange={(event) => setRequestedOn(event.target.value)}
+                required
+                type="date"
+                value={requestedOn}
+              />
+              <TextField
+                disabled={isSaving}
+                id="requirement-committed-on"
+                label="Fecha comprometida"
+                min={requestedOn || undefined}
+                onChange={(event) => setCommittedOn(event.target.value)}
+                type="date"
+                value={committedOn}
+              />
+            </div>
+
+            {!isCreateMode ? (
+              <>
+                <SelectField
                   disabled={isSaving}
-                  id="requirement-quoted-on"
-                  label="Fecha de cotización"
-                  min={requestedOn || undefined}
-                  onChange={(event) => setQuotedOn(event.target.value)}
-                  required
-                  type="date"
-                  value={quotedOn}
-                />
-              ) : null}
+                  helpText="Solo se muestran las transiciones disponibles para el estado actual."
+                  id="requirement-status"
+                  label="Estado"
+                  onChange={(event) => setStatus(event.target.value as RequirementStatus)}
+                  value={status}
+                >
+                  {availableStatusTransitions[requirement?.status ?? "new"].map(
+                    (availableStatus) => (
+                      <option key={availableStatus} value={availableStatus}>
+                        {requirementStatusLabels[availableStatus]}
+                      </option>
+                    ),
+                  )}
+                </SelectField>
 
-              {isApprovedOrLater(status) ? (
-                <TextField
-                  disabled={isSaving}
-                  id="requirement-approved-on"
-                  label="Fecha de aprobación"
-                  min={requestedOn || undefined}
-                  onChange={(event) => setApprovedOn(event.target.value)}
-                  required
-                  type="date"
-                  value={approvedOn}
-                />
-              ) : null}
-            </>
-          ) : null}
+                {isQuotedOrLater(status) ? (
+                  <TextField
+                    disabled={isSaving}
+                    id="requirement-quoted-on"
+                    label="Fecha de cotización"
+                    min={requestedOn || undefined}
+                    onChange={(event) => setQuotedOn(event.target.value)}
+                    required
+                    type="date"
+                    value={quotedOn}
+                  />
+                ) : null}
 
-          {formError || saveError ? (
-            <p className="text-sm leading-6 text-danger" role="alert">
-              {formError || saveError}
-            </p>
-          ) : null}
+                {isApprovedOrLater(status) ? (
+                  <TextField
+                    disabled={isSaving}
+                    id="requirement-approved-on"
+                    label="Fecha de aprobación"
+                    min={requestedOn || undefined}
+                    onChange={(event) => setApprovedOn(event.target.value)}
+                    required
+                    type="date"
+                    value={approvedOn}
+                  />
+                ) : null}
+              </>
+            ) : null}
 
-          <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-            <Button disabled={isSaving} onClick={closeDialog} type="button" variant="quiet">
-              Cancelar
-            </Button>
-            <Button disabled={isSaving} type="submit">
-              {isSaving ? "Guardando…" : isCreateMode ? "Crear Requerimiento" : "Guardar cambios"}
-            </Button>
-          </div>
-        </form>
-      )}
+            {formError || saveError ? (
+              <p className="text-sm leading-6 text-danger" role="alert">
+                {formError || saveError}
+              </p>
+            ) : null}
+
+            <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+              <Button disabled={isSaving} onClick={closeDialog} type="button" variant="ghost">
+                Cancelar
+              </Button>
+              <Button disabled={isSaving} type="submit">
+                {isSaving ? "Guardando…" : isCreateMode ? "Crear Requerimiento" : "Guardar cambios"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
     </Dialog>
   );
 }

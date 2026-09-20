@@ -1,5 +1,7 @@
 import type { LabelHTMLAttributes, ReactNode } from "react";
 
+import { Label } from "./label";
+
 type FieldLabelProps = Omit<LabelHTMLAttributes<HTMLLabelElement>, "children" | "htmlFor"> & {
   children: ReactNode;
   htmlFor: string;
@@ -14,7 +16,7 @@ export function FieldLabel({
   ...props
 }: FieldLabelProps) {
   return (
-    <label
+    <Label
       className={["block text-sm font-semibold leading-5 text-foreground", className]
         .filter(Boolean)
         .join(" ")}
@@ -30,6 +32,6 @@ export function FieldLabel({
           <span className="sr-only"> obligatorio</span>
         </>
       ) : null}
-    </label>
+    </Label>
   );
 }

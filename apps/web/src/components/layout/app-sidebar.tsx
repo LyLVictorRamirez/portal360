@@ -2,24 +2,37 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, FolderKanban, Home, Settings2, Shield, Users, X } from "lucide-react";
-import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  Building2,
+  FolderKanban,
+  Home,
+  Settings2,
+  Shield,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 
 import {
   getVisibleAdministrationNavigation,
   getVisibleBusinessNavigation,
 } from "../../lib/administration-navigation";
 import type { AuthorizationPermission } from "../../lib/authorization";
-import { IconButton } from "../ui/icon-button";
+import { Button } from "../ui/button";
 import { Portal360Mark } from "../ui/portal-360-mark";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "../ui/sidebar";
 
-const primaryNavigation = [
-  {
-    href: "/",
-    icon: Home,
-    label: "Inicio",
-  },
-];
+const primaryNavigation = [{ href: "/", icon: Home, label: "Inicio" }];
 
 const administrationNavigationIcons = {
   "code-settings": Settings2,
@@ -33,276 +46,118 @@ const businessNavigationIcons = {
   requirements: FolderKanban,
 };
 
+type NavigationItem = Readonly<{
+  href: string;
+  icon: LucideIcon;
+  label: string;
+}>;
+
 type AppSidebarProps = Readonly<{
-  collapsed: boolean;
-  mobileOpen: boolean;
-  onMobileClose: () => void;
   permissions: readonly AuthorizationPermission[];
 }>;
-
-type SidebarContentProps = Readonly<{
-  collapsed: boolean;
-  onMobileClose?: () => void;
-  onNavigate?: () => void;
-  permissions: readonly AuthorizationPermission[];
-}>;
-
-const focusableSelector = [
-  "a[href]",
-  "button:not([disabled])",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  '[tabindex]:not([tabindex="-1"])',
-].join(",");
-
-function getFocusableElements(container: HTMLElement) {
-  return Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter(
-    (element) => element.tabIndex >= 0,
-  );
-}
 
 function isCurrentRoute(pathname: string, href: string) {
   return href === "/" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function SidebarContent({
-  collapsed,
-  onMobileClose,
+function NavigationLink({
+  item,
   onNavigate,
-  permissions,
-}: SidebarContentProps) {
+}: Readonly<{ item: NavigationItem; onNavigate: () => void }>) {
   const pathname = usePathname();
-  const visibleAdministrationNavigation = getVisibleAdministrationNavigation(permissions);
-  const visibleBusinessNavigation = getVisibleBusinessNavigation(permissions);
+  const isActive = isCurrentRoute(pathname, item.href);
+  const Icon = item.icon;
 
   return (
-    <>
-      <div
-        data-sidebar-brand
-        className={`flex min-h-20 items-center border-b border-border ${
-          collapsed ? "justify-center px-3" : "justify-between px-5"
-        }`}
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        className="h-11 rounded-r-md border-l-2 border-transparent px-4 text-sm data-[active=true]:border-primary data-[active=true]:bg-sidebar-accent"
+        isActive={isActive}
+        size="lg"
+        tooltip={item.label}
       >
-        <Link
-          aria-label="Portal 360"
-          className="inline-flex rounded-sm"
-          href="/"
-          onClick={onNavigate}
-        >
-          <Portal360Mark compact={collapsed} size="md" />
+        <Link aria-current={isActive ? "page" : undefined} href={item.href} onClick={onNavigate}>
+          <Icon aria-hidden="true" strokeWidth={1.75} />
+          <span>{item.label}</span>
         </Link>
-        {onMobileClose ? (
-          <IconButton
-            data-mobile-sidebar-close="true"
-            icon={X}
-            label="Cerrar navegación"
-            onClick={onMobileClose}
-          />
-        ) : null}
-      </div>
-      <nav aria-label="Navegación principal" className="flex-1 px-3 py-5">
-        <ul className="space-y-1">
-          {primaryNavigation.map(({ href, icon: Icon, label }) => {
-            const isActive = isCurrentRoute(pathname, href);
-
-            return (
-              <li key={href}>
-                <Link
-                  aria-current={isActive ? "page" : undefined}
-                  aria-label={label}
-                  data-sidebar-nav-link
-                  className={`flex h-11 items-center rounded-r-md border-l-2 text-sm font-medium transition-colors duration-150 ${
-                    collapsed ? "justify-center px-0" : "gap-3 px-4"
-                  } ${
-                    isActive
-                      ? "border-primary bg-surface-selected text-foreground"
-                      : "border-transparent text-muted hover:bg-surface-muted hover:text-foreground"
-                  }`}
-                  href={href}
-                  onClick={onNavigate}
-                >
-                  <Icon aria-hidden="true" size={18} strokeWidth={1.75} />
-                  <span data-sidebar-nav-label className={collapsed ? "sr-only" : undefined}>
-                    {label}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-          {visibleBusinessNavigation.map(({ href, id, label }) => {
-            const Icon = businessNavigationIcons[id];
-            const isActive = isCurrentRoute(pathname, href);
-
-            return (
-              <li key={href}>
-                <Link
-                  aria-current={isActive ? "page" : undefined}
-                  aria-label={label}
-                  data-sidebar-nav-link
-                  className={`flex h-11 items-center rounded-r-md border-l-2 text-sm font-medium transition-colors duration-150 ${
-                    collapsed ? "justify-center px-0" : "gap-3 px-4"
-                  } ${
-                    isActive
-                      ? "border-primary bg-surface-selected text-foreground"
-                      : "border-transparent text-muted hover:bg-surface-muted hover:text-foreground"
-                  }`}
-                  href={href}
-                  onClick={onNavigate}
-                >
-                  <Icon aria-hidden="true" size={18} strokeWidth={1.75} />
-                  <span data-sidebar-nav-label className={collapsed ? "sr-only" : undefined}>
-                    {label}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-        {visibleAdministrationNavigation.length > 0 ? (
-          <section aria-label="Administración" className="mt-6 border-t border-border pt-4">
-            <p
-              className={`px-4 pb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted ${
-                collapsed ? "sr-only" : undefined
-              }`}
-            >
-              Administración
-            </p>
-            <ul className="space-y-1">
-              {visibleAdministrationNavigation.map(({ href, id, label }) => {
-                const Icon = administrationNavigationIcons[id];
-                const isActive = isCurrentRoute(pathname, href);
-
-                return (
-                  <li key={href}>
-                    <Link
-                      aria-current={isActive ? "page" : undefined}
-                      aria-label={label}
-                      data-sidebar-nav-link
-                      className={`flex h-11 items-center rounded-r-md border-l-2 text-sm font-medium transition-colors duration-150 ${
-                        collapsed ? "justify-center px-0" : "gap-3 px-4"
-                      } ${
-                        isActive
-                          ? "border-primary bg-surface-selected text-foreground"
-                          : "border-transparent text-muted hover:bg-surface-muted hover:text-foreground"
-                      }`}
-                      href={href}
-                      onClick={onNavigate}
-                    >
-                      <Icon aria-hidden="true" size={18} strokeWidth={1.75} />
-                      <span data-sidebar-nav-label className={collapsed ? "sr-only" : undefined}>
-                        {label}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ) : null}
-      </nav>
-    </>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }
 
-export function AppSidebar({ collapsed, mobileOpen, onMobileClose, permissions }: AppSidebarProps) {
-  const mobilePanelRef = useRef<HTMLElement>(null);
+export function AppSidebar({ permissions }: AppSidebarProps) {
+  const { isMobile, openMobile, setOpenMobile, state } = useSidebar();
+  const compact = !isMobile && state === "collapsed";
+  const visibleAdministrationNavigation = getVisibleAdministrationNavigation(permissions);
+  const visibleBusinessNavigation = getVisibleBusinessNavigation(permissions);
 
-  useEffect(() => {
-    if (!mobileOpen) return;
-
-    const animationFrame = window.requestAnimationFrame(() => {
-      mobilePanelRef.current
-        ?.querySelector<HTMLElement>("[data-mobile-sidebar-close]")
-        ?.focus({ preventScroll: true });
-    });
-
-    return () => window.cancelAnimationFrame(animationFrame);
-  }, [mobileOpen]);
-
-  function handleMobilePanelKeyDown(event: ReactKeyboardEvent<HTMLElement>) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onMobileClose();
-      return;
-    }
-
-    if (event.key !== "Tab") return;
-
-    const mobilePanel = mobilePanelRef.current;
-    if (!mobilePanel) return;
-
-    const focusableElements = getFocusableElements(mobilePanel);
-    if (focusableElements.length === 0) {
-      event.preventDefault();
-      mobilePanel.focus({ preventScroll: true });
-      return;
-    }
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-    const activeElement = document.activeElement;
-
-    if (
-      event.shiftKey &&
-      (activeElement === firstElement || !mobilePanel.contains(activeElement))
-    ) {
-      event.preventDefault();
-      lastElement.focus({ preventScroll: true });
-    }
-
-    if (
-      !event.shiftKey &&
-      (activeElement === lastElement || !mobilePanel.contains(activeElement))
-    ) {
-      event.preventDefault();
-      firstElement.focus({ preventScroll: true });
+  function closeMobileNavigation() {
+    if (isMobile) {
+      setOpenMobile(false);
     }
   }
 
-  return (
-    <>
-      <aside
-        aria-label="Navegación principal"
-        data-desktop-sidebar
-        className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200 md:flex ${
-          collapsed ? "w-[4.5rem]" : "w-[17.5rem]"
-        }`}
-      >
-        <SidebarContent collapsed={collapsed} permissions={permissions} />
-      </aside>
+  const businessNavigation: NavigationItem[] = visibleBusinessNavigation.map((item) => ({
+    ...item,
+    icon: businessNavigationIcons[item.id],
+  }));
+  const administrationNavigation: NavigationItem[] = visibleAdministrationNavigation.map(
+    (item) => ({
+      ...item,
+      icon: administrationNavigationIcons[item.id],
+    }),
+  );
 
-      {mobileOpen ? (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <button
-            aria-label="Cerrar navegación"
-            className="absolute inset-0 bg-foreground/20"
-            onClick={onMobileClose}
-            tabIndex={-1}
-            type="button"
-          />
-          <aside
-            aria-labelledby="mobile-sidebar-title"
-            aria-modal="true"
-            className="relative flex h-full w-[min(18rem,calc(100vw-3rem))] flex-col border-r border-border bg-surface shadow-md"
-            id="mobile-sidebar"
-            onKeyDown={handleMobilePanelKeyDown}
-            ref={mobilePanelRef}
-            role="dialog"
-            tabIndex={-1}
+  return (
+    <Sidebar aria-label="Navegación principal" collapsible="icon">
+      <SidebarHeader className="min-h-20 border-b border-sidebar-border p-0">
+        <div className="flex min-h-20 items-center justify-between px-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-3">
+          <Link
+            aria-label="Portal 360"
+            className="inline-flex rounded-sm"
+            href="/"
+            onClick={closeMobileNavigation}
           >
-            <h2 className="sr-only" id="mobile-sidebar-title">
-              Navegación principal
-            </h2>
-            <SidebarContent
-              collapsed={false}
-              onMobileClose={onMobileClose}
-              onNavigate={onMobileClose}
-              permissions={permissions}
-            />
-          </aside>
+            <Portal360Mark compact={compact} size="md" />
+          </Link>
+          {openMobile ? (
+            <Button
+              aria-label="Cerrar navegación"
+              className="md:hidden"
+              onClick={() => setOpenMobile(false)}
+              size="icon"
+              variant="ghost"
+            >
+              <X aria-hidden="true" />
+            </Button>
+          ) : null}
         </div>
-      ) : null}
-    </>
+      </SidebarHeader>
+      <SidebarContent className="px-3 py-5">
+        <SidebarGroup className="p-0">
+          <SidebarMenu className="gap-1">
+            {primaryNavigation.map((item) => (
+              <NavigationLink item={item} key={item.href} onNavigate={closeMobileNavigation} />
+            ))}
+            {businessNavigation.map((item) => (
+              <NavigationLink item={item} key={item.href} onNavigate={closeMobileNavigation} />
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+        {administrationNavigation.length > 0 ? (
+          <SidebarGroup className="mt-6 border-t border-sidebar-border pt-4 group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0 group-data-[collapsible=icon]:pt-0">
+            <SidebarGroupLabel className="px-4 pb-2 text-xs font-semibold tracking-normal text-muted group-data-[collapsible=icon]:sr-only">
+              Administración
+            </SidebarGroupLabel>
+            <SidebarMenu className="gap-1">
+              {administrationNavigation.map((item) => (
+                <NavigationLink item={item} key={item.href} onNavigate={closeMobileNavigation} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        ) : null}
+      </SidebarContent>
+    </Sidebar>
   );
 }

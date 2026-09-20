@@ -1,6 +1,7 @@
 import { useId, type InputHTMLAttributes, type ReactNode } from "react";
 
 import { FieldLabel } from "./field-label";
+import { Input } from "./input";
 
 type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id"> & {
   error?: ReactNode;
@@ -43,7 +44,7 @@ export function TextField({
       <FieldLabel htmlFor={fieldId} required={required}>
         {label}
       </FieldLabel>
-      <input
+      <Input
         aria-describedby={describedBy || undefined}
         aria-errormessage={hasError ? errorId : ariaErrorMessage}
         aria-invalid={hasError ? true : ariaInvalid}

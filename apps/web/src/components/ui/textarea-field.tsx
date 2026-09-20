@@ -1,6 +1,7 @@
 import { useId, type ReactNode, type TextareaHTMLAttributes } from "react";
 
 import { FieldLabel } from "./field-label";
+import { Textarea } from "./textarea";
 
 type TextareaFieldProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "id"> & {
   error?: ReactNode;
@@ -44,7 +45,7 @@ export function TextareaField({
       <FieldLabel htmlFor={fieldId} required={required}>
         {label}
       </FieldLabel>
-      <textarea
+      <Textarea
         aria-describedby={describedBy || undefined}
         aria-errormessage={hasError ? errorId : ariaErrorMessage}
         aria-invalid={hasError ? true : ariaInvalid}

@@ -5,44 +5,29 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { authClient } from "../../lib/auth-client";
-import { IconButton } from "../ui/icon-button";
-import { Menu as ActionMenu, type MenuItem } from "../ui/menu";
+import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { useSidebar } from "../ui/sidebar";
 
 type TopBarProps = Readonly<{
-  collapsed: boolean;
-  mobileSidebarOpen: boolean;
-  onOpenMobileSidebar: () => void;
-  onToggleSidebar: () => void;
   user: {
     email: string;
     name: string;
   };
 }>;
 
-export function TopBar({
-  collapsed,
-  mobileSidebarOpen,
-  onOpenMobileSidebar,
-  onToggleSidebar,
-  user,
-}: TopBarProps) {
+export function TopBar({ user }: TopBarProps) {
   const router = useRouter();
+  const { openMobile, state, toggleSidebar } = useSidebar();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const initials = getInitials(user.name);
-  const menuItems: readonly MenuItem[] = [
-    isSigningOut
-      ? {
-          disabled: true,
-          id: "signing-out",
-          label: "Cerrando sesión…",
-        }
-      : {
-          id: "sign-out",
-          label: "Cerrar sesión",
-          onSelectAction: handleSignOut,
-        },
-  ];
+  const collapsed = state === "collapsed";
 
   async function handleSignOut() {
     setIsSigningOut(true);
@@ -68,20 +53,25 @@ export function TopBar({
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center border-b border-border bg-surface px-6 lg:px-8">
       <div className="flex items-center gap-2">
-        <IconButton
-          aria-controls="mobile-sidebar"
-          aria-expanded={mobileSidebarOpen}
+        <Button
+          aria-expanded={openMobile}
+          aria-label="Abrir navegación"
           className="md:hidden"
-          icon={Menu}
-          label="Abrir navegación"
-          onClick={onOpenMobileSidebar}
-        />
-        <IconButton
+          onClick={toggleSidebar}
+          size="icon"
+          variant="ghost"
+        >
+          <Menu aria-hidden="true" />
+        </Button>
+        <Button
+          aria-label={collapsed ? "Expandir navegación" : "Contraer navegación"}
           className="hidden md:inline-flex"
-          icon={collapsed ? PanelLeftOpen : PanelLeftClose}
-          label={collapsed ? "Expandir navegación" : "Contraer navegación"}
-          onClick={onToggleSidebar}
-        />
+          onClick={toggleSidebar}
+          size="icon"
+          variant="ghost"
+        >
+          {collapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}
+        </Button>
         <span aria-hidden="true" className="h-5 w-px bg-border" />
         <p className="text-sm font-semibold text-foreground">Inicio</p>
       </div>
@@ -89,27 +79,33 @@ export function TopBar({
         <p aria-live="polite" className="sr-only">
           {signOutError}
         </p>
-        <ActionMenu
-          items={menuItems}
-          label={`Abrir menú de ${user.name}`}
-          trigger={
-            <>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label={`Abrir menú de ${user.name}`}
+              className="h-11 max-w-[15rem] justify-start gap-3 px-2 text-left"
+              variant="ghost"
+            >
               <span
                 aria-hidden="true"
-                className="flex size-7 items-center justify-center rounded-full bg-surface-selected text-xs font-bold text-primary"
+                className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-selected text-xs font-bold text-primary"
               >
                 {initials}
               </span>
-              <span className="hidden min-w-0 text-left sm:block">
+              <span className="hidden min-w-0 sm:block">
                 <span className="block max-w-44 truncate text-sm font-semibold text-foreground">
                   {user.name}
                 </span>
                 <span className="block max-w-44 truncate text-xs text-muted">{user.email}</span>
               </span>
-            </>
-          }
-          triggerClassName="max-w-[15rem]"
-        />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem disabled={isSigningOut} onSelect={() => void handleSignOut()}>
+              {isSigningOut ? "Cerrando sesión…" : "Cerrar sesión"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

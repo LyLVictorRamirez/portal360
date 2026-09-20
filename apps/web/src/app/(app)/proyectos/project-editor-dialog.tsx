@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 
 import { ClientSearchField } from "./client-search-field";
 import { Button } from "../../../components/ui/button";
-import { Dialog } from "../../../components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../../components/ui/dialog";
 import { SelectField } from "../../../components/ui/select-field";
 import { StatusBadge, type StatusBadgeTone } from "../../../components/ui/status-badge";
 import { TextareaField } from "../../../components/ui/textarea-field";
@@ -174,146 +180,152 @@ export function ProjectEditorDialog({
     : "El Cliente y el código del Proyecto no se pueden modificar.";
 
   return (
-    <Dialog description={descriptionText} onOpenChange={closeDialog} open={open} title={title}>
-      {isViewMode && project ? (
-        <div className="space-y-5">
-          <dl className="grid gap-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="font-medium text-muted">Código</dt>
-              <dd className="mt-1 font-semibold tabular-nums text-primary">{project.code}</dd>
+    <Dialog onOpenChange={closeDialog} open={open}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{descriptionText}</DialogDescription>
+        </DialogHeader>
+        {isViewMode && project ? (
+          <div className="space-y-5">
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="font-medium text-muted">Código</dt>
+                <dd className="mt-1 font-semibold tabular-nums text-primary">{project.code}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted">Estado</dt>
+                <dd className="mt-1">
+                  <StatusBadge
+                    label={projectStatusLabels[project.status]}
+                    tone={projectStatusTones[project.status]}
+                  />
+                </dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="font-medium text-muted">Cliente</dt>
+                <dd className="mt-1 text-foreground">
+                  {project.client.name}{" "}
+                  <span className="font-mono text-muted">({project.client.code})</span>
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted">Inicio</dt>
+                <dd className="mt-1 text-foreground">{project.startDate}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted">Fecha comprometida</dt>
+                <dd className="mt-1 text-foreground">{project.committedEndDate}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="font-medium text-muted">Descripción</dt>
+                <dd className="mt-1 whitespace-pre-wrap text-foreground">
+                  {project.description || "Sin descripción"}
+                </dd>
+              </div>
+            </dl>
+            <div className="flex justify-end border-t border-border pt-4">
+              <Button onClick={closeDialog} type="button" variant="secondary">
+                Cerrar
+              </Button>
             </div>
-            <div>
-              <dt className="font-medium text-muted">Estado</dt>
-              <dd className="mt-1">
-                <StatusBadge
-                  label={projectStatusLabels[project.status]}
-                  tone={projectStatusTones[project.status]}
-                />
-              </dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="font-medium text-muted">Cliente</dt>
-              <dd className="mt-1 text-foreground">
-                {project.client.name}{" "}
-                <span className="font-mono text-muted">({project.client.code})</span>
-              </dd>
-            </div>
-            <div>
-              <dt className="font-medium text-muted">Inicio</dt>
-              <dd className="mt-1 text-foreground">{project.startDate}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-muted">Fecha comprometida</dt>
-              <dd className="mt-1 text-foreground">{project.committedEndDate}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="font-medium text-muted">Descripción</dt>
-              <dd className="mt-1 whitespace-pre-wrap text-foreground">
-                {project.description || "Sin descripción"}
-              </dd>
-            </div>
-          </dl>
-          <div className="flex justify-end border-t border-border pt-4">
-            <Button onClick={closeDialog} type="button" variant="secondary">
-              Cerrar
-            </Button>
           </div>
-        </div>
-      ) : (
-        <form
-          className="space-y-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void saveProject();
-          }}
-        >
-          {isCreateMode ? (
-            <ClientSearchField
-              disabled={isSaving}
-              onSelectedClientChange={setSelectedClient}
-              selectedClient={selectedClient}
-            />
-          ) : (
-            <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
-              <p className="font-medium text-foreground">Cliente</p>
-              <p>
-                {project?.client.name} <span className="font-mono">({project?.client.code})</span>
-              </p>
-            </div>
-          )}
-
-          <TextField
-            disabled={isSaving}
-            id="project-name"
-            label="Nombre"
-            maxLength={200}
-            onChange={(event) => setName(event.target.value)}
-            required
-            value={name}
-          />
-
-          <TextareaField
-            disabled={isSaving}
-            helpText={`${description.length}/2.000`}
-            id="project-description"
-            label="Descripción"
-            maxLength={2000}
-            onChange={(event) => setDescription(event.target.value)}
-            value={description}
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField
-              disabled={isSaving}
-              id="project-start-date"
-              label="Fecha de inicio"
-              onChange={(event) => setStartDate(event.target.value)}
-              required
-              type="date"
-              value={startDate}
-            />
-            <TextField
-              disabled={isSaving}
-              id="project-committed-end-date"
-              label="Fecha comprometida"
-              min={startDate || undefined}
-              onChange={(event) => setCommittedEndDate(event.target.value)}
-              required
-              type="date"
-              value={committedEndDate}
-            />
-          </div>
-
-          <SelectField
-            disabled={isSaving}
-            id="project-status"
-            label="Estado"
-            onChange={(event) => setStatus(event.target.value as ProjectStatus)}
-            value={status}
+        ) : (
+          <form
+            className="space-y-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveProject();
+            }}
           >
-            {projectStatuses.map((projectStatus) => (
-              <option key={projectStatus} value={projectStatus}>
-                {projectStatusLabels[projectStatus]}
-              </option>
-            ))}
-          </SelectField>
+            {isCreateMode ? (
+              <ClientSearchField
+                disabled={isSaving}
+                onSelectedClientChange={setSelectedClient}
+                selectedClient={selectedClient}
+              />
+            ) : (
+              <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
+                <p className="font-medium text-foreground">Cliente</p>
+                <p>
+                  {project?.client.name} <span className="font-mono">({project?.client.code})</span>
+                </p>
+              </div>
+            )}
 
-          {formError || saveError ? (
-            <p className="text-sm leading-6 text-danger" role="alert">
-              {formError || saveError}
-            </p>
-          ) : null}
+            <TextField
+              disabled={isSaving}
+              id="project-name"
+              label="Nombre"
+              maxLength={200}
+              onChange={(event) => setName(event.target.value)}
+              required
+              value={name}
+            />
 
-          <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-            <Button disabled={isSaving} onClick={closeDialog} type="button" variant="quiet">
-              Cancelar
-            </Button>
-            <Button disabled={isSaving} type="submit">
-              {isSaving ? "Guardando…" : isCreateMode ? "Crear Proyecto" : "Guardar cambios"}
-            </Button>
-          </div>
-        </form>
-      )}
+            <TextareaField
+              disabled={isSaving}
+              helpText={`${description.length}/2.000`}
+              id="project-description"
+              label="Descripción"
+              maxLength={2000}
+              onChange={(event) => setDescription(event.target.value)}
+              value={description}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                disabled={isSaving}
+                id="project-start-date"
+                label="Fecha de inicio"
+                onChange={(event) => setStartDate(event.target.value)}
+                required
+                type="date"
+                value={startDate}
+              />
+              <TextField
+                disabled={isSaving}
+                id="project-committed-end-date"
+                label="Fecha comprometida"
+                min={startDate || undefined}
+                onChange={(event) => setCommittedEndDate(event.target.value)}
+                required
+                type="date"
+                value={committedEndDate}
+              />
+            </div>
+
+            <SelectField
+              disabled={isSaving}
+              id="project-status"
+              label="Estado"
+              onChange={(event) => setStatus(event.target.value as ProjectStatus)}
+              value={status}
+            >
+              {projectStatuses.map((projectStatus) => (
+                <option key={projectStatus} value={projectStatus}>
+                  {projectStatusLabels[projectStatus]}
+                </option>
+              ))}
+            </SelectField>
+
+            {formError || saveError ? (
+              <p className="text-sm leading-6 text-danger" role="alert">
+                {formError || saveError}
+              </p>
+            ) : null}
+
+            <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+              <Button disabled={isSaving} onClick={closeDialog} type="button" variant="ghost">
+                Cancelar
+              </Button>
+              <Button disabled={isSaving} type="submit">
+                {isSaving ? "Guardando…" : isCreateMode ? "Crear Proyecto" : "Guardar cambios"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
     </Dialog>
   );
 }

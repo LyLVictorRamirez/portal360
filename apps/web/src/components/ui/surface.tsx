@@ -1,5 +1,7 @@
 import type { HTMLAttributes } from "react";
 
+import { Card } from "./card";
+
 type SurfaceTone = "default" | "muted" | "raised";
 type SurfacePadding = "none" | "sm" | "md";
 
@@ -25,7 +27,7 @@ const paddingClassNames: Record<SurfacePadding, string> = {
 
 export function Surface({ className, padding = "none", tone = "default", ...props }: SurfaceProps) {
   return (
-    <div
+    <Card
       className={["rounded-md", toneClassNames[tone], paddingClassNames[padding], className]
         .filter(Boolean)
         .join(" ")}

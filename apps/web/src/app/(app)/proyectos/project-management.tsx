@@ -414,7 +414,7 @@ function createColumns(
       align: "right",
       cell: (project) => (
         <div className="flex min-w-[12rem] flex-wrap justify-end gap-2">
-          <Button onClick={() => onView(project)} size="sm" variant="quiet">
+          <Button onClick={() => onView(project)} size="sm" variant="ghost">
             Ver detalle
           </Button>
           {canManageProjects ? (
@@ -422,7 +422,7 @@ function createColumns(
               <Button onClick={() => onEdit(project)} size="sm" variant="secondary">
                 Editar
               </Button>
-              <Button onClick={() => onDelete(project)} size="sm" variant="quiet">
+              <Button onClick={() => onDelete(project)} size="sm" variant="ghost">
                 Eliminar
               </Button>
             </>

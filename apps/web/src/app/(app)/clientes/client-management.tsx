@@ -346,7 +346,7 @@ function createColumns(
       align: "right",
       cell: (client) => (
         <div className="flex min-w-[17rem] flex-wrap justify-end gap-2">
-          <Button onClick={() => onView(client)} size="sm" variant="quiet">
+          <Button onClick={() => onView(client)} size="sm" variant="ghost">
             Ver detalle
           </Button>
           {canManageClients ? (
@@ -358,7 +358,7 @@ function createColumns(
                 disabled={updatingClientId === client.id}
                 onClick={() => onToggleState(client)}
                 size="sm"
-                variant="quiet"
+                variant="ghost"
               >
                 {updatingClientId === client.id
                   ? "Actualizando…"
@@ -366,7 +366,7 @@ function createColumns(
                     ? "Desactivar"
                     : "Activar"}
               </Button>
-              <Button onClick={() => onDelete(client)} size="sm" variant="quiet">
+              <Button onClick={() => onDelete(client)} size="sm" variant="ghost">
                 Eliminar
               </Button>
             </>

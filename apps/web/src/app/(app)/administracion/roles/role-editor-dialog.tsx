@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "../../../../components/ui/button";
-import { Dialog } from "../../../../components/ui/dialog";
+import { Checkbox } from "../../../../components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../../../components/ui/dialog";
 import { TextareaField } from "../../../../components/ui/textarea-field";
 import { TextField } from "../../../../components/ui/text-field";
 import {
@@ -134,132 +141,130 @@ export function RoleEditorDialog({
       : saveState?.kind === "unauthorized"
         ? "Tu sesión ya no permite administrar roles."
         : null);
+  const dialogDescription = isEditing
+    ? "Actualiza el alcance de este rol. Los cambios se aplican a las personas que ya lo tienen asignado."
+    : "Crea un rol personalizado y elige los permisos que aportará a cada persona asignada.";
 
   return (
-    <Dialog
-      description={
-        isEditing
-          ? "Actualiza el alcance de este rol. Los cambios se aplican a las personas que ya lo tienen asignado."
-          : "Crea un rol personalizado y elige los permisos que aportará a cada persona asignada."
-      }
-      onOpenChange={onOpenChange}
-      open={open}
-      title={isEditing ? `Editar ${role.name}` : "Crear rol"}
-    >
-      <form
-        className="space-y-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void saveRole();
-        }}
-      >
-        {!isEditing ? (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? `Editar ${role.name}` : "Crear rol"}</DialogTitle>
+          <DialogDescription>{dialogDescription}</DialogDescription>
+        </DialogHeader>
+        <form
+          className="space-y-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveRole();
+          }}
+        >
+          {!isEditing ? (
+            <TextField
+              autoComplete="off"
+              helpText="La clave es permanente y se usa internamente para asignar el rol."
+              label="Clave"
+              onChange={(event) => {
+                setKey(event.target.value);
+                setFormError(null);
+              }}
+              placeholder="analista-operativo"
+              required
+              value={key}
+            />
+          ) : (
+            <p className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
+              Clave permanente: <code className="font-medium text-foreground">{role.key}</code>
+            </p>
+          )}
+
           <TextField
-            autoComplete="off"
-            helpText="La clave es permanente y se usa internamente para asignar el rol."
-            label="Clave"
+            label="Nombre"
             onChange={(event) => {
-              setKey(event.target.value);
+              setName(event.target.value);
               setFormError(null);
             }}
-            placeholder="analista-operativo"
             required
-            value={key}
+            value={name}
           />
-        ) : (
-          <p className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
-            Clave permanente: <code className="font-medium text-foreground">{role.key}</code>
-          </p>
-        )}
+          <TextareaField
+            label="Descripción"
+            onChange={(event) => {
+              setDescription(event.target.value);
+              setFormError(null);
+            }}
+            required
+            value={description}
+          />
 
-        <TextField
-          label="Nombre"
-          onChange={(event) => {
-            setName(event.target.value);
-            setFormError(null);
-          }}
-          required
-          value={name}
-        />
-        <TextareaField
-          label="Descripción"
-          onChange={(event) => {
-            setDescription(event.target.value);
-            setFormError(null);
-          }}
-          required
-          value={description}
-        />
-
-        {canChangeActiveStatus ? (
-          <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border px-3 py-3 text-sm">
-            <input
-              checked={isActive}
-              className="mt-0.5 size-4 accent-primary"
-              onChange={(event) => setIsActive(event.target.checked)}
-              type="checkbox"
-            />
-            <span>
-              <span className="font-semibold text-foreground">Rol activo</span>
-              <span className="mt-1 block leading-5 text-muted">
-                Los roles inactivos no se pueden asignar y dejan de aportar permisos.
+          {canChangeActiveStatus ? (
+            <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border px-3 py-3 text-sm">
+              <Checkbox
+                checked={isActive}
+                className="mt-0.5"
+                onCheckedChange={(checked) => setIsActive(checked === true)}
+              />
+              <span>
+                <span className="font-semibold text-foreground">Rol activo</span>
+                <span className="mt-1 block leading-5 text-muted">
+                  Los roles inactivos no se pueden asignar y dejan de aportar permisos.
+                </span>
               </span>
-            </span>
-          </label>
-        ) : null}
+            </label>
+          ) : null}
 
-        <fieldset>
-          <legend className="text-sm font-semibold text-foreground">Permisos</legend>
-          <p className="mt-1 text-sm leading-6 text-muted">
-            Selecciona el alcance que este rol añadirá. Los permisos de varios roles se acumulan.
-          </p>
-          <div className="mt-4 space-y-2">
-            {permissions.map((permission) => {
-              const isRequired = isStandardRole && permission.key === "app.access";
+          <fieldset>
+            <legend className="text-sm font-semibold text-foreground">Permisos</legend>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              Selecciona el alcance que este rol añadirá. Los permisos de varios roles se acumulan.
+            </p>
+            <div className="mt-4 space-y-2">
+              {permissions.map((permission) => {
+                const isRequired = isStandardRole && permission.key === "app.access";
 
-              return (
-                <label
-                  className="flex cursor-pointer items-start gap-3 rounded-md border border-border px-3 py-3 text-sm hover:border-border-strong"
-                  key={permission.key}
-                >
-                  <input
-                    checked={selectedPermissions.has(permission.key)}
-                    className="mt-0.5 size-4 accent-primary"
-                    disabled={isRequired}
-                    onChange={() => togglePermission(permission.key)}
-                    type="checkbox"
-                  />
-                  <span>
-                    <span className="font-semibold text-foreground">{permission.name}</span>
-                    {isRequired ? (
-                      <span className="ml-2 text-xs font-medium text-muted">Obligatorio</span>
-                    ) : null}
-                    <span className="mt-1 block leading-5 text-muted">
-                      {permission.description}
+                return (
+                  <label
+                    className="flex cursor-pointer items-start gap-3 rounded-md border border-border px-3 py-3 text-sm hover:border-border-strong"
+                    key={permission.key}
+                  >
+                    <Checkbox
+                      checked={selectedPermissions.has(permission.key)}
+                      className="mt-0.5"
+                      disabled={isRequired}
+                      onCheckedChange={() => togglePermission(permission.key)}
+                    />
+                    <span>
+                      <span className="font-semibold text-foreground">{permission.name}</span>
+                      {isRequired ? (
+                        <span className="ml-2 text-xs font-medium text-muted">Obligatorio</span>
+                      ) : null}
+                      <span className="mt-1 block leading-5 text-muted">
+                        {permission.description}
+                      </span>
+                      <code className="mt-1 block text-xs text-muted">{permission.key}</code>
                     </span>
-                    <code className="mt-1 block text-xs text-muted">{permission.key}</code>
-                  </span>
-                </label>
-              );
-            })}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          {saveError ? (
+            <p role="alert" className="text-sm leading-6 text-danger">
+              {saveError}
+            </p>
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+            <Button onClick={() => onOpenChange(false)} variant="ghost">
+              Cancelar
+            </Button>
+            <Button disabled={isSaving} type="submit">
+              {isSaving ? "Guardando…" : isEditing ? "Guardar cambios" : "Crear rol"}
+            </Button>
           </div>
-        </fieldset>
-
-        {saveError ? (
-          <p role="alert" className="text-sm leading-6 text-danger">
-            {saveError}
-          </p>
-        ) : null}
-
-        <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-          <Button onClick={() => onOpenChange(false)} variant="quiet">
-            Cancelar
-          </Button>
-          <Button disabled={isSaving} type="submit">
-            {isSaving ? "Guardando…" : isEditing ? "Guardar cambios" : "Crear rol"}
-          </Button>
-        </div>
-      </form>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }
