@@ -74,7 +74,9 @@ function getSaveErrorMessage(kind: "conflict" | "error" | "unauthorized" | "vali
 }
 
 function isQuotedOrLater(status: RequirementStatus) {
-  return status === "quoted" || status === "approved" || status === "in_execution" || status === "closed";
+  return (
+    status === "quoted" || status === "approved" || status === "in_execution" || status === "closed"
+  );
 }
 
 function isApprovedOrLater(status: RequirementStatus) {
@@ -354,13 +356,11 @@ export function RequirementEditorDialog({
                 onChange={(event) => setStatus(event.target.value as RequirementStatus)}
                 value={status}
               >
-                {availableStatusTransitions[requirement?.status ?? "new"].map(
-                  (availableStatus) => (
-                    <option key={availableStatus} value={availableStatus}>
-                      {requirementStatusLabels[availableStatus]}
-                    </option>
-                  ),
-                )}
+                {availableStatusTransitions[requirement?.status ?? "new"].map((availableStatus) => (
+                  <option key={availableStatus} value={availableStatus}>
+                    {requirementStatusLabels[availableStatus]}
+                  </option>
+                ))}
               </SelectField>
 
               {isQuotedOrLater(status) ? (

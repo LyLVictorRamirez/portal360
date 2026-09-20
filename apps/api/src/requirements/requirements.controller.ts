@@ -88,7 +88,9 @@ export interface RequirementsControllerStore {
 @Controller("api/requirements")
 @UseGuards(AuthorizationGuard)
 export class RequirementsController {
-  constructor(@Inject(RequirementService) private readonly requirementService: RequirementsControllerStore) {}
+  constructor(
+    @Inject(RequirementService) private readonly requirementService: RequirementsControllerStore,
+  ) {}
 
   @Get()
   @RequirePermissions("requirements.read")
@@ -97,7 +99,12 @@ export class RequirementsController {
     @Query("query") query: string | undefined,
     @Query("clientId") clientId: string | undefined,
     @Query("status") status: string | undefined,
-  ): Promise<{ page: number; pageSize: number; requirements: RequirementResponse[]; total: number }> {
+  ): Promise<{
+    page: number;
+    pageSize: number;
+    requirements: RequirementResponse[];
+    total: number;
+  }> {
     const requirements = await this.requirementService.listRequirements({
       clientId,
       page: readOptionalPage(page),
@@ -425,7 +432,10 @@ function toHttpException(error: unknown): Error {
     return new ConflictException(error.message);
   }
 
-  if (error instanceof RequirementClientInactiveError || error instanceof RequirementValidationError) {
+  if (
+    error instanceof RequirementClientInactiveError ||
+    error instanceof RequirementValidationError
+  ) {
     return new BadRequestException(error.message);
   }
 

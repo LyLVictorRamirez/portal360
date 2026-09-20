@@ -92,8 +92,7 @@ export interface UpdateRequirementCodeSettingsInput {
   version: number;
 }
 
-export interface UpdateRequirementCodeSettingsRecordInput
-  extends UpdateRequirementCodeSettingsInput {
+export interface UpdateRequirementCodeSettingsRecordInput extends UpdateRequirementCodeSettingsInput {
   actorUserId: string;
 }
 

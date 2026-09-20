@@ -1,6 +1,6 @@
 # SPEC 08 — Catálogo de Requerimientos
 
-> **Status:** Aprobada
+> **Status:** Implementada
 > **Depends on:** SPEC 03, SPEC 05, SPEC 06, SPEC 07
 > **Date:** 2026-09-19
 > **Objective:** Incorporar Requerimientos asociados de forma inmutable a un Cliente, con códigos configurables, un ciclo de estado controlado y administración autorizada.
@@ -44,11 +44,11 @@ La identidad continúa en `auth.user`, la autorización en `authorization` y los
 
 La migración ampliará `business.entity_code_settings` para aceptar exactamente `client`, `project` y `requirement`.
 
-| Tabla                           | Campos principales                                                                                                                                                | Reglas                                                                                                                          |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `business.entity_code_settings` | `entity_type`, `prefix`, `code_length`, `next_sequence`, `version`, `created_at`, `created_by_user_id`, `updated_at`, `updated_by_user_id`                      | `entity_type` es la clave primaria y tiene una fila independiente para cada entidad fija.                                       |
-| `business.requirement`          | `id`, `client_id`, `code`, `name`, `description`, `status`, `requested_on`, `committed_on`, `quoted_on`, `approved_on`, `approved_by_user_id`, `version`, campos técnicos | UUID interno, Cliente obligatorio e inmutable, código único e inmutable y concurrencia optimista por `version`.                |
-| `business.schema_migration`     | `name`, `applied_at`                                                                                                                                            | Registra la migración de negocio según la infraestructura de SPEC 06.                                                           |
+| Tabla                           | Campos principales                                                                                                                                                        | Reglas                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `business.entity_code_settings` | `entity_type`, `prefix`, `code_length`, `next_sequence`, `version`, `created_at`, `created_by_user_id`, `updated_at`, `updated_by_user_id`                                | `entity_type` es la clave primaria y tiene una fila independiente para cada entidad fija.                       |
+| `business.requirement`          | `id`, `client_id`, `code`, `name`, `description`, `status`, `requested_on`, `committed_on`, `quoted_on`, `approved_on`, `approved_by_user_id`, `version`, campos técnicos | UUID interno, Cliente obligatorio e inmutable, código único e inmutable y concurrencia optimista por `version`. |
+| `business.schema_migration`     | `name`, `applied_at`                                                                                                                                                      | Registra la migración de negocio según la infraestructura de SPEC 06.                                           |
 
 La fila `requirement` se sembrará con `prefix = 'REQ'`, `code_length = 6` y `next_sequence = 1`.
 
@@ -103,23 +103,23 @@ Las reglas de `business.requirement` son las siguientes:
 
 El catálogo RBAC se amplía así:
 
-| Permiso                        | Asignación inicial                  | Uso                                                                  |
-| ------------------------------ | ----------------------------------- | -------------------------------------------------------------------- |
-| `requirements.read`            | `administrador`, `lider`, `miembro` | Listar, buscar y consultar Requerimientos.                           |
+| Permiso                        | Asignación inicial                  | Uso                                                                     |
+| ------------------------------ | ----------------------------------- | ----------------------------------------------------------------------- |
+| `requirements.read`            | `administrador`, `lider`, `miembro` | Listar, buscar y consultar Requerimientos.                              |
 | `requirements.manage`          | `administrador`, `lider`            | Crear, editar, cambiar estado y eliminar Requerimientos sin relaciones. |
-| `requirements.settings.manage` | `administrador`                     | Consultar y modificar la configuración del código de Requerimiento.  |
+| `requirements.settings.manage` | `administrador`                     | Consultar y modificar la configuración del código de Requerimiento.     |
 
 Las rutas HTTP serán:
 
-| Método y ruta                         | Permiso                        | Comportamiento                                                                                                 |
-| ------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `GET /api/requirements`               | `requirements.read`            | Lista paginada, busca por código o nombre, filtra por Cliente y estado, y ordena por actualización descendente. |
-| `POST /api/requirements`              | `requirements.manage`          | Crea un Requerimiento en `new` para un Cliente activo y reserva su código.                                    |
-| `GET /api/requirements/:requirementId`| `requirements.read`            | Devuelve el detalle y la referencia visible de su Cliente.                                                     |
-| `PUT /api/requirements/:requirementId`| `requirements.manage`          | Actualiza datos o realiza una transición válida cuando la versión coincide.                                    |
-| `DELETE /api/requirements/:requirementId` | `requirements.manage`       | Elimina definitivamente un Requerimiento sin relaciones.                                                       |
-| `GET /api/requirements/settings/code` | `requirements.settings.manage` | Devuelve únicamente la fila `requirement` de configuración de códigos.                                        |
-| `PUT /api/requirements/settings/code` | `requirements.settings.manage` | Actualiza solo esa fila con concurrencia optimista.                                                             |
+| Método y ruta                             | Permiso                        | Comportamiento                                                                                                  |
+| ----------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `GET /api/requirements`                   | `requirements.read`            | Lista paginada, busca por código o nombre, filtra por Cliente y estado, y ordena por actualización descendente. |
+| `POST /api/requirements`                  | `requirements.manage`          | Crea un Requerimiento en `new` para un Cliente activo y reserva su código.                                      |
+| `GET /api/requirements/:requirementId`    | `requirements.read`            | Devuelve el detalle y la referencia visible de su Cliente.                                                      |
+| `PUT /api/requirements/:requirementId`    | `requirements.manage`          | Actualiza datos o realiza una transición válida cuando la versión coincide.                                     |
+| `DELETE /api/requirements/:requirementId` | `requirements.manage`          | Elimina definitivamente un Requerimiento sin relaciones.                                                        |
+| `GET /api/requirements/settings/code`     | `requirements.settings.manage` | Devuelve únicamente la fila `requirement` de configuración de códigos.                                          |
+| `PUT /api/requirements/settings/code`     | `requirements.settings.manage` | Actualiza solo esa fila con concurrencia optimista.                                                             |
 
 Una solicitud sin sesión recibe `401`.
 
@@ -179,13 +179,13 @@ Una actualización que use una versión obsoleta recibe `409 Conflict` y no sobr
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
+| Riesgo                                                                                  | Mitigación                                                                                                                           |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | La migración de configuraciones puede alterar la emisión vigente de Cliente o Proyecto. | Ejecutar el cambio en una transacción, preservar las filas existentes y cubrir la migración y las emisiones posteriores con pruebas. |
-| Dos Requerimientos concurrentes podrían usar el mismo consecutivo. | Bloquear solo la fila `requirement`, mantener la restricción única sobre `code` y probar creaciones simultáneas. |
-| Una transición inválida puede dejar fechas de cotización o aprobación incoherentes. | Validar centralmente el grafo de estados, las fechas y la atribución de aprobación en el servicio antes de persistir. |
-| Un usuario con acceso a una configuración obtiene valores de otra entidad. | Proteger cada endpoint por su permiso específico y solicitar desde la pantalla únicamente sus secciones autorizadas. |
-| Una Actividad futura permitiría eliminar un Requerimiento con trabajo relacionado. | Declarar desde esta spec la futura relación con `on delete restrict` y mapear el rechazo de base de datos a un error controlado. |
+| Dos Requerimientos concurrentes podrían usar el mismo consecutivo.                      | Bloquear solo la fila `requirement`, mantener la restricción única sobre `code` y probar creaciones simultáneas.                     |
+| Una transición inválida puede dejar fechas de cotización o aprobación incoherentes.     | Validar centralmente el grafo de estados, las fechas y la atribución de aprobación en el servicio antes de persistir.                |
+| Un usuario con acceso a una configuración obtiene valores de otra entidad.              | Proteger cada endpoint por su permiso específico y solicitar desde la pantalla únicamente sus secciones autorizadas.                 |
+| Una Actividad futura permitiría eliminar un Requerimiento con trabajo relacionado.      | Declarar desde esta spec la futura relación con `on delete restrict` y mapear el rechazo de base de datos a un error controlado.     |
 
 ## Qué **no** está en esta spec
 

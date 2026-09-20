@@ -37,13 +37,18 @@ export interface RequirementStore {
 
 @Injectable()
 export class RequirementService {
-  constructor(@Inject(RequirementRepository) private readonly requirementRepository: RequirementStore) {}
+  constructor(
+    @Inject(RequirementRepository) private readonly requirementRepository: RequirementStore,
+  ) {}
 
   async getCodeSettings(): Promise<RequirementCodeSettings> {
     return this.requirementRepository.getCodeSettings();
   }
 
-  async createRequirement(input: CreateRequirementInput, actorUserId: string): Promise<Requirement> {
+  async createRequirement(
+    input: CreateRequirementInput,
+    actorUserId: string,
+  ): Promise<Requirement> {
     return this.requirementRepository.createRequirement({
       ...normalizeRequirementCreation(input),
       actorUserId: normalizeActorUserId(actorUserId),
@@ -86,9 +91,7 @@ export class RequirementService {
     validateRequirementTransition(current.status, status);
 
     const approvedByUserId =
-      current.approvedByUserId === null &&
-      current.status === "quoted" &&
-      status === "approved"
+      current.approvedByUserId === null && current.status === "quoted" && status === "approved"
         ? actorId
         : undefined;
     const candidate = {
@@ -132,7 +135,8 @@ function normalizeRequirementCreation(
   }
 
   const requestedOn = normalizeDate(value.requestedOn, "Requirement requested date");
-  const committedOn = normalizeOptionalDate(value.committedOn, "Requirement committed date") ?? null;
+  const committedOn =
+    normalizeOptionalDate(value.committedOn, "Requirement committed date") ?? null;
   validateRequirementDates({
     approvedByUserId: null,
     approvedOn: null,
@@ -381,7 +385,9 @@ function validateRequirementTransition(
   }
 
   if (currentStatus === "closed" || currentStatus === "cancelled") {
-    throw new RequirementValidationError("Terminal Requirements cannot transition to another status.");
+    throw new RequirementValidationError(
+      "Terminal Requirements cannot transition to another status.",
+    );
   }
 
   if (nextStatus === "cancelled") {

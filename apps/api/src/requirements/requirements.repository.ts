@@ -402,7 +402,9 @@ export class RequirementRepository {
       const updatedRow = updatedResult.rows[0];
 
       if (!updatedRow) {
-        throw new Error("The business database did not return the updated Requirement code settings.");
+        throw new Error(
+          "The business database did not return the updated Requirement code settings.",
+        );
       }
 
       await transaction.query("COMMIT");

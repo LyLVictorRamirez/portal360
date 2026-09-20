@@ -19,7 +19,12 @@ class ConcurrentRequirementsDatabase implements RequirementsDatabase {
   private settingsLock = Promise.resolve();
 
   constructor(
-    readonly settings: { codeLength: number; nextSequence: bigint; prefix: string; version: number } = {
+    readonly settings: {
+      codeLength: number;
+      nextSequence: bigint;
+      prefix: string;
+      version: number;
+    } = {
       codeLength: 6,
       nextSequence: 1n,
       prefix: "REQ",
@@ -195,7 +200,10 @@ test("reserves a distinct Requirement code for simultaneous creations", async ()
     }),
   ]);
 
-  assert.deepEqual(requirements.map((requirement) => requirement.code).sort(), ["REQ-001", "REQ-002"]);
+  assert.deepEqual(requirements.map((requirement) => requirement.code).sort(), [
+    "REQ-001",
+    "REQ-002",
+  ]);
   assert.equal(new Set(database.requirements.map((requirement) => requirement.code)).size, 2);
   assert.equal(database.settings.nextSequence, 3n);
 });

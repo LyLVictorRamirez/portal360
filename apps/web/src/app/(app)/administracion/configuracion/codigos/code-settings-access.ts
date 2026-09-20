@@ -13,5 +13,7 @@ const codeSettingsPermissions = {
 export function getVisibleCodeSettingsEntities(
   permissions: readonly AuthorizationPermission[],
 ): readonly CodeSettingsEntity[] {
-  return codeSettingsEntities.filter((entity) => permissions.includes(codeSettingsPermissions[entity]));
+  return codeSettingsEntities.filter((entity) =>
+    permissions.includes(codeSettingsPermissions[entity]),
+  );
 }

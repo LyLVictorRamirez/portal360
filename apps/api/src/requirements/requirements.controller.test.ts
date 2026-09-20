@@ -13,7 +13,10 @@ import {
   RequirementRelatedRecordsError,
   RequirementVersionConflictError,
 } from "./requirements.contracts.js";
-import { RequirementsController, type RequirementsControllerStore } from "./requirements.controller.js";
+import {
+  RequirementsController,
+  type RequirementsControllerStore,
+} from "./requirements.controller.js";
 import { requiredPermissionsMetadataKey } from "../authorization/require-permissions.decorator.js";
 
 const timestamp = new Date("2026-09-19T00:00:00.000Z");
@@ -55,7 +58,9 @@ function createCodeSettings(): RequirementCodeSettings {
   };
 }
 
-function createStore(overrides: Partial<RequirementsControllerStore> = {}): RequirementsControllerStore {
+function createStore(
+  overrides: Partial<RequirementsControllerStore> = {},
+): RequirementsControllerStore {
   return {
     async createRequirement(): Promise<Requirement> {
       return createRequirement();
@@ -191,7 +196,12 @@ test("maps Requirement conflicts, missing records, and relation restrictions", a
   );
 
   await assert.rejects(
-    () => staleController.updateRequirement(requirementId, { name: "Cambio", version: 1 }, requestContext),
+    () =>
+      staleController.updateRequirement(
+        requirementId,
+        { name: "Cambio", version: 1 },
+        requestContext,
+      ),
     (error: unknown) => error instanceof ConflictException && error.getStatus() === 409,
   );
   await assert.rejects(

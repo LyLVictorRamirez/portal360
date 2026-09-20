@@ -3,10 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { RequirementDeleteDialog } from "./requirement-delete-dialog";
-import {
-  RequirementEditorDialog,
-  type RequirementEditorMode,
-} from "./requirement-editor-dialog";
+import { RequirementEditorDialog, type RequirementEditorMode } from "./requirement-editor-dialog";
 import { Button } from "../../../components/ui/button";
 import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { PageHeader } from "../../../components/ui/page-header";
@@ -281,7 +278,10 @@ export function RequirementManagement({ canManageRequirements }: RequirementMana
       {list && list.requirements.length === 0 ? (
         <EmptyState
           action={
-            canManageRequirements && !query.trim() && status === "all" && clientFilterId === "all" ? (
+            canManageRequirements &&
+            !query.trim() &&
+            status === "all" &&
+            clientFilterId === "all" ? (
               <Button
                 onClick={() => {
                   setActionError(null);
@@ -315,7 +315,11 @@ export function RequirementManagement({ canManageRequirements }: RequirementMana
               Página {list.page} de {totalPages}
             </p>
           </div>
-          <DataTable columns={columns} label="Requerimientos registrados" rows={list.requirements} />
+          <DataTable
+            columns={columns}
+            label="Requerimientos registrados"
+            rows={list.requirements}
+          />
           <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
             <Button
               disabled={list.page <= 1}
