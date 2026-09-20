@@ -30,6 +30,7 @@ const administrationNavigationIcons = {
 const businessNavigationIcons = {
   clients: Building2,
   projects: FolderKanban,
+  requirements: FolderKanban,
 };
 
 type AppSidebarProps = Readonly<{

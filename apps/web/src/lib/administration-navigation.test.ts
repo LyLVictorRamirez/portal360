@@ -36,7 +36,7 @@ test("shows both administration options when their permissions are present", () 
   );
 });
 
-test("shows Clientes and Proyectos only to people with their reading permission", () => {
+test("shows Clientes, Proyectos, and Requerimientos only to people with their reading permission", () => {
   assert.deepEqual(getVisibleBusinessNavigation(["app.access"]), []);
   assert.deepEqual(getVisibleBusinessNavigation(["app.access", "clients.read"]), [
     {
@@ -54,6 +54,14 @@ test("shows Clientes and Proyectos only to people with their reading permission"
       permissionKeys: ["projects.read"],
     },
   ]);
+  assert.deepEqual(getVisibleBusinessNavigation(["app.access", "requirements.read"]), [
+    {
+      href: "/requerimientos",
+      id: "requirements",
+      label: "Requerimientos",
+      permissionKeys: ["requirements.read"],
+    },
+  ]);
 });
 
 test("shows the single code settings entry with either dedicated permission", () => {
@@ -66,6 +74,12 @@ test("shows the single code settings entry with either dedicated permission", ()
   );
   assert.deepEqual(
     getVisibleAdministrationNavigation(["app.access", "projects.settings.manage"]).map(
+      (item) => item.id,
+    ),
+    ["code-settings"],
+  );
+  assert.deepEqual(
+    getVisibleAdministrationNavigation(["app.access", "requirements.settings.manage"]).map(
       (item) => item.id,
     ),
     ["code-settings"],

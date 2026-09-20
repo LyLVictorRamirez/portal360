@@ -4,7 +4,14 @@ import test from "node:test";
 import { getServerAuthorizationFromCookie } from "./authorization-context-request.ts";
 
 const validAuthorizationResponse = {
-  permissions: ["app.access", "authorization.users.read", "projects.read"],
+  permissions: [
+    "app.access",
+    "authorization.users.read",
+    "projects.read",
+    "requirements.read",
+    "requirements.manage",
+    "requirements.settings.manage",
+  ],
   roles: [
     {
       description: "Minimum access.",
