@@ -4,7 +4,6 @@ import { Breadcrumbs } from "./breadcrumbs";
 import { CommandSearch } from "./command-search";
 import { Notifications } from "./notifications";
 import { ThemeModeToggle } from "../themes/theme-mode-toggle";
-import { ThemeSelector } from "../themes/theme-selector";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 
@@ -22,9 +21,6 @@ export function Header() {
           <CommandSearch />
         </div>
         <ThemeModeToggle />
-        <div className="hidden sm:block">
-          <ThemeSelector />
-        </div>
         <Notifications />
       </div>
     </header>

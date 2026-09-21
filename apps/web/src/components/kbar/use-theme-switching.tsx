@@ -4,26 +4,11 @@ import { useRegisterActions } from "kbar";
 import { useMemo } from "react";
 import { useTheme } from "next-themes";
 
-import { useThemeConfig } from "@/components/themes/active-theme";
-import { THEMES } from "@/components/themes/theme.config";
-
 export default function useThemeSwitching() {
   const { resolvedTheme, setTheme } = useTheme();
-  const { activeTheme, setActiveTheme } = useThemeConfig();
 
   const actions = useMemo(
     () => [
-      {
-        id: "cycle-theme",
-        name: "Cambiar paleta",
-        section: "Tema",
-        shortcut: ["t", "t"],
-        perform: () => {
-          const currentIndex = THEMES.findIndex((theme) => theme.value === activeTheme);
-          const nextIndex = (currentIndex + 1) % THEMES.length;
-          setActiveTheme(THEMES[nextIndex]?.value ?? THEMES[0].value);
-        },
-      },
       {
         id: "toggle-color-mode",
         name: "Alternar modo claro u oscuro",
@@ -44,7 +29,7 @@ export default function useThemeSwitching() {
         perform: () => setTheme("dark"),
       },
     ],
-    [activeTheme, resolvedTheme, setActiveTheme, setTheme],
+    [resolvedTheme, setTheme],
   );
 
   useRegisterActions(actions, actions);
