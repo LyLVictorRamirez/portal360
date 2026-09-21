@@ -20,6 +20,7 @@ import { AuthPageShell } from "./auth-page-shell";
 
 const linkClassName =
   "font-semibold text-primary underline decoration-primary/30 underline-offset-4 hover:text-primary-hover";
+const entryInputClassName = "bg-muted/80 shadow-none";
 
 type FieldErrors = Record<string, string | undefined>;
 
@@ -114,7 +115,20 @@ export function LoginForm() {
   }
 
   return (
-    <AuthPageShell description="Ingresa con tu correo y contraseña." title="Inicia sesión">
+    <AuthPageShell
+      description="Ingresa con tu correo y contraseña."
+      footer={
+        <p className="text-sm leading-6 text-muted-foreground">
+          ¿Aún no tienes cuenta?{" "}
+          <Link className={linkClassName} href={withReturnTo("/registro", returnTo)}>
+            Crea tu cuenta
+          </Link>
+          .
+        </p>
+      }
+      title="Inicia sesión"
+      variant="entry"
+    >
       <form aria-busy={isPending} className="space-y-5" onSubmit={handleSubmit}>
         {searchParams.get("restablecida") === "1" ? (
           <FormNotice message="Tu contraseña se actualizó. Ya puedes iniciar sesión." />
@@ -122,6 +136,7 @@ export function LoginForm() {
         <FormError message={formError} />
         <TextField
           autoComplete="email"
+          className={entryInputClassName}
           error={errors.email}
           label="Correo electrónico"
           onChange={(event) => setEmail(event.target.value)}
@@ -131,6 +146,7 @@ export function LoginForm() {
         />
         <TextField
           autoComplete="current-password"
+          className={entryInputClassName}
           error={errors.password}
           label="Contraseña"
           onChange={(event) => setPassword(event.target.value)}
@@ -138,22 +154,18 @@ export function LoginForm() {
           type="password"
           value={password}
         />
-        <div className="flex items-center justify-between gap-4">
-          <Link className={linkClassName} href={withReturnTo("/recuperar-contrasena", returnTo)}>
+        <div className="space-y-4">
+          <Link
+            className={`block text-sm ${linkClassName}`}
+            href={withReturnTo("/recuperar-contrasena", returnTo)}
+          >
             ¿Olvidaste tu contraseña?
           </Link>
-          <Button disabled={isPending} type="submit">
+          <Button className="w-full" disabled={isPending} size="lg" type="submit">
             {isPending ? "Ingresando…" : "Iniciar sesión"}
           </Button>
         </div>
       </form>
-      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted-foreground">
-        ¿Aún no tienes cuenta?{" "}
-        <Link className={linkClassName} href={withReturnTo("/registro", returnTo)}>
-          Crea tu cuenta
-        </Link>
-        .
-      </p>
     </AuthPageShell>
   );
 }
@@ -216,12 +228,23 @@ export function RegisterForm() {
   return (
     <AuthPageShell
       description="Crea tu acceso. Te enviaremos un enlace para verificar tu correo."
+      footer={
+        <p className="text-sm leading-6 text-muted-foreground">
+          ¿Ya tienes cuenta?{" "}
+          <Link className={linkClassName} href={withReturnTo("/login", returnTo)}>
+            Inicia sesión
+          </Link>
+          .
+        </p>
+      }
       title="Crea tu cuenta"
+      variant="entry"
     >
-      <form aria-busy={isPending} className="space-y-5" onSubmit={handleSubmit}>
+      <form aria-busy={isPending} className="space-y-4" onSubmit={handleSubmit}>
         <FormError message={formError} />
         <TextField
           autoComplete="name"
+          className={entryInputClassName}
           error={errors.name}
           label="Nombre"
           onChange={(event) => setName(event.target.value)}
@@ -230,6 +253,7 @@ export function RegisterForm() {
         />
         <TextField
           autoComplete="email"
+          className={entryInputClassName}
           error={errors.email}
           label="Correo electrónico"
           onChange={(event) => setEmail(event.target.value)}
@@ -239,8 +263,10 @@ export function RegisterForm() {
         />
         <TextField
           autoComplete="new-password"
+          className={entryInputClassName}
           error={errors.password}
           helpText={`Entre ${minimumPasswordLength} y ${maximumPasswordLength} caracteres.`}
+          helpTextDisplay="focus"
           label="Contraseña"
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -249,6 +275,7 @@ export function RegisterForm() {
         />
         <TextField
           autoComplete="new-password"
+          className={entryInputClassName}
           error={errors.passwordConfirmation}
           label="Confirmar contraseña"
           onChange={(event) => setPasswordConfirmation(event.target.value)}
@@ -256,17 +283,10 @@ export function RegisterForm() {
           type="password"
           value={passwordConfirmation}
         />
-        <Button className="w-full" disabled={isPending} type="submit">
+        <Button className="w-full" disabled={isPending} size="lg" type="submit">
           {isPending ? "Creando cuenta…" : "Crear cuenta"}
         </Button>
       </form>
-      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted-foreground">
-        ¿Ya tienes cuenta?{" "}
-        <Link className={linkClassName} href={withReturnTo("/login", returnTo)}>
-          Inicia sesión
-        </Link>
-        .
-      </p>
     </AuthPageShell>
   );
 }

@@ -7,6 +7,7 @@ import { Input } from "./input";
 type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id"> & {
   error?: ReactNode;
   helpText?: ReactNode;
+  helpTextDisplay?: "always" | "focus";
   id?: string;
   label: ReactNode;
 };
@@ -18,6 +19,7 @@ export function TextField({
   className,
   error,
   helpText,
+  helpTextDisplay = "always",
   id,
   label,
   required,
@@ -38,7 +40,10 @@ export function TextField({
     .join(" ");
 
   return (
-    <Field data-invalid={hasError || ariaInvalid === true}>
+    <Field
+      className={cn(helpTextDisplay === "focus" && "group")}
+      data-invalid={hasError || ariaInvalid === true}
+    >
       <FieldLabel htmlFor={fieldId}>
         {label}
         {required ? <span aria-hidden="true"> *</span> : null}
@@ -52,7 +57,17 @@ export function TextField({
         required={required}
         {...props}
       />
-      {hasHelpText ? <FieldDescription id={helpTextId}>{helpText}</FieldDescription> : null}
+      {hasHelpText ? (
+        <FieldDescription
+          className={cn(
+            helpTextDisplay === "focus" &&
+              "hidden text-xs leading-4 group-focus-within:block group-data-[invalid=true]/field:hidden",
+          )}
+          id={helpTextId}
+        >
+          {helpText}
+        </FieldDescription>
+      ) : null}
       {hasError ? <FieldError id={errorId}>{error}</FieldError> : null}
     </Field>
   );
