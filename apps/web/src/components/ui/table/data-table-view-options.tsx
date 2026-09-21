@@ -23,10 +23,7 @@ interface DataTableViewOptionsProps<TData> {
 
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
   const columns = React.useMemo(
-    () =>
-      table
-        .getAllColumns()
-        .filter((column) => typeof column.accessorFn !== "undefined" && column.getCanHide()),
+    () => table.getAllColumns().filter((column) => column.getCanHide()),
     [table],
   );
 
@@ -34,21 +31,21 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          aria-label="Toggle columns"
+          aria-label="Configurar columnas visibles"
           variant="outline"
           size="sm"
-          className="ml-auto hidden h-8 lg:flex"
+          className="h-8"
         >
           <Icons.adjustments />
-          View
+          Ver
           <CaretSortIcon className="ml-auto opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-44 p-0">
         <Command>
-          <CommandInput placeholder="Search columns..." />
+          <CommandInput placeholder="Buscar columnas..." />
           <CommandList>
-            <CommandEmpty>No columns found.</CommandEmpty>
+            <CommandEmpty>No se encontraron columnas.</CommandEmpty>
             <CommandGroup>
               {columns.map((column) => (
                 <CommandItem

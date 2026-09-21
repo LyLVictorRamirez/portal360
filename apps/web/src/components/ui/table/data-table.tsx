@@ -17,6 +17,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 interface DataTableProps<TData> extends React.ComponentProps<"div"> {
   actionBar?: React.ReactNode;
   emptyMessage?: string;
+  scrollable?: boolean;
   showPagination?: boolean;
   table: TanstackTable<TData>;
 }
@@ -41,6 +42,7 @@ export function DataTable<TData>({
   children,
   className,
   emptyMessage = "No hay resultados.",
+  scrollable = false,
   showPagination = true,
   table,
   ...props
@@ -48,8 +50,12 @@ export function DataTable<TData>({
   return (
     <div className={cn("flex w-full flex-col space-y-4", className)} {...props}>
       {children}
-      <div className="relative w-full overflow-hidden rounded-lg border">
-        <ScrollArea className="w-full">
+      <div
+        className={cn("relative w-full overflow-hidden rounded-lg border", {
+          "min-h-0 flex-1": scrollable,
+        })}
+      >
+        <ScrollArea className={cn("w-full", { "h-full": scrollable })}>
           <Table className="min-w-max">
             <TableHeader className="bg-muted sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (

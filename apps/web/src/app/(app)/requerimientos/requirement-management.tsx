@@ -4,10 +4,29 @@ import { useEffect, useMemo, useState } from "react";
 
 import { RequirementDeleteDialog } from "./requirement-delete-dialog";
 import { RequirementEditorDialog, type RequirementEditorMode } from "./requirement-editor-dialog";
+import { Icons } from "../../../components/icons";
 import { Button } from "../../../components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../../../components/ui/command";
 import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../../../components/ui/dropdown-menu";
 import { PageHeader } from "../../../components/ui/page-header";
-import { SelectField } from "../../../components/ui/select-field";
+import { Input } from "../../../components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover";
 import { StatusBadge, type StatusBadgeTone } from "../../../components/ui/status-badge";
 import {
   EmptyState,
@@ -15,7 +34,6 @@ import {
   LoadingState,
   UnauthorizedState,
 } from "../../../components/states/interface-states";
-import { TextField } from "../../../components/ui/text-field";
 import { listClients, type Client } from "../../../lib/clients-client";
 import {
   listRequirements,
@@ -66,9 +84,15 @@ const requirementStatusTones: Record<RequirementStatus, StatusBadgeTone> = {
   quoted: "info",
 };
 
+const requirementStatusFilterLabels: Record<RequirementStatusFilter, string> = {
+  all: "Todos",
+  ...requirementStatusLabels,
+};
+
 export function RequirementManagement({ canManageRequirements }: RequirementManagementProps) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [clientFilterId, setClientFilterId] = useState("all");
+  const [isClientFilterOpen, setIsClientFilterOpen] = useState(false);
   const [clientOptionsState, setClientOptionsState] = useState<ClientOptionsState>({
     kind: "loading",
   });
@@ -170,89 +194,144 @@ export function RequirementManagement({ canManageRequirements }: RequirementMana
     (requirement) => setEditor({ mode: "edit", requirement }),
     (requirement) => setRequirementToDelete(requirement),
   );
-
-  return (
-    <div className="mx-auto w-full max-w-7xl space-y-8">
-      <PageHeader
-        actions={
-          canManageRequirements ? (
-            <Button
-              onClick={() => {
-                setActionError(null);
-                setEditor({ mode: "create", requirement: null });
-                setUpdateMessage(null);
-              }}
-            >
-              Crear Requerimiento
-            </Button>
-          ) : undefined
-        }
-        description="Registra la solicitud de cada Cliente y acompaña su análisis, cotización, aprobación y ejecución con un código operativo."
-        title="Requerimientos"
+  const requirementFilters = (
+    <div
+      aria-label="Buscar y filtrar Requerimientos"
+      className="flex flex-wrap items-center gap-2"
+      role="search"
+    >
+      <label className="sr-only" htmlFor="requirement-search">
+        Buscar Requerimientos
+      </label>
+      <Input
+        autoComplete="off"
+        className="w-full sm:w-72"
+        id="requirement-search"
+        onChange={(event) => updateFilters(event.target.value, status, clientFilterId)}
+        placeholder="Buscar Requerimientos..."
+        type="search"
+        value={query}
       />
-
-      <section aria-labelledby="requirement-search-title" className="space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2
-              className="text-xl font-semibold tracking-tight text-foreground"
-              id="requirement-search-title"
-            >
-              Solicitudes registradas
-            </h2>
-            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Filtra por Cliente y estado, o busca por código y nombre para seguir cada solicitud.
-            </p>
-          </div>
-          {updateMessage ? (
-            <p aria-live="polite" className="max-w-md text-sm font-medium text-success">
-              {updateMessage}
-            </p>
-          ) : null}
-          {actionError ? (
-            <p aria-live="assertive" className="max-w-md text-sm font-medium text-danger">
-              {actionError}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_14rem_12rem]">
-          <TextField
-            autoComplete="off"
-            label="Buscar Requerimientos"
-            onChange={(event) => updateFilters(event.target.value, status, clientFilterId)}
-            placeholder="Código o nombre"
-            type="search"
-            value={query}
-          />
-          <SelectField
-            label="Cliente"
-            onChange={(event) => updateFilters(query, status, event.target.value)}
-            value={clientFilterId}
-          >
-            <option value="all">Todos los Clientes</option>
-            {clientOptions.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.code} — {client.name}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField
-            label="Estado"
-            onChange={(event) =>
-              updateFilters(query, event.target.value as RequirementStatusFilter, clientFilterId)
+      <Popover onOpenChange={setIsClientFilterOpen} open={isClientFilterOpen}>
+        <PopoverTrigger asChild>
+          <Button size="sm" variant="outline">
+            <Icons.adjustments />
+            Cliente
+            {clientFilterId !== "all" ? (
+              <span className="max-w-40 truncate text-primary">
+                {clientOptions.find((client) => client.id === clientFilterId)?.name}
+              </span>
+            ) : null}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-72 max-w-[calc(100vw-2rem)] p-0">
+          <Command>
+            <CommandInput placeholder="Buscar Clientes..." />
+            <CommandList>
+              <CommandEmpty>No se encontraron Clientes.</CommandEmpty>
+              <CommandItem
+                onSelect={() => {
+                  updateFilters(query, status, "all");
+                  setIsClientFilterOpen(false);
+                }}
+                value="Todos los Clientes"
+              >
+                <Icons.check
+                  className={
+                    clientFilterId === "all" ? "size-4 text-primary" : "size-4 opacity-0"
+                  }
+                />
+                Todos los Clientes
+              </CommandItem>
+              {clientOptions.map((client) => (
+                <CommandItem
+                  key={client.id}
+                  onSelect={() => {
+                    updateFilters(query, status, client.id);
+                    setIsClientFilterOpen(false);
+                  }}
+                  value={`${client.code} ${client.name}`}
+                >
+                  <Icons.check
+                    className={
+                      clientFilterId === client.id ? "size-4 text-primary" : "size-4 opacity-0"
+                    }
+                  />
+                  {client.code} — {client.name}
+                </CommandItem>
+              ))}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="outline">
+            <Icons.adjustments />
+            Estado
+            {status !== "all" ? (
+              <span className="text-primary">{requirementStatusFilterLabels[status]}</span>
+            ) : null}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-48">
+          <DropdownMenuLabel>Filtrar por estado</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuRadioGroup
+            onValueChange={(nextStatus) =>
+              updateFilters(query, nextStatus as RequirementStatusFilter, clientFilterId)
             }
             value={status}
           >
-            <option value="all">Todos</option>
-            {Object.entries(requirementStatusLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </SelectField>
-        </div>
-      </section>
+            {(Object.keys(requirementStatusFilterLabels) as RequirementStatusFilter[]).map(
+              (filterStatus) => (
+                <DropdownMenuRadioItem key={filterStatus} value={filterStatus}>
+                  {requirementStatusFilterLabels[filterStatus]}
+                </DropdownMenuRadioItem>
+              ),
+            )}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {query.trim() || status !== "all" || clientFilterId !== "all" ? (
+        <Button onClick={() => updateFilters("", "all", "all")} size="sm" variant="ghost">
+          <Icons.close />
+          Restablecer
+        </Button>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <div className="flex h-[calc(100svh-5.5rem)] min-h-0 w-full flex-col">
+      <div className="shrink-0 space-y-4 pb-4">
+        <PageHeader
+          actions={
+            canManageRequirements ? (
+              <Button
+                onClick={() => {
+                  setActionError(null);
+                  setEditor({ mode: "create", requirement: null });
+                  setUpdateMessage(null);
+                }}
+              >
+                Crear Requerimiento
+              </Button>
+            ) : undefined
+          }
+          title="Requerimientos"
+        />
+        {updateMessage ? (
+          <p aria-live="polite" className="max-w-md text-sm font-medium text-success">
+            {updateMessage}
+          </p>
+        ) : null}
+        {actionError ? (
+          <p aria-live="assertive" className="max-w-md text-sm font-medium text-danger">
+            {actionError}
+          </p>
+        ) : null}
+      </div>
 
       {clientOptionsState.kind === "error" ? (
         <p role="alert" className="text-sm leading-6 text-danger">
@@ -276,65 +355,112 @@ export function RequirementManagement({ canManageRequirements }: RequirementMana
         />
       ) : null}
       {list && list.requirements.length === 0 ? (
-        <EmptyState
-          action={
-            canManageRequirements &&
-            !query.trim() &&
-            status === "all" &&
-            clientFilterId === "all" ? (
-              <Button
-                onClick={() => {
-                  setActionError(null);
-                  setEditor({ mode: "create", requirement: null });
-                  setUpdateMessage(null);
-                }}
-              >
-                Crear primer Requerimiento
-              </Button>
-            ) : undefined
-          }
-          description={
-            query.trim() || status !== "all" || clientFilterId !== "all"
-              ? "No hay Requerimientos que coincidan con los filtros seleccionados."
-              : "Crea el primer Requerimiento para registrar una solicitud de un Cliente activo."
-          }
-          title={
-            query.trim() || status !== "all" || clientFilterId !== "all"
-              ? "No encontramos Requerimientos"
-              : "Aún no hay Requerimientos"
-          }
-        />
+        <section className="flex min-h-0 flex-1 flex-col gap-4">
+          <div className="shrink-0">{requirementFilters}</div>
+          <EmptyState
+            action={
+              canManageRequirements &&
+              !query.trim() &&
+              status === "all" &&
+              clientFilterId === "all" ? (
+                <Button
+                  onClick={() => {
+                    setActionError(null);
+                    setEditor({ mode: "create", requirement: null });
+                    setUpdateMessage(null);
+                  }}
+                >
+                  Crear primer Requerimiento
+                </Button>
+              ) : undefined
+            }
+            description={
+              query.trim() || status !== "all" || clientFilterId !== "all"
+                ? "No hay Requerimientos que coincidan con los filtros seleccionados."
+                : "Crea el primer Requerimiento para registrar una solicitud de un Cliente activo."
+            }
+            title={
+              query.trim() || status !== "all" || clientFilterId !== "all"
+                ? "No encontramos Requerimientos"
+                : "Aún no hay Requerimientos"
+            }
+          />
+        </section>
       ) : null}
       {list && list.requirements.length > 0 ? (
-        <section aria-labelledby="requirement-table-title" className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-semibold text-foreground" id="requirement-table-title">
-              {list.total} {list.total === 1 ? "Requerimiento" : "Requerimientos"}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Página {list.page} de {totalPages}
-            </p>
-          </div>
+        <section
+          aria-labelledby="requirement-table-title"
+          className="flex min-h-0 flex-1 flex-col gap-4"
+        >
+          <h2 className="sr-only" id="requirement-table-title">
+            Requerimientos registrados
+          </h2>
           <DataTable
+            className="min-h-0 flex-1"
             columns={columns}
             label="Requerimientos registrados"
             rows={list.requirements}
+            scrollable
+            showViewOptions
+            toolbar={requirementFilters}
           />
-          <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-            <Button
-              disabled={list.page <= 1}
-              onClick={() => setPage(list.page - 1)}
-              variant="secondary"
-            >
-              Anterior
-            </Button>
-            <Button
-              disabled={list.page >= totalPages}
-              onClick={() => setPage(list.page + 1)}
-              variant="secondary"
-            >
-              Siguiente
-            </Button>
+          <div
+            aria-label="Paginación de Requerimientos"
+            className="shrink-0 flex flex-col gap-4 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"
+            role="navigation"
+          >
+            <p className="text-sm text-muted-foreground">
+              {list.total} {list.total === 1 ? "registro en total." : "registros en total."}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+              <p className="text-sm font-medium text-foreground whitespace-nowrap">
+                Filas por página
+                <span className="ml-2 inline-flex h-8 min-w-12 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-normal shadow-xs">
+                  {list.pageSize}
+                </span>
+              </p>
+              <p className="text-sm font-medium text-foreground whitespace-nowrap">
+                Página {list.page} de {totalPages}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  aria-label="Ir a la primera página"
+                  disabled={list.page <= 1}
+                  onClick={() => setPage(1)}
+                  size="icon"
+                  variant="outline"
+                >
+                  <Icons.chevronsLeft />
+                </Button>
+                <Button
+                  aria-label="Ir a la página anterior"
+                  disabled={list.page <= 1}
+                  onClick={() => setPage(list.page - 1)}
+                  size="icon"
+                  variant="outline"
+                >
+                  <Icons.chevronLeft />
+                </Button>
+                <Button
+                  aria-label="Ir a la página siguiente"
+                  disabled={list.page >= totalPages}
+                  onClick={() => setPage(list.page + 1)}
+                  size="icon"
+                  variant="outline"
+                >
+                  <Icons.chevronRight />
+                </Button>
+                <Button
+                  aria-label="Ir a la última página"
+                  disabled={list.page >= totalPages}
+                  onClick={() => setPage(totalPages)}
+                  size="icon"
+                  variant="outline"
+                >
+                  <Icons.chevronsRight />
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
       ) : null}
@@ -384,14 +510,18 @@ function createColumns(
         <span className="font-semibold tabular-nums text-primary">{requirement.code}</span>
       ),
       header: "Código",
+      hideable: true,
       id: "code",
+      sortValue: (requirement) => requirement.code,
     },
     {
       cell: (requirement) => (
         <span className="font-semibold text-foreground">{requirement.name}</span>
       ),
       header: "Requerimiento",
+      hideable: true,
       id: "name",
+      sortValue: (requirement) => requirement.name,
     },
     {
       cell: (requirement) => (
@@ -403,7 +533,9 @@ function createColumns(
         </span>
       ),
       header: "Cliente",
+      hideable: true,
       id: "client",
+      sortValue: (requirement) => requirement.client.name,
     },
     {
       cell: (requirement) => (
@@ -413,7 +545,9 @@ function createColumns(
         </span>
       ),
       header: "Fechas",
+      hideable: true,
       id: "dates",
+      sortValue: (requirement) => requirement.requestedOn,
     },
     {
       cell: (requirement) => (
@@ -423,26 +557,41 @@ function createColumns(
         />
       ),
       header: "Estado",
+      hideable: true,
       id: "status",
+      sortValue: (requirement) => requirementStatusLabels[requirement.status],
     },
     {
       align: "right",
       cell: (requirement) => (
-        <div className="flex min-w-[12rem] flex-wrap justify-end gap-2">
-          <Button onClick={() => onView(requirement)} size="sm" variant="ghost">
-            Ver detalle
-          </Button>
-          {canManageRequirements ? (
-            <>
-              <Button onClick={() => onEdit(requirement)} size="sm" variant="secondary">
-                Editar
-              </Button>
-              <Button onClick={() => onDelete(requirement)} size="sm" variant="ghost">
-                Eliminar
-              </Button>
-            </>
-          ) : null}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button aria-label={`Acciones para ${requirement.name}`} size="icon" variant="ghost">
+              <Icons.ellipsis />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => onView(requirement)}>
+              <Icons.info />
+              Ver detalle
+            </DropdownMenuItem>
+            {canManageRequirements ? (
+              <>
+                <DropdownMenuItem onSelect={() => onEdit(requirement)}>
+                  <Icons.edit />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onDelete(requirement)} variant="destructive">
+                  <Icons.trash />
+                  Eliminar
+                </DropdownMenuItem>
+              </>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
       header: "Acciones",
       id: "actions",
