@@ -27,7 +27,7 @@ export function InfoButton({
 
   React.useEffect(() => {
     setContent(contentRef.current);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     setContent(content);

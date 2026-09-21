@@ -1,8 +1,8 @@
 "use client";
 
-import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 
+import { Icons } from "../../../components/icons";
 import { Button } from "../../../components/ui/button";
 import {
   Command,
@@ -97,7 +97,7 @@ export function ClientSearchField({
                 ? `${selectedClient.code} · ${selectedClient.name}`
                 : "Selecciona un Cliente"}
             </span>
-            <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-muted" />
+            <Icons.chevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-muted" />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-(--radix-popover-trigger-width) gap-0 p-0">
@@ -143,7 +143,7 @@ export function ClientSearchField({
                       <span className="ml-auto shrink-0 font-mono text-xs text-muted">
                         {client.code}
                       </span>
-                      {client.id === selectedClient?.id ? <Check aria-hidden="true" /> : null}
+                      {client.id === selectedClient?.id ? <Icons.check aria-hidden="true" /> : null}
                     </CommandItem>
                   ))}
                 </CommandGroup>

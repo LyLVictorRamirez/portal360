@@ -54,11 +54,11 @@ La identidad sigue perteneciendo a Better Auth y los permisos siguen pertenecien
 
 La interfaz añadirá únicamente estas preferencias de presentación:
 
-| Preferencia | Persistencia | Valor inicial | Regla |
-| --- | --- | --- | --- |
-| modo claro u oscuro | `localStorage`, clave `portal-360:theme` | sistema | La elección explícita de la persona prevalece sobre el sistema. |
-| paleta activa | cookie `active_theme` | `vercel` | El servidor puede leerla antes de pintar para evitar parpadeo. |
-| estado del sidebar | cookie del sidebar v1 | abierto | Se conserva entre recargas sin afectar permisos ni navegación. |
+| Preferencia         | Persistencia                             | Valor inicial | Regla                                                           |
+| ------------------- | ---------------------------------------- | ------------- | --------------------------------------------------------------- |
+| modo claro u oscuro | `localStorage`, clave `portal-360:theme` | sistema       | La elección explícita de la persona prevalece sobre el sistema. |
+| paleta activa       | cookie `active_theme`                    | `vercel`      | El servidor puede leerla antes de pintar para evitar parpadeo.  |
+| estado del sidebar  | cookie del sidebar v1                    | abierto       | Se conserva entre recargas sin afectar permisos ni navegación.  |
 
 El shell recibirá una forma interna equivalente a:
 
@@ -100,18 +100,18 @@ cliente.
 - [ ] `apps/web` no contiene imports de Clerk ni Base UI.
 - [ ] Todos los componentes del catálogo UI v1 compilan usando el paquete único `radix-ui`.
 - [ ] El modo inicia con la preferencia del sistema y conserva una elección manual en
-  `portal-360:theme`.
+      `portal-360:theme`.
 - [ ] Las diez paletas, incluida `vercel` por defecto, se aplican sin flash visual y conservan sus
-  fuentes originales.
+      fuentes originales.
 - [ ] El sidebar, header, breadcrumbs, paleta de comandos, infobar, avatar y selector fijo de Portal
-  360 funcionan en escritorio, móvil y estado colapsado.
+      360 funcionan en escritorio, móvil y estado colapsado.
 - [ ] La paleta de comandos solo presenta rutas existentes que la persona actual puede abrir.
 - [ ] Las notificaciones e infobar muestran estados vacíos neutrales y no contienen datos ficticios.
 - [ ] La cuenta muestra foto o iniciales, nombre, email y permite cerrar sesión mediante Better Auth.
 - [ ] Las rutas actuales mantienen sus permisos y sus operaciones de listado, filtros, formularios y
-  mutaciones después de adoptar TanStack Table y los componentes v1.
+      mutaciones después de adoptar TanStack Table y los componentes v1.
 - [ ] `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build` y
-  `corepack pnpm format:check` finalizan con código `0` desde la raíz.
+      `corepack pnpm format:check` finalizan con código `0` desde la raíz.
 
 ## Decisiones
 
@@ -131,13 +131,13 @@ cliente.
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
-| APIs v1 escritas para Radix individual difieren del paquete consolidado actual. | Compilar y probar cada componente tras normalizar imports, sin degradar `radix-ui@^1.6.7`. |
-| La migración de tablas puede alterar filtros o acciones de negocio. | Portar ruta por ruta y conservar contratos, permisos y pruebas funcionales existentes. |
-| Los providers de tema y fuentes causan parpadeo o hidratación inconsistente. | Leer paleta desde cookie, usar el patrón de hydration del proveedor y validar ambos modos. |
-| Código Clerk residual expone rutas o estados inexistentes. | Excluir providers, hooks, proxy y páginas Clerk; añadir búsqueda estática de imports antes de validar. |
-| La fidelidad del starter vuelve inconsistente la identidad de Portal 360. | Mantener la marca, rutas, texto de negocio y selector fijo propios del producto. |
+| Riesgo                                                                          | Mitigación                                                                                             |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| APIs v1 escritas para Radix individual difieren del paquete consolidado actual. | Compilar y probar cada componente tras normalizar imports, sin degradar `radix-ui@^1.6.7`.             |
+| La migración de tablas puede alterar filtros o acciones de negocio.             | Portar ruta por ruta y conservar contratos, permisos y pruebas funcionales existentes.                 |
+| Los providers de tema y fuentes causan parpadeo o hidratación inconsistente.    | Leer paleta desde cookie, usar el patrón de hydration del proveedor y validar ambos modos.             |
+| Código Clerk residual expone rutas o estados inexistentes.                      | Excluir providers, hooks, proxy y páginas Clerk; añadir búsqueda estática de imports antes de validar. |
+| La fidelidad del starter vuelve inconsistente la identidad de Portal 360.       | Mantener la marca, rutas, texto de negocio y selector fijo propios del producto.                       |
 
 ## Qué no está en esta spec
 

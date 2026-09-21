@@ -120,7 +120,6 @@ function InfobarProvider({
     } else {
       setOpen(openMobile);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only reconcile when the breakpoint changes
   }, [isMobile]);
 
   // Adds a keyboard shortcut to toggle the infobar.
@@ -150,7 +149,6 @@ function InfobarProvider({
 
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- setOpen is a stable React state setter
   }, [pathname, contentPathname]);
 
   // Update setContent to also track pathname

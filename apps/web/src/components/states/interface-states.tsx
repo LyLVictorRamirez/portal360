@@ -1,12 +1,6 @@
 import { useId, type ReactNode } from "react";
-import {
-  Inbox,
-  LoaderCircle,
-  SearchX,
-  ShieldOff,
-  TriangleAlert,
-  type LucideIcon,
-} from "lucide-react";
+
+import { Icons, type Icon } from "../icons";
 
 type InterfaceStateTone = "default" | "danger" | "warning";
 type StateHeadingLevel = "h1" | "h2";
@@ -15,7 +9,7 @@ type InterfaceStateProps = Readonly<{
   action?: ReactNode;
   description: string;
   headingLevel?: StateHeadingLevel;
-  icon: LucideIcon;
+  icon: Icon;
   isLoading?: boolean;
   title: string;
   tone?: InterfaceStateTone;
@@ -79,7 +73,7 @@ export function LoadingState({
   description = "Estamos preparando la información.",
   title = "Cargando",
 }: StateOverrides) {
-  return <InterfaceState description={description} icon={LoaderCircle} isLoading title={title} />;
+  return <InterfaceState description={description} icon={Icons.spinner} isLoading title={title} />;
 }
 
 export function EmptyState({
@@ -87,7 +81,14 @@ export function EmptyState({
   description = "Aún no hay información para mostrar.",
   title = "No hay resultados",
 }: StateOverrides) {
-  return <InterfaceState action={action} description={description} icon={Inbox} title={title} />;
+  return (
+    <InterfaceState
+      action={action}
+      description={description}
+      icon={Icons.workspace}
+      title={title}
+    />
+  );
 }
 
 export function ErrorState({
@@ -99,7 +100,7 @@ export function ErrorState({
     <InterfaceState
       action={action}
       description={description}
-      icon={TriangleAlert}
+      icon={Icons.warning}
       title={title}
       tone="danger"
     />
@@ -115,7 +116,7 @@ export function UnauthorizedState({
     <InterfaceState
       action={action}
       description={description}
-      icon={ShieldOff}
+      icon={Icons.lock}
       title={title}
       tone="warning"
     />
@@ -132,7 +133,7 @@ export function NotFoundState({
       action={action}
       description={description}
       headingLevel="h1"
-      icon={SearchX}
+      icon={Icons.search}
       title={title}
     />
   );

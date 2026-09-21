@@ -301,7 +301,6 @@ function Kanban<T>(props: KanbanProps<T>) {
       if (event.activatorEvent.defaultPrevented) return;
       setActiveId(event.active.id);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- kanbanProps is unstable object ref, using specific prop
     [kanbanProps.onDragStart],
   );
 
@@ -354,7 +353,6 @@ function Kanban<T>(props: KanbanProps<T>) {
         hasMovedRef.current = true;
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- kanbanProps is unstable object ref, using specific prop
     [value, getColumn, getItemValue, onValueChange, kanbanProps.onDragOver],
   );
 
@@ -431,7 +429,6 @@ function Kanban<T>(props: KanbanProps<T>) {
       setActiveId(null);
       hasMovedRef.current = false;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- kanbanProps is unstable object ref, using specific prop
     [value, getColumn, getItemValue, onValueChange, onMove, kanbanProps.onDragEnd],
   );
 
@@ -444,7 +441,6 @@ function Kanban<T>(props: KanbanProps<T>) {
       setActiveId(null);
       hasMovedRef.current = false;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- kanbanProps is unstable object ref, using specific prop
     [kanbanProps.onDragCancel],
   );
 
@@ -713,7 +709,6 @@ function KanbanColumn(props: KanbanColumnProps) {
   const items = React.useMemo(() => {
     const items = context.items[value] ?? [];
     return items.map((item) => context.getItemValue(item));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- context is unstable object ref, using specific properties
   }, [context.items, value, context.getItemValue]);
 
   const columnContext = React.useMemo<KanbanColumnContextValue>(
