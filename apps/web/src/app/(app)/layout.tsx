@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -25,11 +26,16 @@ export default async function ApplicationLayout({ children }: ApplicationLayoutP
     return <UnauthorizedState />;
   }
 
+  const cookieStore = await cookies();
+  const defaultSidebarOpen = cookieStore.get("sidebar_state")?.value === "true";
+
   return (
     <ApplicationShell
+      defaultSidebarOpen={defaultSidebarOpen}
       permissions={applicationAccess.authorization.permissions}
       user={{
         email: session.user.email,
+        image: session.user.image,
         name: session.user.name,
       }}
     >
