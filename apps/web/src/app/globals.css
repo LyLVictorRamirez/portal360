@@ -13,6 +13,11 @@
     @apply bg-background text-foreground;
   }
 
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 3px;
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
@@ -113,11 +118,6 @@ select {
 a {
   color: inherit;
   text-decoration: none;
-}
-
-:focus-visible {
-  outline: 3px solid var(--ring);
-  outline-offset: 3px;
 }
 
 ::selection {

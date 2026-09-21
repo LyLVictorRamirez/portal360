@@ -62,7 +62,7 @@ function InterfaceState({
         <Heading className="mt-5 text-xl font-semibold tracking-tight text-foreground" id={titleId}>
           {title}
         </Heading>
-        <p className="mt-2 text-sm leading-6 text-muted">{description}</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
         {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
       </div>
     </section>

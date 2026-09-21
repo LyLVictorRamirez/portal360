@@ -2,7 +2,7 @@ import type { HTMLAttributes } from "react";
 
 import { Badge } from "./badge";
 
-export type StatusBadgeTone = "neutral" | "info" | "success" | "warning" | "danger";
+export type StatusBadgeTone = "neutral" | "inactive" | "info" | "success" | "warning" | "danger";
 
 type StatusBadgeProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
   label: string;
@@ -10,7 +10,8 @@ type StatusBadgeProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
 };
 
 const toneClassNames: Record<StatusBadgeTone, string> = {
-  neutral: "border-border bg-surface-muted text-muted",
+  neutral: "border-border bg-surface-muted text-muted-foreground",
+  inactive: "border-muted-foreground/30 bg-muted text-foreground",
   info: "border-info/25 bg-info-surface text-info",
   success: "border-success/25 bg-success-surface text-success",
   warning: "border-warning/30 bg-warning-surface text-warning-foreground",
@@ -19,6 +20,7 @@ const toneClassNames: Record<StatusBadgeTone, string> = {
 
 const dotClassNames: Record<StatusBadgeTone, string> = {
   neutral: "bg-muted",
+  inactive: "bg-muted-foreground",
   info: "bg-info",
   success: "bg-success",
   warning: "bg-warning-foreground",

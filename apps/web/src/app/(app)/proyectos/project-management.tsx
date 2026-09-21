@@ -196,7 +196,7 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
             >
               Cartera de Proyectos
             </h2>
-            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
               Filtra por Cliente y estado, o busca por código y nombre para encontrar el trabajo en
               curso e histórico.
             </p>
@@ -305,7 +305,7 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
             <h2 className="text-lg font-semibold text-foreground" id="project-table-title">
               {list.total} {list.total === 1 ? "Proyecto" : "Proyectos"}
             </h2>
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               Página {list.page} de {totalPages}
             </p>
           </div>
@@ -385,7 +385,9 @@ function createColumns(
       cell: (project) => (
         <span className="text-sm text-foreground">
           <span className="font-medium">{project.client.name}</span>
-          <span className="mt-0.5 block font-mono text-xs text-muted">{project.client.code}</span>
+          <span className="mt-0.5 block font-mono text-xs text-muted-foreground">
+            {project.client.code}
+          </span>
         </span>
       ),
       header: "Cliente",
@@ -393,7 +395,7 @@ function createColumns(
     },
     {
       cell: (project) => (
-        <span className="whitespace-nowrap text-muted">
+        <span className="whitespace-nowrap text-muted-foreground">
           {project.startDate} — {project.committedEndDate}
         </span>
       ),

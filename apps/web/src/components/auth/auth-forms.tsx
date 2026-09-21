@@ -147,7 +147,7 @@ export function LoginForm() {
           </Button>
         </div>
       </form>
-      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted">
+      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted-foreground">
         ¿Aún no tienes cuenta?{" "}
         <Link className={linkClassName} href={withReturnTo("/registro", returnTo)}>
           Crea tu cuenta
@@ -260,7 +260,7 @@ export function RegisterForm() {
           {isPending ? "Creando cuenta…" : "Crear cuenta"}
         </Button>
       </form>
-      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted">
+      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted-foreground">
         ¿Ya tienes cuenta?{" "}
         <Link className={linkClassName} href={withReturnTo("/login", returnTo)}>
           Inicia sesión
@@ -324,7 +324,7 @@ export function VerifyEmailForm() {
         description="Tu correo fue verificado correctamente."
         title="Correo verificado"
       >
-        <p className="text-sm leading-6 text-muted">
+        <p className="text-sm leading-6 text-muted-foreground">
           Ya puedes ingresar a Portal 360 con tu cuenta.
         </p>
         <Link className="mt-6 inline-flex" href={loginHref}>
@@ -359,7 +359,7 @@ export function VerifyEmailForm() {
           {isPending ? "Enviando enlace…" : "Reenviar enlace"}
         </Button>
       </form>
-      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted">
+      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted-foreground">
         ¿Ya verificaste tu correo?{" "}
         <Link className={linkClassName} href={loginHref}>
           Inicia sesión
@@ -436,7 +436,7 @@ export function PasswordRecoveryForm() {
           {isPending ? "Enviando instrucciones…" : "Enviar instrucciones"}
         </Button>
       </form>
-      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted">
+      <p className="mt-6 border-t border-border pt-5 text-sm leading-6 text-muted-foreground">
         <Link className={linkClassName} href={withReturnTo("/login", returnTo)}>
           Volver a iniciar sesión
         </Link>

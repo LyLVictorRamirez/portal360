@@ -66,7 +66,7 @@ export function ClientDeleteDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-5">
-          <p className="text-sm leading-6 text-muted">
+          <p className="text-sm leading-6 text-muted-foreground">
             Esta acción no se puede deshacer. Solo se puede eliminar un Cliente sin relaciones de
             trabajo. Si ya está relacionado, puedes desactivarlo para conservar el historial.
           </p>

@@ -45,4 +45,8 @@ export const THEMES = [
     name: "WhatsApp",
     value: "whatsapp",
   },
+  {
+    name: "Portal 360",
+    value: "portal-360",
+  },
 ];

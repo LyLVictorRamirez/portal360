@@ -190,7 +190,7 @@ export function CodeSettingsSection({ entity }: CodeSettingsSectionProps) {
           >
             {content.formTitle}
           </h2>
-          <p className="mt-1.5 text-sm leading-6 text-muted">
+          <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
             El código combina un prefijo, un guion y un consecutivo con ceros a la izquierda.
           </p>
         </div>
@@ -257,7 +257,7 @@ export function CodeSettingsSection({ entity }: CodeSettingsSectionProps) {
               </div>
 
               <Surface aria-live="polite" padding="md" tone="muted">
-                <p className="text-sm font-semibold text-muted">
+                <p className="text-sm font-semibold text-muted-foreground">
                   Próximo código de {content.singular}
                 </p>
                 <p className="mt-2 font-mono text-2xl font-semibold tracking-tight text-foreground">

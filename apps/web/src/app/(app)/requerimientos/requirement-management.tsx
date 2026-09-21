@@ -200,7 +200,7 @@ export function RequirementManagement({ canManageRequirements }: RequirementMana
             >
               Solicitudes registradas
             </h2>
-            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
               Filtra por Cliente y estado, o busca por código y nombre para seguir cada solicitud.
             </p>
           </div>
@@ -311,7 +311,7 @@ export function RequirementManagement({ canManageRequirements }: RequirementMana
             <h2 className="text-lg font-semibold text-foreground" id="requirement-table-title">
               {list.total} {list.total === 1 ? "Requerimiento" : "Requerimientos"}
             </h2>
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               Página {list.page} de {totalPages}
             </p>
           </div>
@@ -397,7 +397,7 @@ function createColumns(
       cell: (requirement) => (
         <span className="text-sm text-foreground">
           <span className="font-medium">{requirement.client.name}</span>
-          <span className="mt-0.5 block font-mono text-xs text-muted">
+          <span className="mt-0.5 block font-mono text-xs text-muted-foreground">
             {requirement.client.code}
           </span>
         </span>
@@ -407,7 +407,7 @@ function createColumns(
     },
     {
       cell: (requirement) => (
-        <span className="whitespace-nowrap text-muted">
+        <span className="whitespace-nowrap text-muted-foreground">
           Solicitud: {requirement.requestedOn}
           <span className="mt-0.5 block">Compromiso: {requirement.committedOn ?? "—"}</span>
         </span>

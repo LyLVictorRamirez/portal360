@@ -84,7 +84,7 @@ export function RequirementDeleteDialog({
           <DialogDescription>Esta acción no se puede deshacer.</DialogDescription>
         </DialogHeader>
         <div className="space-y-5">
-          <p className="text-sm leading-6 text-muted">
+          <p className="text-sm leading-6 text-muted-foreground">
             Eliminarás el Requerimiento{" "}
             <span className="font-semibold text-foreground">{requirement?.name}</span>{" "}
             <span className="font-mono">({requirement?.code})</span>. Esta acción no se puede

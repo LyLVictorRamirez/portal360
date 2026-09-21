@@ -27,7 +27,7 @@ type WorkListProps = Omit<HTMLAttributes<HTMLUListElement>, "aria-label" | "chil
 const priorityClassNames: Record<WorkListPriorityTone, string> = {
   high: "text-warning-foreground",
   medium: "text-foreground",
-  low: "text-muted",
+  low: "text-muted-foreground",
 };
 
 const priorityDotClassNames: Record<WorkListPriorityTone, string> = {
@@ -54,7 +54,7 @@ export function WorkList({ className, items, label, ...props }: WorkListProps) {
             <p className="wrap-break-word text-sm font-semibold leading-5 text-foreground">
               {title}
             </p>
-            <p className="wrap-break-word text-xs leading-5 text-muted">{context}</p>
+            <p className="wrap-break-word text-xs leading-5 text-muted-foreground">{context}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:justify-self-end">
             <StatusBadge label={status.label} tone={status.tone} />
@@ -73,7 +73,7 @@ export function WorkList({ className, items, label, ...props }: WorkListProps) {
               Prioridad {priority.label}
             </span>
           </div>
-          <p className="text-sm leading-5 text-muted md:text-right">
+          <p className="text-sm leading-5 text-muted-foreground md:text-right">
             <span className="text-muted-subtle">Responsable: </span>
             {responsible}
           </p>

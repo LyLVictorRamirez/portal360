@@ -173,7 +173,7 @@ export function RoleEditorDialog({
               value={key}
             />
           ) : (
-            <p className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
+            <p className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted-foreground">
               Clave permanente: <code className="font-medium text-foreground">{role.key}</code>
             </p>
           )}
@@ -206,7 +206,7 @@ export function RoleEditorDialog({
               />
               <span>
                 <span className="font-semibold text-foreground">Rol activo</span>
-                <span className="mt-1 block leading-5 text-muted">
+                <span className="mt-1 block leading-5 text-muted-foreground">
                   Los roles inactivos no se pueden asignar y dejan de aportar permisos.
                 </span>
               </span>
@@ -215,7 +215,7 @@ export function RoleEditorDialog({
 
           <fieldset>
             <legend className="text-sm font-semibold text-foreground">Permisos</legend>
-            <p className="mt-1 text-sm leading-6 text-muted">
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Selecciona el alcance que este rol añadirá. Los permisos de varios roles se acumulan.
             </p>
             <div className="mt-4 space-y-2">
@@ -236,12 +236,16 @@ export function RoleEditorDialog({
                     <span>
                       <span className="font-semibold text-foreground">{permission.name}</span>
                       {isRequired ? (
-                        <span className="ml-2 text-xs font-medium text-muted">Obligatorio</span>
+                        <span className="ml-2 text-xs font-medium text-muted-foreground">
+                          Obligatorio
+                        </span>
                       ) : null}
-                      <span className="mt-1 block leading-5 text-muted">
+                      <span className="mt-1 block leading-5 text-muted-foreground">
                         {permission.description}
                       </span>
-                      <code className="mt-1 block text-xs text-muted">{permission.key}</code>
+                      <code className="mt-1 block text-xs text-muted-foreground">
+                        {permission.key}
+                      </code>
                     </span>
                   </label>
                 );

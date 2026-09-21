@@ -19,7 +19,7 @@ export function CodeSettingsManagement({ entities }: CodeSettingsManagementProps
 
       <Surface padding="md" tone="muted">
         <h2 className="text-base font-semibold text-foreground">Alcance de esta configuración</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
           Los códigos ya emitidos no cambian. Al crear cada registro, el sistema reserva el
           siguiente consecutivo de su entidad para evitar reutilizaciones.
         </p>

@@ -92,12 +92,15 @@ export function ClientSearchField({
             role="combobox"
             variant="outline"
           >
-            <span className={selectedClient ? "truncate" : "truncate text-muted"}>
+            <span className={selectedClient ? "truncate" : "truncate text-muted-foreground"}>
               {selectedClient
                 ? `${selectedClient.code} · ${selectedClient.name}`
                 : "Selecciona un Cliente"}
             </span>
-            <Icons.chevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-muted" />
+            <Icons.chevronsUpDown
+              aria-hidden="true"
+              className="size-4 shrink-0 text-muted-foreground"
+            />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-(--radix-popover-trigger-width) gap-0 p-0">
@@ -113,7 +116,7 @@ export function ClientSearchField({
             />
             <CommandList>
               {state.kind === "loading" ? (
-                <p aria-live="polite" className="px-3 py-2 text-sm leading-6 text-muted">
+                <p aria-live="polite" className="px-3 py-2 text-sm leading-6 text-muted-foreground">
                   Buscando Clientes…
                 </p>
               ) : null}
@@ -140,7 +143,7 @@ export function ClientSearchField({
                       value={client.id}
                     >
                       <span className="min-w-0 truncate">{client.name}</span>
-                      <span className="ml-auto shrink-0 font-mono text-xs text-muted">
+                      <span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">
                         {client.code}
                       </span>
                       {client.id === selectedClient?.id ? <Icons.check aria-hidden="true" /> : null}
@@ -149,7 +152,7 @@ export function ClientSearchField({
                 </CommandGroup>
               ) : null}
               {state.kind === "ready" && state.total > state.clients.length ? (
-                <p className="border-t border-border px-3 py-2 text-xs leading-5 text-muted">
+                <p className="border-t border-border px-3 py-2 text-xs leading-5 text-muted-foreground">
                   Escribe una búsqueda más específica para encontrar otro Cliente.
                 </p>
               ) : null}

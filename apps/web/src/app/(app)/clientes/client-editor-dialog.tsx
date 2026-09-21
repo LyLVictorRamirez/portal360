@@ -112,19 +112,19 @@ export function ClientEditorDialog({
           <div className="space-y-5">
             <dl className="divide-y divide-border border-y border-border text-sm">
               <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
-                <dt className="font-medium text-muted">Código</dt>
+                <dt className="font-medium text-muted-foreground">Código</dt>
                 <dd className="font-semibold tabular-nums text-primary">{client.code}</dd>
               </div>
               <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
-                <dt className="font-medium text-muted">Nombre</dt>
+                <dt className="font-medium text-muted-foreground">Nombre</dt>
                 <dd className="font-semibold text-foreground">{client.name}</dd>
               </div>
               <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                <dt className="font-medium text-muted">Estado</dt>
+                <dt className="font-medium text-muted-foreground">Estado</dt>
                 <dd>
                   <StatusBadge
                     label={client.isActive ? "Activo" : "Inactivo"}
-                    tone={client.isActive ? "success" : "neutral"}
+                    tone={client.isActive ? "success" : "inactive"}
                   />
                 </dd>
               </div>
@@ -144,7 +144,7 @@ export function ClientEditorDialog({
             }}
           >
             {!isCreating && client ? (
-              <p className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
+              <p className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted-foreground">
                 Código asignado:{" "}
                 <code className="font-semibold tabular-nums text-primary">{client.code}</code>
               </p>
@@ -177,7 +177,7 @@ export function ClientEditorDialog({
                 />
                 <span>
                   <span className="font-semibold text-foreground">Cliente activo</span>
-                  <span className="mt-1 block leading-5 text-muted">
+                  <span className="mt-1 block leading-5 text-muted-foreground">
                     Un Cliente inactivo se conserva y puede reactivarse después.
                   </span>
                 </span>

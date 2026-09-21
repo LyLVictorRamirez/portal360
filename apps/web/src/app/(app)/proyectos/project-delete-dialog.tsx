@@ -84,7 +84,7 @@ export function ProjectDeleteDialog({
           <DialogDescription>Esta acción no se puede deshacer.</DialogDescription>
         </DialogHeader>
         <div className="space-y-5">
-          <p className="text-sm leading-6 text-muted">
+          <p className="text-sm leading-6 text-muted-foreground">
             Eliminarás el Proyecto{" "}
             <span className="font-semibold text-foreground">{project?.name}</span>{" "}
             <span className="font-mono">({project?.code})</span>. Esta acción no se puede deshacer.

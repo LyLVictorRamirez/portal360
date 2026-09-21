@@ -120,7 +120,7 @@ export function UserRoleAssignmentDialog({
           </DialogDescription>
         </DialogHeader>
         {catalogState.kind === "loading" ? (
-          <p aria-live="polite" className="text-sm leading-6 text-muted">
+          <p aria-live="polite" className="text-sm leading-6 text-muted-foreground">
             Cargando roles disponibles…
           </p>
         ) : null}
@@ -144,7 +144,7 @@ export function UserRoleAssignmentDialog({
           >
             <fieldset>
               <legend className="text-sm font-semibold text-foreground">Roles activos</legend>
-              <p className="mt-1 text-sm leading-6 text-muted">
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 Puedes asignar más de un rol. Los permisos se acumulan.
               </p>
               <div className="mt-4 space-y-2">
@@ -160,10 +160,12 @@ export function UserRoleAssignmentDialog({
                     />
                     <span>
                       <span className="font-semibold text-foreground">{role.name}</span>
-                      <span className="ml-2 text-xs font-medium text-muted">
+                      <span className="ml-2 text-xs font-medium text-muted-foreground">
                         {role.kind === "system" ? "Sistema" : "Personalizado"}
                       </span>
-                      <span className="mt-1 block leading-5 text-muted">{role.description}</span>
+                      <span className="mt-1 block leading-5 text-muted-foreground">
+                        {role.description}
+                      </span>
                     </span>
                   </label>
                 ))}

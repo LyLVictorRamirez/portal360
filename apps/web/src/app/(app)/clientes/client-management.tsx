@@ -174,7 +174,7 @@ export function ClientManagement({ canManageClients }: ClientManagementProps) {
             >
               Catálogo de Clientes
             </h2>
-            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
               Busca por código o nombre, y conserva visibles los Clientes inactivos cuando lo
               necesites.
             </p>
@@ -254,7 +254,7 @@ export function ClientManagement({ canManageClients }: ClientManagementProps) {
             <h2 className="text-lg font-semibold text-foreground" id="client-table-title">
               {list.total} {list.total === 1 ? "Cliente" : "Clientes"}
             </h2>
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               Página {list.page} de {totalPages}
             </p>
           </div>
@@ -336,7 +336,7 @@ function createColumns(
       cell: (client) => (
         <StatusBadge
           label={client.isActive ? "Activo" : "Inactivo"}
-          tone={client.isActive ? "success" : "neutral"}
+          tone={client.isActive ? "success" : "inactive"}
         />
       ),
       header: "Estado",

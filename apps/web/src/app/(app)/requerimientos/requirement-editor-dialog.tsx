@@ -238,11 +238,11 @@ export function RequirementEditorDialog({
           <div className="space-y-5">
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
-                <dt className="font-medium text-muted">Código</dt>
+                <dt className="font-medium text-muted-foreground">Código</dt>
                 <dd className="mt-1 font-semibold tabular-nums text-primary">{requirement.code}</dd>
               </div>
               <div>
-                <dt className="font-medium text-muted">Estado</dt>
+                <dt className="font-medium text-muted-foreground">Estado</dt>
                 <dd className="mt-1">
                   <StatusBadge
                     label={requirementStatusLabels[requirement.status]}
@@ -251,36 +251,38 @@ export function RequirementEditorDialog({
                 </dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="font-medium text-muted">Cliente</dt>
+                <dt className="font-medium text-muted-foreground">Cliente</dt>
                 <dd className="mt-1 text-foreground">
                   {requirement.client.name}{" "}
-                  <span className="font-mono text-muted">({requirement.client.code})</span>
+                  <span className="font-mono text-muted-foreground">
+                    ({requirement.client.code})
+                  </span>
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-muted">Solicitud</dt>
+                <dt className="font-medium text-muted-foreground">Solicitud</dt>
                 <dd className="mt-1 text-foreground">{requirement.requestedOn}</dd>
               </div>
               <div>
-                <dt className="font-medium text-muted">Compromiso</dt>
+                <dt className="font-medium text-muted-foreground">Compromiso</dt>
                 <dd className="mt-1 text-foreground">{requirement.committedOn ?? "Sin fecha"}</dd>
               </div>
               <div>
-                <dt className="font-medium text-muted">Cotización</dt>
+                <dt className="font-medium text-muted-foreground">Cotización</dt>
                 <dd className="mt-1 text-foreground">{requirement.quotedOn ?? "Sin fecha"}</dd>
               </div>
               <div>
-                <dt className="font-medium text-muted">Aprobación</dt>
+                <dt className="font-medium text-muted-foreground">Aprobación</dt>
                 <dd className="mt-1 text-foreground">{requirement.approvedOn ?? "Sin fecha"}</dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="font-medium text-muted">Aprobado por</dt>
+                <dt className="font-medium text-muted-foreground">Aprobado por</dt>
                 <dd className="mt-1 text-foreground">
                   {requirement.approvedByUserId ?? "Sin aprobación registrada"}
                 </dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="font-medium text-muted">Descripción</dt>
+                <dt className="font-medium text-muted-foreground">Descripción</dt>
                 <dd className="mt-1 whitespace-pre-wrap text-foreground">
                   {requirement.description || "Sin descripción"}
                 </dd>
@@ -307,7 +309,7 @@ export function RequirementEditorDialog({
                 selectedClient={selectedClient}
               />
             ) : (
-              <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted">
+              <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-sm leading-6 text-muted-foreground">
                 <p className="font-medium text-foreground">Cliente</p>
                 <p>
                   {requirement?.client.name}{" "}

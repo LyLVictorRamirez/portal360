@@ -63,7 +63,7 @@ export function DeleteRoleDialog({ onDeleted, onOpenChange, open, role }: Delete
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-5">
-          <p className="text-sm leading-6 text-muted">
+          <p className="text-sm leading-6 text-muted-foreground">
             Solo se puede eliminar un rol que no esté asignado a ninguna persona. Si todavía tiene
             asignaciones, retíralas primero desde Usuarios.
           </p>

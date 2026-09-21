@@ -155,7 +155,7 @@ export function RoleManagement({ canManageRoles }: RoleManagementProps) {
         <h2 className="text-base font-semibold text-foreground" id="system-role-rules-title">
           Reglas de los roles del sistema
         </h2>
-        <ul className="mt-3 space-y-2 text-sm leading-6 text-muted">
+        <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
           <li>Los roles del sistema se pueden ajustar, pero no eliminar ni desactivar.</li>
           <li>
             Estándar es el rol predeterminado y siempre conserva el permiso{" "}
@@ -179,7 +179,7 @@ export function RoleManagement({ canManageRoles }: RoleManagementProps) {
             >
               Catálogo de roles
             </h2>
-            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
               Los permisos se muestran por rol; una asignación puede reunir varios roles activos.
             </p>
           </div>
@@ -253,8 +253,8 @@ function createColumns(
             <span className="font-semibold text-foreground">{role.name}</span>
             <StatusBadge label={role.kind === "system" ? "Sistema" : "Personalizado"} />
           </div>
-          <p className="mt-1 text-muted">{role.description}</p>
-          <code className="mt-1.5 inline-block text-xs text-muted">{role.key}</code>
+          <p className="mt-1 text-muted-foreground">{role.description}</p>
+          <code className="mt-1.5 inline-block text-xs text-muted-foreground">{role.key}</code>
         </div>
       ),
       header: "Rol",
@@ -278,7 +278,7 @@ function createColumns(
         role.permissions.length > 0 ? (
           <ul
             aria-label={`Permisos de ${role.name}`}
-            className="space-y-1 text-xs leading-5 text-muted"
+            className="space-y-1 text-xs leading-5 text-muted-foreground"
           >
             {role.permissions.map((permission) => (
               <li key={permission}>
@@ -290,7 +290,7 @@ function createColumns(
             ))}
           </ul>
         ) : (
-          <span className="text-muted">Sin permisos</span>
+          <span className="text-muted-foreground">Sin permisos</span>
         ),
       header: "Permisos",
       id: "permissions",

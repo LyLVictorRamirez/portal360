@@ -90,7 +90,7 @@ export function UserManagement({ canManageUsers }: UserManagementProps) {
       id: "name",
     },
     {
-      cell: (user) => <span className="text-muted">{user.email}</span>,
+      cell: (user) => <span className="text-muted-foreground">{user.email}</span>,
       header: "Correo",
       id: "email",
     },
@@ -115,7 +115,7 @@ export function UserManagement({ canManageUsers }: UserManagementProps) {
             ))}
           </ul>
         ) : (
-          <span className="text-muted">Sin roles asignados</span>
+          <span className="text-muted-foreground">Sin roles asignados</span>
         ),
       header: "Roles",
       id: "roles",
@@ -152,7 +152,7 @@ export function UserManagement({ canManageUsers }: UserManagementProps) {
             >
               Directorio de acceso
             </h2>
-            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
               Busca por nombre o correo. Los cambios de roles se aplican al momento.
             </p>
           </div>

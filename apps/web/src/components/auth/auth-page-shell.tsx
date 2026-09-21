@@ -24,7 +24,7 @@ export function AuthPageShell({ children, description, title }: AuthPageShellPro
           >
             Un punto claro para el trabajo diario.
           </h1>
-          <p className="mt-4 max-w-lg text-base leading-7 text-muted">
+          <p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">
             Portal 360 reúne el trabajo del equipo en una experiencia ordenada y segura.
           </p>
         </section>
@@ -37,7 +37,7 @@ export function AuthPageShell({ children, description, title }: AuthPageShellPro
             >
               {title}
             </h2>
-            <p className="mt-3 text-sm leading-6 text-muted">{description}</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
             <div className="mt-8">{children}</div>
           </Surface>
         </section>

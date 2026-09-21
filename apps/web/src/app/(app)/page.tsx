@@ -104,7 +104,7 @@ const detailColumns: readonly DataTableColumn<SampleDetailRow>[] = [
     id: "element",
   },
   {
-    cell: (row) => <span className="text-muted">{row.context}</span>,
+    cell: (row) => <span className="text-muted-foreground">{row.context}</span>,
     header: "Referencia",
     id: "context",
   },
@@ -144,7 +144,7 @@ export default function HomePage() {
               <h2 className="text-xl font-semibold tracking-tight text-foreground">
                 Explorar la plantilla
               </h2>
-              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Los filtros describen la estructura de la vista. Se activarán cuando exista un
                 módulo con datos.
               </p>
@@ -166,7 +166,7 @@ export default function HomePage() {
               </SelectField>
               <TextField defaultValue="Sin búsqueda" disabled label="Buscar en la muestra" />
             </div>
-            <p className="mt-4 text-sm leading-6 text-muted" id="filter-sample-note">
+            <p className="mt-4 text-sm leading-6 text-muted-foreground" id="filter-sample-note">
               Los controles están deshabilitados porque esta pantalla no consulta ni modifica
               información.
             </p>
@@ -182,7 +182,7 @@ export default function HomePage() {
               >
                 Lectura priorizada
               </h2>
-              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Filas compactas para contrastar contexto, estado, prioridad y responsable sin
                 representar trabajo real.
               </p>
@@ -207,7 +207,7 @@ export default function HomePage() {
               >
                 Detalle de la muestra
               </h2>
-              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Una tabla compacta conserva la lectura completa en pantallas pequeñas mediante
                 desplazamiento horizontal.
               </p>
