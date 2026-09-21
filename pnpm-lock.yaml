@@ -257,6 +257,9 @@ importers:
       '@tabler/icons-react':
         specifier: 3.40.0
         version: 3.40.0(react@19.3.0)
+      '@tanstack/form-core':
+        specifier: 1.28.5
+        version: 1.28.5
       '@tanstack/react-form':
         specifier: 1.28.5
         version: 1.28.5(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
