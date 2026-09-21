@@ -413,7 +413,7 @@ export function RequirementEditorDialog({
             ) : null}
 
             <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-              <Button disabled={isSaving} onClick={closeDialog} type="button" variant="ghost">
+              <Button disabled={isSaving} onClick={closeDialog} type="button" variant="cancel">
                 Cancelar
               </Button>
               <Button disabled={isSaving} type="submit">

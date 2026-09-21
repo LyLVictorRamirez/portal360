@@ -74,7 +74,7 @@ export function DataTableColumnHeader<TData, TValue>({
                 onClick={() => column.clearSorting()}
               >
                 <Cross2Icon />
-                Reset
+                Restablecer
               </DropdownMenuItem>
             )}
           </>

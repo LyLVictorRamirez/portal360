@@ -3,15 +3,14 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "../../../components/ui/button";
-import { Checkbox } from "../../../components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "../../../components/ui/dialog";
 import { StatusBadge } from "../../../components/ui/status-badge";
+import { Switch } from "../../../components/ui/switch";
 import { TextField } from "../../../components/ui/text-field";
 import {
   createClient,
@@ -95,18 +94,12 @@ export function ClientEditorDialog({
           : null);
 
   const title = isCreating ? "Crear Cliente" : isReadOnly ? "Detalle de Cliente" : "Editar Cliente";
-  const description = isCreating
-    ? "El código se asigna automáticamente al guardar y no se podrá modificar después."
-    : isReadOnly
-      ? "Consulta el código, nombre y estado actual de este Cliente."
-      : "Actualiza el nombre o estado. El código asignado por el sistema no se puede modificar.";
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {isReadOnly && client ? (
           <div className="space-y-5">
@@ -153,7 +146,6 @@ export function ClientEditorDialog({
             <TextField
               autoComplete="organization"
               error={formError}
-              helpText={isCreating ? "El código se genera al crear el Cliente." : undefined}
               label="Nombre"
               maxLength={200}
               onChange={(event) => {
@@ -166,22 +158,19 @@ export function ClientEditorDialog({
             />
 
             {!isCreating ? (
-              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border px-3 py-3 text-sm hover:border-border-strong">
-                <Checkbox
+              <div className="flex items-center justify-between rounded-md border border-border px-3 py-3 text-sm">
+                <label className="font-semibold text-foreground" htmlFor="client-active">
+                  Cliente activo
+                </label>
+                <Switch
                   checked={isActive}
-                  className="mt-0.5"
+                  id="client-active"
                   onCheckedChange={(checked) => {
                     setIsActive(checked === true);
                     setSaveState(null);
                   }}
                 />
-                <span>
-                  <span className="font-semibold text-foreground">Cliente activo</span>
-                  <span className="mt-1 block leading-5 text-muted-foreground">
-                    Un Cliente inactivo se conserva y puede reactivarse después.
-                  </span>
-                </span>
-              </label>
+              </div>
             ) : null}
 
             {saveError ? (
@@ -191,7 +180,7 @@ export function ClientEditorDialog({
             ) : null}
 
             <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-              <Button disabled={isSaving} onClick={() => onOpenChange(false)} variant="ghost">
+              <Button disabled={isSaving} onClick={() => onOpenChange(false)} type="button" variant="cancel">
                 Cancelar
               </Button>
               <Button disabled={isSaving} type="submit">

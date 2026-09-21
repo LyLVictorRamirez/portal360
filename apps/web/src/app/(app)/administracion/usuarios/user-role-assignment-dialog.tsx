@@ -189,7 +189,7 @@ export function UserRoleAssignmentDialog({
             ) : null}
 
             <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-              <Button onClick={() => onOpenChange(false)} variant="ghost">
+              <Button onClick={() => onOpenChange(false)} type="button" variant="cancel">
                 Cancelar
               </Button>
               <Button
