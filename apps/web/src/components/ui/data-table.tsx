@@ -1,6 +1,14 @@
-import type { HTMLAttributes, ReactNode } from "react";
+"use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
+import {
+  getCoreRowModel,
+  getPaginationRowModel,
+  useReactTable,
+  type ColumnDef,
+} from "@tanstack/react-table";
+import { useMemo, type HTMLAttributes, type ReactNode } from "react";
+
+import { DataTable as TanstackDataTable } from "./table/data-table";
 
 export type DataTableAlignment = "left" | "center" | "right";
 
@@ -20,12 +28,10 @@ type DataTableProps<Row extends { id: string }> = Omit<
   rows: readonly Row[];
 };
 
-const alignmentClassNames: Record<DataTableAlignment, string> = {
-  left: "text-left",
-  center: "text-center",
-  right: "text-right",
-};
-
+/**
+ * Compatibility boundary for Portal 360 lists. Its callers retain their domain-oriented column
+ * declarations while rendering through the starter's TanStack Table implementation.
+ */
 export function DataTable<Row extends { id: string }>({
   className,
   columns,
@@ -33,58 +39,32 @@ export function DataTable<Row extends { id: string }>({
   rows,
   ...props
 }: DataTableProps<Row>) {
+  const data = useMemo(() => [...rows], [rows]);
+  const tableColumns = useMemo<ColumnDef<Row>[]>(
+    () =>
+      columns.map((column) => ({
+        cell: ({ row }) => column.cell(row.original),
+        header: column.header,
+        id: column.id,
+        meta: { align: column.align },
+      })),
+    [columns],
+  );
+  const table = useReactTable({
+    columns: tableColumns,
+    data,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getRowId: (row) => row.id,
+  });
+
   return (
-    <div
+    <TanstackDataTable
       aria-label={`Tabla desplazable: ${label}`}
-      className={[
-        "w-full overflow-x-auto overscroll-x-contain border-y border-border bg-surface",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      role="region"
-      tabIndex={0}
+      className={className}
+      showPagination={false}
+      table={table}
       {...props}
-    >
-      <Table className="min-w-2xl w-full border-collapse">
-        <caption className="sr-only">{label}</caption>
-        <TableHeader className="bg-surface-muted">
-          <TableRow>
-            {columns.map(({ align = "left", header, id }) => (
-              <TableHead
-                key={id}
-                scope="col"
-                className={[
-                  "whitespace-nowrap border-b border-border px-4 py-3 text-xs font-semibold text-muted",
-                  alignmentClassNames[align],
-                ].join(" ")}
-              >
-                {header}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody className="bg-surface">
-          {rows.map((row, rowIndex) => (
-            <TableRow key={row.id}>
-              {columns.map(({ align = "left", cell, id }) => (
-                <TableCell
-                  key={id}
-                  className={[
-                    "wrap-break-word px-4 py-3 text-sm leading-5 text-foreground",
-                    rowIndex < rows.length - 1 ? "border-b border-border" : "",
-                    alignmentClassNames[align],
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {cell(row)}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    />
   );
 }

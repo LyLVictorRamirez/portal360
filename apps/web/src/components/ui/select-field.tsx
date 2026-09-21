@@ -1,6 +1,7 @@
 import { useId, type ReactNode, type SelectHTMLAttributes } from "react";
 
-import { FieldLabel } from "./field-label";
+import { cn } from "../../lib/utils";
+import { Field, FieldDescription, FieldError, FieldLabel } from "./field";
 
 type SelectFieldProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "id"> & {
   error?: ReactNode;
@@ -8,9 +9,6 @@ type SelectFieldProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "id"> & {
   id?: string;
   label: ReactNode;
 };
-
-const selectClassName =
-  "min-h-10 w-full rounded-md border bg-surface px-3 text-sm text-foreground transition-colors duration-150 hover:border-border-strong focus:border-primary disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted disabled:opacity-100";
 
 export function SelectField({
   "aria-describedby": ariaDescribedBy,
@@ -39,35 +37,26 @@ export function SelectField({
     .join(" ");
 
   return (
-    <div className="space-y-1.5">
-      <FieldLabel htmlFor={fieldId} required={required}>
+    <Field data-invalid={hasError || ariaInvalid === true}>
+      <FieldLabel htmlFor={fieldId}>
         {label}
+        {required ? <span aria-hidden="true"> *</span> : null}
       </FieldLabel>
       <select
         aria-describedby={describedBy || undefined}
         aria-errormessage={hasError ? errorId : ariaErrorMessage}
         aria-invalid={hasError ? true : ariaInvalid}
-        className={[
-          selectClassName,
-          hasError ? "border-danger focus:border-danger" : "border-border",
+        className={cn(
+          "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          hasError && "border-destructive",
           className,
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        )}
         id={fieldId}
         required={required}
         {...props}
       />
-      {hasHelpText ? (
-        <p id={helpTextId} className="text-sm leading-5 text-muted">
-          {helpText}
-        </p>
-      ) : null}
-      {hasError ? (
-        <p id={errorId} role="alert" className="text-sm leading-5 text-danger">
-          {error}
-        </p>
-      ) : null}
-    </div>
+      {hasHelpText ? <FieldDescription id={helpTextId}>{helpText}</FieldDescription> : null}
+      {hasError ? <FieldError id={errorId}>{error}</FieldError> : null}
+    </Field>
   );
 }

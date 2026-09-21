@@ -1,6 +1,7 @@
 import { useId, type InputHTMLAttributes, type ReactNode } from "react";
 
-import { FieldLabel } from "./field-label";
+import { cn } from "../../lib/utils";
+import { Field, FieldDescription, FieldError, FieldLabel } from "./field";
 import { Input } from "./input";
 
 type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id"> & {
@@ -9,9 +10,6 @@ type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id"> & {
   id?: string;
   label: ReactNode;
 };
-
-const inputClassName =
-  "h-10 w-full rounded-md border bg-surface px-3 text-sm text-foreground transition-colors duration-150 placeholder:text-muted hover:border-border-strong focus:border-primary disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted disabled:opacity-100";
 
 export function TextField({
   "aria-describedby": ariaDescribedBy,
@@ -40,35 +38,22 @@ export function TextField({
     .join(" ");
 
   return (
-    <div className="space-y-1.5">
-      <FieldLabel htmlFor={fieldId} required={required}>
+    <Field data-invalid={hasError || ariaInvalid === true}>
+      <FieldLabel htmlFor={fieldId}>
         {label}
+        {required ? <span aria-hidden="true"> *</span> : null}
       </FieldLabel>
       <Input
         aria-describedby={describedBy || undefined}
         aria-errormessage={hasError ? errorId : ariaErrorMessage}
         aria-invalid={hasError ? true : ariaInvalid}
-        className={[
-          inputClassName,
-          hasError ? "border-danger focus:border-danger" : "border-border",
-          className,
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        className={cn(hasError && "border-destructive", className)}
         id={fieldId}
         required={required}
         {...props}
       />
-      {hasHelpText ? (
-        <p id={helpTextId} className="text-sm leading-5 text-muted">
-          {helpText}
-        </p>
-      ) : null}
-      {hasError ? (
-        <p id={errorId} role="alert" className="text-sm leading-5 text-danger">
-          {error}
-        </p>
-      ) : null}
-    </div>
+      {hasHelpText ? <FieldDescription id={helpTextId}>{helpText}</FieldDescription> : null}
+      {hasError ? <FieldError id={errorId}>{error}</FieldError> : null}
+    </Field>
   );
 }

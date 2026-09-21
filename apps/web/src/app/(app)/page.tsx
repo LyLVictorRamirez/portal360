@@ -1,3 +1,5 @@
+"use client";
+
 import { DataTable, type DataTableColumn } from "../../components/ui/data-table";
 import { PageHeader } from "../../components/ui/page-header";
 import { SelectField } from "../../components/ui/select-field";

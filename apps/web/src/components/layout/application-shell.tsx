@@ -6,6 +6,7 @@ import { AppSidebar } from "./app-sidebar";
 import { CommandActions } from "./command-actions";
 import { InfoSidebar } from "./info-sidebar";
 import { Header } from "./header";
+import { PageContainer } from "./page-container";
 import { InfobarProvider } from "../ui/infobar";
 import { SidebarInset, SidebarProvider } from "../ui/sidebar";
 import type { AuthorizationPermission } from "../../lib/authorization";
@@ -34,7 +35,7 @@ export function ApplicationShell({
         <Header />
         <InfobarProvider defaultOpen={false}>
           <CommandActions permissions={permissions} />
-          <div className="min-w-0 flex-1 px-4 py-6 md:px-6">{children}</div>
+          <PageContainer>{children}</PageContainer>
           <InfoSidebar side="right" />
         </InfobarProvider>
       </SidebarInset>
