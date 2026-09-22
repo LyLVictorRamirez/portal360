@@ -36,7 +36,7 @@ test("shows both administration options when their permissions are present", () 
   );
 });
 
-test("shows Clientes, Proyectos, and Requerimientos only to people with their reading permission", () => {
+test("shows Clientes, Proyectos, Requerimientos, and Tickets only to people with their reading permission", () => {
   assert.deepEqual(getVisibleBusinessNavigation(["app.access"]), []);
   assert.deepEqual(getVisibleBusinessNavigation(["app.access", "clients.read"]), [
     {
@@ -60,6 +60,14 @@ test("shows Clientes, Proyectos, and Requerimientos only to people with their re
       id: "requirements",
       label: "Requerimientos",
       permissionKeys: ["requirements.read"],
+    },
+  ]);
+  assert.deepEqual(getVisibleBusinessNavigation(["app.access", "tickets.read"]), [
+    {
+      href: "/tickets",
+      id: "tickets",
+      label: "Tickets",
+      permissionKeys: ["tickets.read"],
     },
   ]);
 });

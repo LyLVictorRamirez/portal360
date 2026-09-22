@@ -118,13 +118,14 @@ test("defines the ticket schema without changing existing business entities", as
   assert.match(migration.sql, /"title" varchar\(200\) not null/i);
   assert.match(migration.sql, /"description" varchar\(2000\)/i);
   assert.match(migration.sql, /"external_priority" text not null default 'medium'/i);
-  assert.match(
-    migration.sql,
-    /"external_priority" in \('critical', 'high', 'medium', 'low'\)/i,
-  );
+  assert.match(migration.sql, /"external_priority" in \('critical', 'high', 'medium', 'low'\)/i);
   assert.match(migration.sql, /ticket_version_positive_check/i);
   assert.match(migration.sql, /ticket_prevent_client_mutation/i);
   assert.match(migration.sql, /on delete restrict/i);
+  assert.doesNotMatch(migration.sql, /"(?:code|status)"/i);
+  assert.match(migration.sql, /"version" integer not null default 1/i);
+  assert.match(migration.sql, /"external_reference" = btrim\("external_reference"\)/i);
+  assert.match(migration.sql, /"title" = btrim\("title"\)/i);
   assert.doesNotMatch(migration.sql, /alter table "business"\."(?:client|project|requirement)"/i);
   assert.doesNotMatch(migration.sql, /update "business"\."(?:client|project|requirement)"/i);
 });

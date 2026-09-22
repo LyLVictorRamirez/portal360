@@ -45,7 +45,12 @@ function createStore(overrides: Partial<TicketsControllerStore> = {}): TicketsCo
     async getTicket(): Promise<Ticket> {
       return createTicket();
     },
-    async listTickets(): Promise<{ page: number; pageSize: number; tickets: Ticket[]; total: number }> {
+    async listTickets(): Promise<{
+      page: number;
+      pageSize: number;
+      tickets: Ticket[];
+      total: number;
+    }> {
       return { page: 1, pageSize: 25, tickets: [createTicket()], total: 1 };
     },
     async updateTicket(): Promise<Ticket> {
@@ -117,7 +122,10 @@ test("defaults a created Ticket priority and maps controlled errors", async () =
     }),
   );
 
-  await createController.createTicket({ clientId, externalReference: "EXT-001", title: "Ticket" }, requestContext);
+  await createController.createTicket(
+    { clientId, externalReference: "EXT-001", title: "Ticket" },
+    requestContext,
+  );
   assert.equal(receivedInput?.externalPriority, undefined);
   await assert.rejects(
     () => staleController.updateTicket(ticketId, { title: "Cambio", version: 1 }, requestContext),
@@ -140,4 +148,34 @@ test("rejects invalid Ticket priority at the HTTP boundary", async () => {
     () => controller.listTickets(undefined, undefined, undefined, "urgent"),
     (error: unknown) => error instanceof BadRequestException && error.getStatus() === 400,
   );
+});
+
+test("returns 400 for a malformed Client filter", async () => {
+  const { TicketService } = await import("./tickets.service.js");
+  let queried = false;
+  const service = new TicketService({
+    async createTicket() {
+      throw new Error("Unexpected create");
+    },
+    async deleteTicket() {
+      throw new Error("Unexpected delete");
+    },
+    async getTicket() {
+      throw new Error("Unexpected detail");
+    },
+    async listTickets() {
+      queried = true;
+      throw new Error("Unexpected list");
+    },
+    async updateTicket() {
+      throw new Error("Unexpected update");
+    },
+  });
+  const controller = new TicketsController(service);
+
+  await assert.rejects(
+    () => controller.listTickets(undefined, undefined, "not-a-uuid", undefined),
+    (error: unknown) => error instanceof BadRequestException && error.getStatus() === 400,
+  );
+  assert.equal(queried, false);
 });

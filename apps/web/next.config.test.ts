@@ -3,7 +3,7 @@ import test from "node:test";
 
 import nextConfig from "./next.config.ts";
 
-test("proxies only Better Auth, authorization, Client, Project, and Requirement API paths to the API origin", async () => {
+test("proxies only Better Auth, authorization, Client, Project, Requirement, and Ticket API paths to the API origin", async () => {
   const rewrites = await nextConfig.rewrites?.();
 
   assert.ok(Array.isArray(rewrites));
@@ -15,6 +15,7 @@ test("proxies only Better Auth, authorization, Client, Project, and Requirement 
       "/api/clients/:path*",
       "/api/projects/:path*",
       "/api/requirements/:path*",
+      "/api/tickets/:path*",
     ],
   );
   assert.match(rewrites[0]?.destination ?? "", /\/api\/auth\/:path\*$/);
@@ -22,4 +23,5 @@ test("proxies only Better Auth, authorization, Client, Project, and Requirement 
   assert.match(rewrites[2]?.destination ?? "", /\/api\/clients\/:path\*$/);
   assert.match(rewrites[3]?.destination ?? "", /\/api\/projects\/:path\*$/);
   assert.match(rewrites[4]?.destination ?? "", /\/api\/requirements\/:path\*$/);
+  assert.match(rewrites[5]?.destination ?? "", /\/api\/tickets\/:path\*$/);
 });

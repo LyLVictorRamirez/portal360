@@ -11,6 +11,8 @@ const validAuthorizationResponse = {
     "requirements.read",
     "requirements.manage",
     "requirements.settings.manage",
+    "tickets.read",
+    "tickets.manage",
   ],
   roles: [
     {

@@ -71,6 +71,7 @@ const businessNavigationIcons = {
   clients: "workspace",
   projects: "kanban",
   requirements: "forms",
+  tickets: "forms",
 } as const satisfies Record<string, NavigationIcon>;
 
 function isCurrentRoute(pathname: string, href: string) {

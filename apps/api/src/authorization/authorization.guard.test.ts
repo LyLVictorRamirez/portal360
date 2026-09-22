@@ -35,6 +35,11 @@ class RequirementProtectedController {
   protectedRoute() {}
 }
 
+class TicketProtectedController {
+  @RequirePermissions("tickets.manage")
+  protectedRoute() {}
+}
+
 function createExecutionContext(
   request: AuthorizedRequest,
   handler: () => void = ProtectedController.prototype.protectedRoute,
@@ -162,6 +167,27 @@ test("allows a Requirement manager through the Requirement permission boundary",
   assert.equal(
     await guard.canActivate(
       createExecutionContext(request, RequirementProtectedController.prototype.protectedRoute),
+    ),
+    true,
+  );
+});
+
+test("allows a Ticket manager through the Ticket permission boundary", async () => {
+  const request = { headers: {} } as AuthorizedRequest;
+  const contextService: AuthorizationContextResolver = {
+    resolve: async () => ({
+      authorization: {
+        permissions: ["tickets.manage"],
+        roles: [],
+      },
+      userId: "user-1",
+    }),
+  };
+  const guard = new AuthorizationGuard(new Reflector(), contextService);
+
+  assert.equal(
+    await guard.canActivate(
+      createExecutionContext(request, TicketProtectedController.prototype.protectedRoute),
     ),
     true,
   );

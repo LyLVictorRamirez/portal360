@@ -8,9 +8,9 @@ type AdministrationNavigationItem = Readonly<{
 }>;
 
 type BusinessNavigationItem = Readonly<{
-  href: "/clientes" | "/proyectos" | "/requerimientos";
-  id: "clients" | "projects" | "requirements";
-  label: "Clientes" | "Proyectos" | "Requerimientos";
+  href: "/clientes" | "/proyectos" | "/requerimientos" | "/tickets";
+  id: "clients" | "projects" | "requirements" | "tickets";
+  label: "Clientes" | "Proyectos" | "Requerimientos" | "Tickets";
   permissionKeys: readonly AuthorizationPermission[];
 }>;
 
@@ -57,6 +57,12 @@ const businessNavigation = [
     id: "requirements",
     label: "Requerimientos",
     permissionKeys: ["requirements.read"],
+  },
+  {
+    href: "/tickets",
+    id: "tickets",
+    label: "Tickets",
+    permissionKeys: ["tickets.read"],
   },
 ] as const satisfies readonly BusinessNavigationItem[];
 

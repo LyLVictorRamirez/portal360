@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
         destination: `${apiOrigin}/api/requirements/:path*`,
         source: "/api/requirements/:path*",
       },
+      {
+        destination: `${apiOrigin}/api/tickets/:path*`,
+        source: "/api/tickets/:path*",
+      },
     ];
   },
 };

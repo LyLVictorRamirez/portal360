@@ -16,6 +16,7 @@ import {
 import { TicketRepository } from "./tickets.repository.js";
 
 const ticketListPageSize = 25;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface TicketStore {
   createTicket(input: CreateTicketRecordInput): Promise<Ticket>;
@@ -92,8 +93,8 @@ function normalizeActorUserId(value: unknown): string {
 }
 
 function normalizeClientId(value: unknown): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new TicketValidationError("Ticket Client id must be a non-empty string.");
+  if (typeof value !== "string" || !uuidPattern.test(value)) {
+    throw new TicketValidationError("Ticket Client id must be a valid UUID.");
   }
 
   return value;
@@ -158,8 +159,8 @@ function normalizeSearchQuery(value: unknown): string | null {
 }
 
 function normalizeTicketId(value: unknown): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new TicketValidationError("Ticket id must be a non-empty string.");
+  if (typeof value !== "string" || !uuidPattern.test(value)) {
+    throw new TicketValidationError("Ticket id must be a valid UUID.");
   }
 
   return value;

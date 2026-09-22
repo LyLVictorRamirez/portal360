@@ -73,19 +73,23 @@ export class TicketsController {
     @Query("clientId") clientId: string | undefined,
     @Query("priority") priority: string | undefined,
   ): Promise<{ page: number; pageSize: number; tickets: TicketResponse[]; total: number }> {
-    const tickets = await this.ticketService.listTickets({
-      clientId,
-      page: readOptionalPage(page),
-      priority: readOptionalPriority(priority),
-      query,
-    });
+    try {
+      const tickets = await this.ticketService.listTickets({
+        clientId,
+        page: readOptionalPage(page),
+        priority: readOptionalPriority(priority),
+        query,
+      });
 
-    return {
-      page: tickets.page,
-      pageSize: tickets.pageSize,
-      tickets: tickets.tickets.map(toTicketResponse),
-      total: tickets.total,
-    };
+      return {
+        page: tickets.page,
+        pageSize: tickets.pageSize,
+        tickets: tickets.tickets.map(toTicketResponse),
+        total: tickets.total,
+      };
+    } catch (error) {
+      throw toHttpException(error);
+    }
   }
 
   @Post()
@@ -159,14 +163,18 @@ function readCreateTicketInput(body: unknown): CreateTicketInput {
   }
 
   if (!isOptionalString(record.description) || !isOptionalString(record.externalUrl)) {
-    throw new BadRequestException("description and externalUrl must be strings or null when provided.");
+    throw new BadRequestException(
+      "description and externalUrl must be strings or null when provided.",
+    );
   }
 
   return {
     clientId: record.clientId as string,
     description: record.description as string | null | undefined,
     externalPriority:
-      record.externalPriority === undefined ? undefined : readRequiredPriority(record.externalPriority),
+      record.externalPriority === undefined
+        ? undefined
+        : readRequiredPriority(record.externalPriority),
     externalReference: record.externalReference as string,
     externalUrl: record.externalUrl as string | null | undefined,
     title: record.title as string,

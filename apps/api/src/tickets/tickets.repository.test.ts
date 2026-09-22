@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   TicketClientInactiveError,
   TicketRelatedRecordsError,
+  TicketVersionConflictError,
 } from "./tickets.contracts.js";
 import { TicketRepository, type TicketsDatabase } from "./tickets.repository.js";
 
@@ -49,7 +50,10 @@ test("rejects Ticket creation for an inactive Client before inserting", async ()
     TicketClientInactiveError,
   );
 
-  assert.equal(queries.some((query) => query.includes('insert into "business"."ticket"')), false);
+  assert.equal(
+    queries.some((query) => query.includes('insert into "business"."ticket"')),
+    false,
+  );
   assert.equal(queries.at(-1), "ROLLBACK");
   assert.equal(released, true);
 });
@@ -67,4 +71,57 @@ test("maps a Ticket foreign-key restriction to a controlled deletion error", asy
   const repository = new TicketRepository(database);
 
   await assert.rejects(() => repository.deleteTicket("ticket-1"), TicketRelatedRecordsError);
+});
+
+test("does not overwrite a Ticket when its version is stale", async () => {
+  const queries: Array<{ sql: string; values?: unknown[] }> = [];
+  const database: TicketsDatabase = {
+    async connect() {
+      throw new Error("This test does not create transactions.");
+    },
+    async query(sql, values) {
+      queries.push({ sql, values });
+      return sql.includes('where "ticket"."id" = $1')
+        ? { rowCount: 1, rows: [{ id: "ticket-1" }] }
+        : { rowCount: 0, rows: [] };
+    },
+  };
+  const repository = new TicketRepository(database);
+
+  await assert.rejects(
+    () =>
+      repository.updateTicket("ticket-1", { actorUserId: "user-2", title: "Cambio", version: 1 }),
+    TicketVersionConflictError,
+  );
+  assert.match(queries[0]?.sql ?? "", /where "id" = \$1 and "version" = \$10/i);
+  assert.equal(queries[0]?.values?.at(-1), 1);
+});
+
+test("lists Tickets from inactive Clients with the requested filters and stable order", async () => {
+  const queries: Array<{ sql: string; values?: unknown[] }> = [];
+  const database: TicketsDatabase = {
+    async connect() {
+      throw new Error("This test does not create transactions.");
+    },
+    async query(sql, values) {
+      queries.push({ sql, values });
+      return sql.includes("count(*)")
+        ? { rowCount: 1, rows: [{ total: 0 }] }
+        : { rowCount: 0, rows: [] };
+    },
+  };
+  const repository = new TicketRepository(database);
+
+  const list = await repository.listTickets({
+    clientId,
+    page: 2,
+    pageSize: 25,
+    priority: "high",
+    query: "EXT-001",
+  });
+
+  assert.deepEqual(list, { page: 2, pageSize: 25, tickets: [], total: 0 });
+  assert.deepEqual(queries[0]?.values, ["EXT-001", clientId, "high", 25, 25]);
+  assert.match(queries[0]?.sql ?? "", /order by "ticket"\."updated_at" desc, "ticket"\."id" desc/i);
+  assert.doesNotMatch(queries[0]?.sql ?? "", /"is_active"/i);
 });
