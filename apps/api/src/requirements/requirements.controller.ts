@@ -56,6 +56,7 @@ interface RequirementResponse {
   description: string | null;
   id: string;
   name: string;
+  pausedFromStatus: Requirement["pausedFromStatus"];
   quotedOn: string | null;
   requestedOn: string;
   status: RequirementStatus;
@@ -341,11 +342,12 @@ function readRequiredStatus(value: unknown): RequirementStatus {
     value !== "quoted" &&
     value !== "approved" &&
     value !== "in_execution" &&
-    value !== "closed" &&
+    value !== "finalized" &&
+    value !== "paused" &&
     value !== "cancelled"
   ) {
     throw new BadRequestException(
-      "status must be new, in_analysis, quoted, approved, in_execution, closed, or cancelled.",
+      "status must be new, in_analysis, quoted, approved, in_execution, finalized, paused, or cancelled.",
     );
   }
 
@@ -395,6 +397,7 @@ function toRequirementResponse(requirement: Requirement): RequirementResponse {
     description: requirement.description,
     id: requirement.id,
     name: requirement.name,
+    pausedFromStatus: requirement.pausedFromStatus,
     quotedOn: requirement.quotedOn,
     requestedOn: requirement.requestedOn,
     status: requirement.status,

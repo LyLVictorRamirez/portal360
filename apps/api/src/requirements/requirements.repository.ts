@@ -42,6 +42,7 @@ const requirementRecordSelection = (table: string) => `
   "${table}"."name",
   "${table}"."description",
   "${table}"."status",
+  "${table}"."paused_from_status",
   "${table}"."requested_on",
   "${table}"."committed_on",
   "${table}"."quoted_on",
@@ -166,10 +167,11 @@ const updateRequirementQuery = `
         "approved_on" = case when $10::boolean then $11::date else "approved_on" end,
         "approved_by_user_id" = coalesce($12::text, "approved_by_user_id"),
         "status" = coalesce($13::text, "status"),
+        "paused_from_status" = $14::text,
         "updated_at" = current_timestamp,
-        "updated_by_user_id" = $14,
+        "updated_by_user_id" = $15,
         "version" = "version" + 1
-    where "id" = $1 and "version" = $15
+    where "id" = $1 and "version" = $16
     returning *
   )
   select ${requirementSelection("updated")}
@@ -323,6 +325,7 @@ export class RequirementRepository {
         input.approvedOn ?? null,
         input.approvedByUserId ?? null,
         input.status ?? null,
+        input.pausedFromStatus,
         input.actorUserId,
         input.version,
       ]);
@@ -456,6 +459,7 @@ function readRequirement(row: Record<string, unknown>): Requirement {
     description: readNullableString(row.description, "Requirement description"),
     id: readString(row.id, "Requirement id"),
     name: readString(row.name, "Requirement name"),
+    pausedFromStatus: readPausedFromStatus(row.paused_from_status),
     quotedOn: readNullableDateOnly(row.quoted_on, "Requirement quoted date"),
     requestedOn: readDateOnly(row.requested_on, "Requirement requested date"),
     status: readRequirementStatus(row.status),
@@ -566,10 +570,29 @@ function readRequirementStatus(value: unknown): Requirement["status"] {
     value !== "quoted" &&
     value !== "approved" &&
     value !== "in_execution" &&
-    value !== "closed" &&
+    value !== "finalized" &&
+    value !== "paused" &&
     value !== "cancelled"
   ) {
     throw new Error("Invalid Requirement status returned by the business database.");
+  }
+
+  return value;
+}
+
+function readPausedFromStatus(value: unknown): Requirement["pausedFromStatus"] {
+  if (value === null) {
+    return null;
+  }
+
+  if (
+    value !== "new" &&
+    value !== "in_analysis" &&
+    value !== "quoted" &&
+    value !== "approved" &&
+    value !== "in_execution"
+  ) {
+    throw new Error("Invalid Requirement paused-from status returned by the business database.");
   }
 
   return value;

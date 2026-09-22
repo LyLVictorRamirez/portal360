@@ -8,6 +8,7 @@ import {
   type Requirement,
   type RequirementCodeSettings,
   type RequirementList,
+  type RequirementPausableStatus,
   type RequirementStatus,
   requirementStatuses,
   RequirementValidationError,
@@ -88,7 +89,8 @@ export class RequirementService {
     const current = await this.requirementRepository.getRequirement(normalizedRequirementId);
     const status = update.status ?? current.status;
 
-    validateRequirementTransition(current.status, status);
+    validateRequirementTransition(current, status);
+    const pausedFromStatus = resolvePausedFromStatus(current, status);
 
     const approvedByUserId =
       current.approvedByUserId === null && current.status === "quoted" && status === "approved"
@@ -100,6 +102,7 @@ export class RequirementService {
       committedOn: update.committedOn === undefined ? current.committedOn : update.committedOn,
       quotedOn: update.quotedOn === undefined ? current.quotedOn : update.quotedOn,
       requestedOn: update.requestedOn ?? current.requestedOn,
+      pausedFromStatus,
       status,
     };
 
@@ -109,6 +112,7 @@ export class RequirementService {
       ...update,
       actorUserId: actorId,
       approvedByUserId,
+      pausedFromStatus,
     });
   }
 
@@ -143,6 +147,7 @@ function normalizeRequirementCreation(
     committedOn,
     quotedOn: null,
     requestedOn,
+    pausedFromStatus: null,
     status: "new",
   });
 
@@ -357,7 +362,7 @@ function normalizeOptionalDate(value: unknown, field: string): string | null | u
 function normalizeRequirementStatus(value: unknown): RequirementStatus {
   if (!(requirementStatuses as readonly string[]).includes(value as string)) {
     throw new RequirementValidationError(
-      "Requirement status must be new, in_analysis, quoted, approved, in_execution, closed, or cancelled.",
+      "Requirement status must be new, in_analysis, quoted, approved, in_execution, finalized, paused, or cancelled.",
     );
   }
 
@@ -377,17 +382,35 @@ function normalizeSearchQuery(value: unknown): string | null {
 }
 
 function validateRequirementTransition(
-  currentStatus: RequirementStatus,
+  current: Pick<Requirement, "pausedFromStatus" | "status">,
   nextStatus: RequirementStatus,
 ): void {
-  if (currentStatus === nextStatus) {
+  if (current.status === "paused") {
+    if (current.pausedFromStatus === null) {
+      throw new RequirementValidationError("A paused Requirement must preserve its previous status.");
+    }
+
+    if (nextStatus === "cancelled" || nextStatus === current.pausedFromStatus) {
+      return;
+    }
+
+    throw new RequirementValidationError(
+      "A paused Requirement can only resume its previous status or be cancelled.",
+    );
+  }
+
+  if (current.status === nextStatus) {
     return;
   }
 
-  if (currentStatus === "closed" || currentStatus === "cancelled") {
+  if (current.status === "finalized" || current.status === "cancelled") {
     throw new RequirementValidationError(
       "Terminal Requirements cannot transition to another status.",
     );
+  }
+
+  if (nextStatus === "paused") {
+    return;
   }
 
   if (nextStatus === "cancelled") {
@@ -397,16 +420,27 @@ function validateRequirementTransition(
   const directTransitions: Partial<Record<RequirementStatus, RequirementStatus>> = {
     approved: "in_execution",
     in_analysis: "quoted",
-    in_execution: "closed",
+    in_execution: "finalized",
     new: "in_analysis",
     quoted: "approved",
   };
 
-  if (directTransitions[currentStatus] !== nextStatus) {
+  if (directTransitions[current.status] !== nextStatus) {
     throw new RequirementValidationError(
       "Requirement status must follow the configured sequential workflow.",
     );
   }
+}
+
+function resolvePausedFromStatus(
+  current: Pick<Requirement, "pausedFromStatus" | "status">,
+  nextStatus: RequirementStatus,
+): RequirementPausableStatus | null {
+  if (nextStatus === "paused") {
+    return current.status as RequirementPausableStatus;
+  }
+
+  return null;
 }
 
 function validateRequirementDates(value: {
@@ -415,6 +449,7 @@ function validateRequirementDates(value: {
   committedOn: string | null;
   quotedOn: string | null;
   requestedOn: string;
+  pausedFromStatus: RequirementPausableStatus | null;
   status: RequirementStatus;
 }): void {
   for (const [field, date] of [
@@ -429,8 +464,11 @@ function validateRequirementDates(value: {
     }
   }
 
+  const effectiveStatus = value.status === "paused" ? value.pausedFromStatus : value.status;
+
   if (
-    ["quoted", "approved", "in_execution", "closed"].includes(value.status) &&
+    effectiveStatus !== null &&
+    ["quoted", "approved", "in_execution", "finalized"].includes(effectiveStatus) &&
     value.quotedOn === null
   ) {
     throw new RequirementValidationError(
@@ -439,7 +477,8 @@ function validateRequirementDates(value: {
   }
 
   if (
-    ["approved", "in_execution", "closed"].includes(value.status) &&
+    effectiveStatus !== null &&
+    ["approved", "in_execution", "finalized"].includes(effectiveStatus) &&
     (value.approvedOn === null || value.approvedByUserId === null)
   ) {
     throw new RequirementValidationError(

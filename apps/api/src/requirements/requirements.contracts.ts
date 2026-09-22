@@ -4,11 +4,16 @@ export const requirementStatuses = [
   "quoted",
   "approved",
   "in_execution",
-  "closed",
+  "finalized",
+  "paused",
   "cancelled",
 ] as const;
 
 export type RequirementStatus = (typeof requirementStatuses)[number];
+export type RequirementPausableStatus = Exclude<
+  RequirementStatus,
+  "paused" | "finalized" | "cancelled"
+>;
 export type RequirementStatusFilter = "all" | RequirementStatus;
 
 export interface RequirementClientReference {
@@ -29,6 +34,7 @@ export interface Requirement {
   description: string | null;
   id: string;
   name: string;
+  pausedFromStatus: RequirementPausableStatus | null;
   quotedOn: string | null;
   requestedOn: string;
   status: RequirementStatus;
@@ -84,6 +90,7 @@ export interface UpdateRequirementInput {
 export interface UpdateRequirementRecordInput extends UpdateRequirementInput {
   actorUserId: string;
   approvedByUserId?: string;
+  pausedFromStatus: RequirementPausableStatus | null;
 }
 
 export interface UpdateRequirementCodeSettingsInput {
