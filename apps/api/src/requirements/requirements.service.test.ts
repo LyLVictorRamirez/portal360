@@ -196,7 +196,8 @@ test("does not allow a terminal Requirement to change status", async () => {
     );
 
     await assert.rejects(
-      () => service.updateRequirement(requirementId, { status: "in_analysis", version: 1 }, "user-1"),
+      () =>
+        service.updateRequirement(requirementId, { status: "in_analysis", version: 1 }, "user-1"),
       RequirementValidationError,
     );
   }
@@ -292,7 +293,11 @@ test("rejects a paused Requirement transition other than its saved state or canc
   const service = new RequirementService(
     createStore({
       async getRequirement() {
-        return createRequirement({ pausedFromStatus: "quoted", quotedOn: "2026-10-02", status: "paused" });
+        return createRequirement({
+          pausedFromStatus: "quoted",
+          quotedOn: "2026-10-02",
+          status: "paused",
+        });
       },
     }),
   );

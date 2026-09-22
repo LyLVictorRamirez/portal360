@@ -40,9 +40,9 @@ Esta entrega no crea una entidad nueva.
 
 La migración `apps/api/migrations/0006-business-unified-project-and-requirement-statuses.sql` modificará las restricciones de estado y transformará los registros actuales en una transacción.
 
-| Tabla | Estado final permitido | Migración de datos |
-| --- | --- | --- |
-| `business.project` | `new`, `in_execution`, `paused`, `finalized`, `cancelled` | `planned → new` y `active → in_execution`; los demás valores se conservan. |
+| Tabla                  | Estado final permitido                                                                         | Migración de datos                                                                                     |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `business.project`     | `new`, `in_execution`, `paused`, `finalized`, `cancelled`                                      | `planned → new` y `active → in_execution`; los demás valores se conservan.                             |
 | `business.requirement` | `new`, `in_analysis`, `quoted`, `approved`, `in_execution`, `finalized`, `paused`, `cancelled` | `closed → finalized`; los demás valores, incluidos `in_analysis`, `quoted` y `approved`, se conservan. |
 
 `business.requirement` añadirá `paused_from_status text null`.
@@ -68,16 +68,16 @@ RequirementStatus = new | in_analysis | quoted | approved | in_execution | final
 
 Las etiquetas visibles en español serán:
 
-| Identificador | Etiqueta |
-| --- | --- |
-| `new` | Nuevo |
-| `in_analysis` | En análisis |
-| `quoted` | Cotizado |
-| `approved` | Aprobado |
+| Identificador  | Etiqueta     |
+| -------------- | ------------ |
+| `new`          | Nuevo        |
+| `in_analysis`  | En análisis  |
+| `quoted`       | Cotizado     |
+| `approved`     | Aprobado     |
 | `in_execution` | En ejecución |
-| `finalized` | Finalizado |
-| `paused` | Pausado |
-| `cancelled` | Cancelado |
+| `finalized`    | Finalizado   |
+| `paused`       | Pausado      |
+| `cancelled`    | Cancelado    |
 
 ## Plan de implementación
 
@@ -120,11 +120,11 @@ Las etiquetas visibles en español serán:
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
-| Una restricción nueva invalida Requerimientos históricos intermedios. | Migrar solo `closed → finalized`, conservar los estados intermedios y comprobar la migración con registros de cada estado. |
-| Una pausa elimina o contradice fechas y aprobación previas. | Validar en servicio y base de datos según `paused_from_status`, y probar pausa y reanudación desde cada etapa aplicable. |
-| Clientes de API antiguos envían identificadores reemplazados. | Rechazar explícitamente los valores obsoletos con validación controlada y actualizar los clientes web del monorepo en la misma entrega. |
+| Riesgo                                                                | Mitigación                                                                                                                              |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Una restricción nueva invalida Requerimientos históricos intermedios. | Migrar solo `closed → finalized`, conservar los estados intermedios y comprobar la migración con registros de cada estado.              |
+| Una pausa elimina o contradice fechas y aprobación previas.           | Validar en servicio y base de datos según `paused_from_status`, y probar pausa y reanudación desde cada etapa aplicable.                |
+| Clientes de API antiguos envían identificadores reemplazados.         | Rechazar explícitamente los valores obsoletos con validación controlada y actualizar los clientes web del monorepo en la misma entrega. |
 
 ## Qué **no** está en esta spec
 

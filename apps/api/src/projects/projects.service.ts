@@ -77,9 +77,7 @@ export class ProjectService {
     const currentProject = await this.projectRepository.getProject(normalizedProjectId);
 
     if (currentProject.status === "finalized" || currentProject.status === "cancelled") {
-      throw new ProjectTerminalStatusError(
-        "A finalized or cancelled Project cannot be changed.",
-      );
+      throw new ProjectTerminalStatusError("A finalized or cancelled Project cannot be changed.");
     }
 
     return this.projectRepository.updateProject(normalizedProjectId, {

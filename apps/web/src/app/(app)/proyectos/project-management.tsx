@@ -236,9 +236,7 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
                 value="Todos los Clientes"
               >
                 <Icons.check
-                  className={
-                    clientFilterId === "all" ? "size-4 text-primary" : "size-4 opacity-0"
-                  }
+                  className={clientFilterId === "all" ? "size-4 text-primary" : "size-4 opacity-0"}
                 />
                 Todos los Clientes
               </CommandItem>
@@ -442,9 +440,7 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
                         >
                           <Icons.check
                             className={
-                              clientFilterId === "all"
-                                ? "size-4 text-primary"
-                                : "size-4 opacity-0"
+                              clientFilterId === "all" ? "size-4 text-primary" : "size-4 opacity-0"
                             }
                           />
                           Todos los Clientes

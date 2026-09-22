@@ -5,12 +5,7 @@ import { useEffect, useId, useState, type InputHTMLAttributes } from "react";
 import { ClientSearchField } from "../proyectos/client-search-field";
 import { Icons } from "../../../components/icons";
 import { Button } from "../../../components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../../../components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { SelectField } from "../../../components/ui/select-field";
 import { StatusBadge, type StatusBadgeTone } from "../../../components/ui/status-badge";
 import { TextareaField } from "../../../components/ui/textarea-field";
@@ -97,7 +92,9 @@ function isApprovedOrLater(status: RequirementStatus) {
   return status === "approved" || status === "in_execution" || status === "finalized";
 }
 
-function getAvailableStatusTransitions(requirement: Requirement | null): readonly RequirementStatus[] {
+function getAvailableStatusTransitions(
+  requirement: Requirement | null,
+): readonly RequirementStatus[] {
   if (requirement?.status === "paused" && requirement.pausedFromStatus !== null) {
     return ["paused", requirement.pausedFromStatus, "cancelled"];
   }
@@ -158,9 +155,7 @@ export function RequirementEditorDialog({
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [status, setStatus] = useState<RequirementStatus>("new");
   const statusForDates =
-    status === "paused"
-      ? requirement?.pausedFromStatus ?? requirement?.status ?? "new"
-      : status;
+    status === "paused" ? (requirement?.pausedFromStatus ?? requirement?.status ?? "new") : status;
   const statusHelpText =
     requirement?.status === "paused" && requirement.pausedFromStatus !== null
       ? `Al reanudar, el Requerimiento volverá a ${requirementStatusLabels[requirement.pausedFromStatus]}.`
@@ -410,13 +405,11 @@ export function RequirementEditorDialog({
                 onChange={(event) => setStatus(event.target.value as RequirementStatus)}
                 value={status}
               >
-                {getAvailableStatusTransitions(requirement).map(
-                  (availableStatus) => (
-                    <option key={availableStatus} value={availableStatus}>
-                      {requirementStatusLabels[availableStatus]}
-                    </option>
-                  ),
-                )}
+                {getAvailableStatusTransitions(requirement).map((availableStatus) => (
+                  <option key={availableStatus} value={availableStatus}>
+                    {requirementStatusLabels[availableStatus]}
+                  </option>
+                ))}
               </SelectField>
             ) : null}
 

@@ -387,7 +387,9 @@ function validateRequirementTransition(
 ): void {
   if (current.status === "paused") {
     if (current.pausedFromStatus === null) {
-      throw new RequirementValidationError("A paused Requirement must preserve its previous status.");
+      throw new RequirementValidationError(
+        "A paused Requirement must preserve its previous status.",
+      );
     }
 
     if (nextStatus === "cancelled" || nextStatus === current.pausedFromStatus) {

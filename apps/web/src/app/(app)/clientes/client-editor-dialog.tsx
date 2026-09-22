@@ -3,12 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "../../../components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../../../components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { StatusBadge } from "../../../components/ui/status-badge";
 import { Switch } from "../../../components/ui/switch";
 import { TextField } from "../../../components/ui/text-field";
@@ -180,7 +175,12 @@ export function ClientEditorDialog({
             ) : null}
 
             <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-              <Button disabled={isSaving} onClick={() => onOpenChange(false)} type="button" variant="cancel">
+              <Button
+                disabled={isSaving}
+                onClick={() => onOpenChange(false)}
+                type="button"
+                variant="cancel"
+              >
                 Cancelar
               </Button>
               <Button disabled={isSaving} type="submit">

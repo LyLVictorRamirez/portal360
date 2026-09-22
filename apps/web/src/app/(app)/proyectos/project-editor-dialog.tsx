@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 
 import { ClientSearchField } from "./client-search-field";
 import { Button } from "../../../components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../../../components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { SelectField } from "../../../components/ui/select-field";
 import { StatusBadge, type StatusBadgeTone } from "../../../components/ui/status-badge";
 import { TextareaField } from "../../../components/ui/textarea-field";

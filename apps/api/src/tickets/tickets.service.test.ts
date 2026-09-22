@@ -99,7 +99,12 @@ test("rejects malformed Ticket URLs and invalid priorities before persistence", 
   await assert.rejects(
     () =>
       service.createTicket(
-        { clientId, externalReference: "EXT-001", externalUrl: "ftp://example.com", title: "Ticket" },
+        {
+          clientId,
+          externalReference: "EXT-001",
+          externalUrl: "ftp://example.com",
+          title: "Ticket",
+        },
         "user-1",
       ),
     TicketValidationError,

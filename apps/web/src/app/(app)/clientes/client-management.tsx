@@ -194,13 +194,11 @@ export function ClientManagement({ canManageClients }: ClientManagementProps) {
             onValueChange={(nextStatus) => updateFilters(query, nextStatus as ClientStatusFilter)}
             value={status}
           >
-            {(Object.keys(clientStatusFilterLabels) as ClientStatusFilter[]).map(
-              (filterStatus) => (
-                <DropdownMenuRadioItem key={filterStatus} value={filterStatus}>
-                  {clientStatusFilterLabels[filterStatus]}
-                </DropdownMenuRadioItem>
-              ),
-            )}
+            {(Object.keys(clientStatusFilterLabels) as ClientStatusFilter[]).map((filterStatus) => (
+              <DropdownMenuRadioItem key={filterStatus} value={filterStatus}>
+                {clientStatusFilterLabels[filterStatus]}
+              </DropdownMenuRadioItem>
+            ))}
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>

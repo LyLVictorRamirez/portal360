@@ -149,7 +149,9 @@ export class TicketRepository {
 
     try {
       await transaction.query("BEGIN");
-      const clientResult = await transaction.query(findClientForTicketCreationQuery, [input.clientId]);
+      const clientResult = await transaction.query(findClientForTicketCreationQuery, [
+        input.clientId,
+      ]);
       const clientRow = clientResult.rows[0];
 
       if (!clientRow) {
@@ -196,9 +198,7 @@ export class TicketRepository {
       }
     } catch (error) {
       if (isForeignKeyViolation(error)) {
-        throw new TicketRelatedRecordsError(
-          "A Ticket with related Activities cannot be deleted.",
-        );
+        throw new TicketRelatedRecordsError("A Ticket with related Activities cannot be deleted.");
       }
 
       throw error;
@@ -350,11 +350,19 @@ function readString(value: unknown, field: string): string {
 }
 
 function isCheckViolation(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "code" in error &&
-    (error as { code?: unknown }).code === "23514";
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23514"
+  );
 }
 
 function isForeignKeyViolation(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "code" in error &&
-    (error as { code?: unknown }).code === "23503";
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23503"
+  );
 }

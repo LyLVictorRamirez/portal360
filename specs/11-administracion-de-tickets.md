@@ -1,6 +1,6 @@
 # SPEC 11 — Administración de Tickets
 
-> **Status:** Aprobada
+> **Status:** Implementada
 > **Depends on:** SPEC 05, SPEC 06, SPEC 09
 > **Date:** 2026-09-22
 > **Objective:** Administrar Tickets externos asociados a Clientes mediante un catálogo privado con consulta y gestión autorizada, sin duplicar el ciclo de vida de su plataforma de origen.
@@ -88,28 +88,28 @@ TicketExternalPriority = critical | high | medium | low
 ```
 
 | Identificador | Etiqueta |
-| --- | --- |
-| `critical` | Crítica |
-| `high` | Alta |
-| `medium` | Media |
-| `low` | Baja |
+| ------------- | -------- |
+| `critical`    | Crítica  |
+| `high`        | Alta     |
+| `medium`      | Media    |
+| `low`         | Baja     |
 
 El catálogo RBAC se amplía así:
 
-| Permiso | Asignación inicial | Uso |
-| --- | --- | --- |
-| `tickets.read` | `administrador`, `lider`, `miembro` | Listar, buscar y consultar Tickets. |
-| `tickets.manage` | `administrador`, `lider` | Crear, editar y eliminar Tickets sin Actividades. |
+| Permiso          | Asignación inicial                  | Uso                                               |
+| ---------------- | ----------------------------------- | ------------------------------------------------- |
+| `tickets.read`   | `administrador`, `lider`, `miembro` | Listar, buscar y consultar Tickets.               |
+| `tickets.manage` | `administrador`, `lider`            | Crear, editar y eliminar Tickets sin Actividades. |
 
 Las rutas HTTP serán:
 
-| Método y ruta | Permiso | Comportamiento |
-| --- | --- | --- |
-| `GET /api/tickets` | `tickets.read` | Lista paginada, busca por referencia externa o título, filtra por Cliente y prioridad, y ordena por actualización descendente. |
-| `POST /api/tickets` | `tickets.manage` | Crea un Ticket para un Cliente activo. |
-| `GET /api/tickets/:ticketId` | `tickets.read` | Devuelve el detalle y la referencia visible de su Cliente. |
-| `PUT /api/tickets/:ticketId` | `tickets.manage` | Actualiza datos cuando la versión coincide, sin cambiar el Cliente. |
-| `DELETE /api/tickets/:ticketId` | `tickets.manage` | Elimina definitivamente un Ticket sin Actividades. |
+| Método y ruta                   | Permiso          | Comportamiento                                                                                                                 |
+| ------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/tickets`              | `tickets.read`   | Lista paginada, busca por referencia externa o título, filtra por Cliente y prioridad, y ordena por actualización descendente. |
+| `POST /api/tickets`             | `tickets.manage` | Crea un Ticket para un Cliente activo.                                                                                         |
+| `GET /api/tickets/:ticketId`    | `tickets.read`   | Devuelve el detalle y la referencia visible de su Cliente.                                                                     |
+| `PUT /api/tickets/:ticketId`    | `tickets.manage` | Actualiza datos cuando la versión coincide, sin cambiar el Cliente.                                                            |
+| `DELETE /api/tickets/:ticketId` | `tickets.manage` | Elimina definitivamente un Ticket sin Actividades.                                                                             |
 
 Una solicitud sin sesión recibe `401`.
 
@@ -199,12 +199,12 @@ existente.
 
 ## Riesgos
 
-| Riesgo | Mitigación |
-| --- | --- |
-| La referencia externa duplicada puede confundir al buscar. | Mostrar siempre Cliente, referencia y título en el listado y permitir filtrar por Cliente. |
-| La prioridad en Portal 360 puede desalinearse de la plataforma externa. | Etiquetarla como prioridad externa y mantener el registro manual como alcance explícito del MVP. |
-| Una Actividad futura puede permitir borrar trabajo relacionado. | Declarar desde esta spec `on delete restrict` y mapear el rechazo de base de datos a un error controlado. |
-| Un enlace externo malformado puede degradar la navegación. | Validar URL absoluta y protocolos `http` o `https` en contrato y servidor. |
+| Riesgo                                                                  | Mitigación                                                                                                |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| La referencia externa duplicada puede confundir al buscar.              | Mostrar siempre Cliente, referencia y título en el listado y permitir filtrar por Cliente.                |
+| La prioridad en Portal 360 puede desalinearse de la plataforma externa. | Etiquetarla como prioridad externa y mantener el registro manual como alcance explícito del MVP.          |
+| Una Actividad futura puede permitir borrar trabajo relacionado.         | Declarar desde esta spec `on delete restrict` y mapear el rechazo de base de datos a un error controlado. |
+| Un enlace externo malformado puede degradar la navegación.              | Validar URL absoluta y protocolos `http` o `https` en contrato y servidor.                                |
 
 ## Qué **no** está en esta spec
 

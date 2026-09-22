@@ -73,7 +73,12 @@ export function DeleteRoleDialog({ onDeleted, onOpenChange, open, role }: Delete
             </p>
           ) : null}
           <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-            <Button disabled={isDeleting} onClick={() => onOpenChange(false)} type="button" variant="cancel">
+            <Button
+              disabled={isDeleting}
+              onClick={() => onOpenChange(false)}
+              type="button"
+              variant="cancel"
+            >
               Cancelar
             </Button>
             <Button disabled={isDeleting} onClick={() => void deleteRole()} variant="destructive">
