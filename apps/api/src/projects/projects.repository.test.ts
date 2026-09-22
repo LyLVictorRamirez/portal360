@@ -5,6 +5,8 @@ import {
   ProjectClientInactiveError,
   ProjectCodeSettingsVersionConflictError,
   ProjectRelatedRecordsError,
+  ProjectStageRelatedRecordsError,
+  ProjectStageVersionConflictError,
   ProjectVersionConflictError,
 } from "./projects.contracts.js";
 import { ProjectRepository, type ProjectsDatabase } from "./projects.repository.js";
@@ -174,6 +176,29 @@ function projectRow(
   };
 }
 
+function projectStageRow(
+  overrides: Partial<{
+    id: string;
+    name: string;
+    position: number;
+    project_status: string;
+    version: number;
+  }> = {},
+): Record<string, unknown> {
+  return {
+    created_at: timestamp,
+    created_by_user_id: "user-1",
+    id: "4f9b1c2d-3513-4cc1-a266-c53589bbab77",
+    name: "Diseño",
+    position: 1,
+    project_status: "new",
+    updated_at: timestamp,
+    updated_by_user_id: "user-1",
+    version: 1,
+    ...overrides,
+  };
+}
+
 test("reserves a distinct Project code for simultaneous creations", async () => {
   const database = new ConcurrentProjectsDatabase();
   const repository = new ProjectRepository(database);
@@ -262,6 +287,10 @@ test("normalizes calendar dates returned as Date objects by the business databas
             }),
           ],
         };
+      }
+
+      if (query.includes('from "business"."project_stage" as "stage"')) {
+        return { rowCount: 0, rows: [] };
       }
 
       throw new Error(`Unexpected query: ${query}`);
@@ -376,5 +405,128 @@ test("maps a relationship restriction to a controlled Project deletion error", a
   await assert.rejects(
     () => repository.deleteProject("5d676d8c-9939-4a25-bdda-1a4df8b17873"),
     ProjectRelatedRecordsError,
+  );
+});
+
+test("creates a Project Stage after the current last position", async () => {
+  const queries: Array<{ query: string; values?: unknown[] }> = [];
+  const database: ProjectsDatabase = {
+    async connect() {
+      return {
+        async query(query, values) {
+          queries.push({ query, values });
+
+          if (query === "BEGIN" || query === "COMMIT" || query === "ROLLBACK") {
+            return { rowCount: 0, rows: [] };
+          }
+
+          if (query.includes('from "business"."project"') && query.includes("for update")) {
+            return { rowCount: 1, rows: [{ id: "project-1", status: "new" }] };
+          }
+
+          if (query.includes('from "business"."project_stage"') && query.includes("limit 1")) {
+            return { rowCount: 1, rows: [{ position: 2 }] };
+          }
+
+          if (query.includes('insert into "business"."project_stage"')) {
+            return { rowCount: 1, rows: [projectStageRow({ position: 3 })] };
+          }
+
+          throw new Error(`Unexpected query: ${query}`);
+        },
+        release() {},
+      };
+    },
+    async query() {
+      throw new Error("Not used by this test.");
+    },
+  };
+  const repository = new ProjectRepository(database);
+
+  const stage = await repository.createProjectStage("project-1", {
+    actorUserId: "user-1",
+    name: "Diseño",
+  });
+
+  assert.equal(stage.position, 3);
+  assert.deepEqual(queries[3]?.values, ["project-1", "Diseño", 3, "user-1"]);
+});
+
+test("rejects a stale Project Stage mutation before changing its row", async () => {
+  let updateAttempts = 0;
+  const database: ProjectsDatabase = {
+    async connect() {
+      return {
+        async query(query) {
+          if (query === "BEGIN" || query === "ROLLBACK") {
+            return { rowCount: 0, rows: [] };
+          }
+
+          if (query.includes('from "business"."project_stage" as "stage"')) {
+            return { rowCount: 1, rows: [projectStageRow({ version: 2 })] };
+          }
+
+          if (query.includes('update "business"."project_stage"')) {
+            updateAttempts += 1;
+          }
+
+          throw new Error(`Unexpected query: ${query}`);
+        },
+        release() {},
+      };
+    },
+    async query() {
+      throw new Error("Not used by this test.");
+    },
+  };
+  const repository = new ProjectRepository(database);
+
+  await assert.rejects(
+    () =>
+      repository.updateProjectStage("project-1", "stage-1", {
+        actorUserId: "user-1",
+        name: "Construcción",
+        version: 1,
+      }),
+    ProjectStageVersionConflictError,
+  );
+  assert.equal(updateAttempts, 0);
+});
+
+test("maps a related Activity restriction to a controlled Project Stage deletion error", async () => {
+  const database: ProjectsDatabase = {
+    async connect() {
+      return {
+        async query(query) {
+          if (query === "BEGIN" || query === "ROLLBACK") {
+            return { rowCount: 0, rows: [] };
+          }
+
+          if (query.includes('from "business"."project_stage" as "stage"')) {
+            return { rowCount: 1, rows: [projectStageRow()] };
+          }
+
+          if (query.includes('delete from "business"."project_stage"')) {
+            throw { code: "23503" };
+          }
+
+          throw new Error(`Unexpected query: ${query}`);
+        },
+        release() {},
+      };
+    },
+    async query() {
+      throw new Error("Not used by this test.");
+    },
+  };
+  const repository = new ProjectRepository(database);
+
+  await assert.rejects(
+    () =>
+      repository.deleteProjectStage("project-1", "stage-1", {
+        actorUserId: "user-1",
+        version: 1,
+      }),
+    ProjectStageRelatedRecordsError,
   );
 });

@@ -2,6 +2,8 @@ export const projectStatuses = ["new", "in_execution", "paused", "finalized", "c
 
 export type ProjectStatus = (typeof projectStatuses)[number];
 export type ProjectStatusFilter = "all" | ProjectStatus;
+export const projectStageDirections = ["up", "down"] as const;
+export type ProjectStageDirection = (typeof projectStageDirections)[number];
 
 export interface ProjectClientReference {
   code: string;
@@ -23,6 +25,21 @@ export interface Project {
   updatedAt: Date;
   updatedByUserId: string;
   version: number;
+}
+
+export interface ProjectStage {
+  createdAt: Date;
+  createdByUserId: string;
+  id: string;
+  name: string;
+  position: number;
+  updatedAt: Date;
+  updatedByUserId: string;
+  version: number;
+}
+
+export interface ProjectDetail extends Project {
+  stages: ProjectStage[];
 }
 
 export interface ProjectCodeSettings {
@@ -70,6 +87,40 @@ export interface UpdateProjectRecordInput extends UpdateProjectInput {
   actorUserId: string;
 }
 
+export interface CreateProjectStageInput {
+  name: string;
+}
+
+export interface CreateProjectStageRecordInput extends CreateProjectStageInput {
+  actorUserId: string;
+}
+
+export interface UpdateProjectStageInput {
+  name: string;
+  version: number;
+}
+
+export interface UpdateProjectStageRecordInput extends UpdateProjectStageInput {
+  actorUserId: string;
+}
+
+export interface MoveProjectStageInput {
+  direction: ProjectStageDirection;
+  version: number;
+}
+
+export interface MoveProjectStageRecordInput extends MoveProjectStageInput {
+  actorUserId: string;
+}
+
+export interface DeleteProjectStageInput {
+  version: number;
+}
+
+export interface DeleteProjectStageRecordInput extends DeleteProjectStageInput {
+  actorUserId: string;
+}
+
 export interface UpdateProjectCodeSettingsInput {
   codeLength: number;
   nextSequence: bigint;
@@ -109,6 +160,18 @@ export class ProjectClientNotFoundError extends Error {}
 export class ProjectNotFoundError extends Error {}
 
 export class ProjectRelatedRecordsError extends Error {}
+
+export class ProjectStageNameConflictError extends Error {}
+
+export class ProjectStageNotFoundError extends Error {}
+
+export class ProjectStageOrderError extends Error {}
+
+export class ProjectStageRelatedRecordsError extends Error {}
+
+export class ProjectStageValidationError extends Error {}
+
+export class ProjectStageVersionConflictError extends Error {}
 
 export class ProjectTerminalStatusError extends Error {}
 

@@ -3,11 +3,15 @@ import test from "node:test";
 
 import {
   createProject,
+  createProjectStage,
   deleteProject,
+  deleteProjectStage,
   getProject,
   getProjectCodeSettings,
   listProjects,
+  moveProjectStage,
   updateProject,
+  updateProjectStage,
   updateProjectCodeSettings,
 } from "./projects-client.ts";
 
@@ -24,6 +28,17 @@ const project = {
   name: "Proyecto Uno",
   startDate: "2026-10-01",
   status: "new",
+  version: 1,
+} as const;
+
+const projectStage = {
+  createdAt: "2026-09-22T00:00:00.000Z",
+  createdByUserId: "user-1",
+  id: "4f9b1c2d-3513-4cc1-a266-c53589bbab77",
+  name: "Diseño",
+  position: 1,
+  updatedAt: "2026-09-22T00:00:00.000Z",
+  updatedByUserId: "user-1",
   version: 1,
 } as const;
 
@@ -58,10 +73,80 @@ test("gets a Project detail through its scoped endpoint", async () => {
   const result = await getProject("project/1", async (input, init) => {
     assert.equal(input.toString(), "/api/projects/project%2F1");
     assert.deepEqual(init, { cache: "no-store" });
-    return Response.json({ project });
+    return Response.json({ project: { ...project, stages: [projectStage] } });
   });
 
-  assert.deepEqual(result, { data: project, kind: "success" });
+  assert.deepEqual(result, { data: { ...project, stages: [projectStage] }, kind: "success" });
+});
+
+test("creates, updates, moves, and deletes Project Stages with their version", async () => {
+  const requests: Array<{ init: RequestInit | undefined; url: string }> = [];
+  const fetchImplementation: typeof fetch = async (input, init) => {
+    requests.push({ init, url: input.toString() });
+
+    if (init?.method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+
+    return Response.json({ stage: projectStage });
+  };
+
+  assert.deepEqual(
+    await createProjectStage("project/1", { name: "Diseño" }, fetchImplementation),
+    { data: projectStage, kind: "success" },
+  );
+  assert.deepEqual(
+    await updateProjectStage(
+      "project/1",
+      "stage/1",
+      { name: "Construcción", version: 2 },
+      fetchImplementation,
+    ),
+    { data: projectStage, kind: "success" },
+  );
+  assert.deepEqual(
+    await moveProjectStage(
+      "project/1",
+      "stage/1",
+      { direction: "up", version: 2 },
+      fetchImplementation,
+    ),
+    { data: projectStage, kind: "success" },
+  );
+  assert.deepEqual(
+    await deleteProjectStage("project/1", "stage/1", 3, fetchImplementation),
+    { data: undefined, kind: "success" },
+  );
+  assert.deepEqual(requests, [
+    {
+      init: {
+        body: JSON.stringify({ name: "Diseño" }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      },
+      url: "/api/projects/project%2F1/stages",
+    },
+    {
+      init: {
+        body: JSON.stringify({ name: "Construcción", version: 2 }),
+        headers: { "content-type": "application/json" },
+        method: "PUT",
+      },
+      url: "/api/projects/project%2F1/stages/stage%2F1",
+    },
+    {
+      init: {
+        body: JSON.stringify({ direction: "up", version: 2 }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      },
+      url: "/api/projects/project%2F1/stages/stage%2F1/move",
+    },
+    {
+      init: { method: "DELETE" },
+      url: "/api/projects/project%2F1/stages/stage%2F1?version=3",
+    },
+  ]);
 });
 
 test("creates, updates, and deletes Projects through scoped endpoints", async () => {
@@ -168,5 +253,11 @@ test("reads code settings and distinguishes unauthorized, validation, and confli
       Response.json({ message: "Recarga el Proyecto." }, { status: 409 }),
     ),
     { kind: "conflict", message: "Recarga el Proyecto." },
+  );
+  assert.deepEqual(
+    await createProjectStage("project-1", { name: "Diseño" }, async () =>
+      Response.json({ message: "El nombre ya existe." }, { status: 422 }),
+    ),
+    { kind: "validation", message: "El nombre ya existe." },
   );
 });

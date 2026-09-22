@@ -3,11 +3,14 @@ import test from "node:test";
 
 import {
   type CreateProjectRecordInput,
+  type CreateProjectStageRecordInput,
   type ListProjectsQuery,
   type Project,
   type ProjectCodeSettings,
   type ProjectList,
+  type ProjectStage,
   ProjectTerminalStatusError,
+  ProjectStageValidationError,
   ProjectValidationError,
   type UpdateProjectRecordInput,
 } from "./projects.contracts.js";
@@ -51,12 +54,29 @@ function createCodeSettings(): ProjectCodeSettings {
   };
 }
 
+function createProjectStage(): ProjectStage {
+  return {
+    createdAt: timestamp,
+    createdByUserId: "user-1",
+    id: "4f9b1c2d-3513-4cc1-a266-c53589bbab77",
+    name: "Diseño",
+    position: 1,
+    updatedAt: timestamp,
+    updatedByUserId: "user-1",
+    version: 1,
+  };
+}
+
 function createStore(overrides: Partial<ProjectStore> = {}): ProjectStore {
   return {
     async createProject(): Promise<Project> {
       return createProject();
     },
+    async createProjectStage(): Promise<ProjectStage> {
+      return createProjectStage();
+    },
     async deleteProject(): Promise<void> {},
+    async deleteProjectStage(): Promise<void> {},
     async getCodeSettings(): Promise<ProjectCodeSettings> {
       return createCodeSettings();
     },
@@ -66,11 +86,17 @@ function createStore(overrides: Partial<ProjectStore> = {}): ProjectStore {
     async listProjects(query: ListProjectsQuery): Promise<ProjectList> {
       return { page: query.page, pageSize: query.pageSize, projects: [], total: 0 };
     },
+    async moveProjectStage(): Promise<ProjectStage> {
+      return createProjectStage();
+    },
     async updateCodeSettings(): Promise<ProjectCodeSettings> {
       return createCodeSettings();
     },
     async updateProject(): Promise<Project> {
       return createProject();
+    },
+    async updateProjectStage(): Promise<ProjectStage> {
+      return createProjectStage();
     },
     ...overrides,
   };
@@ -169,6 +195,66 @@ test("rejects invalid Project dates and statuses before reaching storage", async
   );
 
   assert.equal(createAttempts, 0);
+});
+
+test("normalizes a Project Stage name and validates its input before reaching storage", async () => {
+  let receivedInput: CreateProjectStageRecordInput | undefined;
+  let createAttempts = 0;
+  const service = new ProjectService(
+    createStore({
+      async createProjectStage(_projectId, input) {
+        createAttempts += 1;
+        receivedInput = input;
+        return { ...createProjectStage(), name: input.name };
+      },
+    }),
+  );
+
+  const stage = await service.createProjectStage(
+    "5d676d8c-9939-4a25-bdda-1a4df8b17873",
+    { name: "  Diseño  " },
+    "user-2",
+  );
+
+  assert.equal(stage.name, "Diseño");
+  assert.deepEqual(receivedInput, { actorUserId: "user-2", name: "Diseño" });
+  await assert.rejects(
+    () =>
+      service.createProjectStage(
+        "5d676d8c-9939-4a25-bdda-1a4df8b17873",
+        { name: "0123456789abcdef" },
+        "user-2",
+      ),
+    ProjectStageValidationError,
+  );
+  assert.equal(createAttempts, 1);
+});
+
+test("rejects Project Stage changes for terminal Projects before reaching storage", async () => {
+  let updateAttempts = 0;
+  const service = new ProjectService(
+    createStore({
+      async getProject() {
+        return { ...createProject(), status: "finalized" as const };
+      },
+      async updateProjectStage() {
+        updateAttempts += 1;
+        return createProjectStage();
+      },
+    }),
+  );
+
+  await assert.rejects(
+    () =>
+      service.updateProjectStage(
+        "5d676d8c-9939-4a25-bdda-1a4df8b17873",
+        "4f9b1c2d-3513-4cc1-a266-c53589bbab77",
+        { name: "Construcción", version: 1 },
+        "user-1",
+      ),
+    ProjectTerminalStatusError,
+  );
+  assert.equal(updateAttempts, 0);
 });
 
 test("lists 25 Projects per page with Client and status filters", async () => {

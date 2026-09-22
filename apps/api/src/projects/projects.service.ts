@@ -3,19 +3,31 @@ import { Inject, Injectable } from "@nestjs/common";
 import {
   type CreateProjectInput,
   type CreateProjectRecordInput,
+  type CreateProjectStageInput,
+  type CreateProjectStageRecordInput,
+  type DeleteProjectStageInput,
+  type DeleteProjectStageRecordInput,
   type ListProjectsInput,
   type ListProjectsQuery,
   type Project,
   type ProjectCodeSettings,
+  type ProjectDetail,
   type ProjectList,
+  type ProjectStage,
+  type ProjectStageDirection,
   type ProjectStatus,
   projectStatuses,
   ProjectTerminalStatusError,
+  ProjectStageValidationError,
   ProjectValidationError,
+  type MoveProjectStageInput,
+  type MoveProjectStageRecordInput,
   type UpdateProjectCodeSettingsInput,
   type UpdateProjectCodeSettingsRecordInput,
   type UpdateProjectInput,
   type UpdateProjectRecordInput,
+  type UpdateProjectStageInput,
+  type UpdateProjectStageRecordInput,
 } from "./projects.contracts.js";
 import { ProjectRepository } from "./projects.repository.js";
 
@@ -23,12 +35,28 @@ const projectListPageSize = 25;
 
 export interface ProjectStore {
   createProject(input: CreateProjectRecordInput): Promise<Project>;
+  createProjectStage(projectId: string, input: CreateProjectStageRecordInput): Promise<ProjectStage>;
   deleteProject(projectId: string): Promise<void>;
+  deleteProjectStage(
+    projectId: string,
+    stageId: string,
+    input: DeleteProjectStageRecordInput,
+  ): Promise<void>;
   getCodeSettings(): Promise<ProjectCodeSettings>;
-  getProject(projectId: string): Promise<Project>;
+  getProject(projectId: string): Promise<Project | ProjectDetail>;
   listProjects(query: ListProjectsQuery): Promise<ProjectList>;
+  moveProjectStage(
+    projectId: string,
+    stageId: string,
+    input: MoveProjectStageRecordInput,
+  ): Promise<ProjectStage>;
   updateCodeSettings(input: UpdateProjectCodeSettingsRecordInput): Promise<ProjectCodeSettings>;
   updateProject(projectId: string, input: UpdateProjectRecordInput): Promise<Project>;
+  updateProjectStage(
+    projectId: string,
+    stageId: string,
+    input: UpdateProjectStageRecordInput,
+  ): Promise<ProjectStage>;
 }
 
 @Injectable()
@@ -46,8 +74,13 @@ export class ProjectService {
     });
   }
 
-  async getProject(projectId: string): Promise<Project> {
-    return this.projectRepository.getProject(normalizeProjectId(projectId));
+  async getProject(projectId: string): Promise<ProjectDetail> {
+    const project = await this.projectRepository.getProject(normalizeProjectId(projectId));
+
+    return {
+      ...project,
+      stages: "stages" in project ? project.stages : [],
+    };
   }
 
   async listProjects(input: ListProjectsInput = {}): Promise<ProjectList> {
@@ -88,6 +121,77 @@ export class ProjectService {
 
   async deleteProject(projectId: string): Promise<void> {
     await this.projectRepository.deleteProject(normalizeProjectId(projectId));
+  }
+
+  async createProjectStage(
+    projectId: string,
+    input: CreateProjectStageInput,
+    actorUserId: string,
+  ): Promise<ProjectStage> {
+    const normalizedProjectId = normalizeProjectId(projectId);
+    await assertProjectAllowsStageChanges(this.projectRepository, normalizedProjectId);
+
+    return this.projectRepository.createProjectStage(normalizedProjectId, {
+      ...normalizeProjectStageCreation(input),
+      actorUserId: normalizeActorUserId(actorUserId),
+    });
+  }
+
+  async updateProjectStage(
+    projectId: string,
+    stageId: string,
+    input: UpdateProjectStageInput,
+    actorUserId: string,
+  ): Promise<ProjectStage> {
+    const normalizedProjectId = normalizeProjectId(projectId);
+    await assertProjectAllowsStageChanges(this.projectRepository, normalizedProjectId);
+
+    return this.projectRepository.updateProjectStage(
+      normalizedProjectId,
+      normalizeProjectStageId(stageId),
+      {
+        ...normalizeProjectStageUpdate(input),
+        actorUserId: normalizeActorUserId(actorUserId),
+      },
+    );
+  }
+
+  async moveProjectStage(
+    projectId: string,
+    stageId: string,
+    input: MoveProjectStageInput,
+    actorUserId: string,
+  ): Promise<ProjectStage> {
+    const normalizedProjectId = normalizeProjectId(projectId);
+    await assertProjectAllowsStageChanges(this.projectRepository, normalizedProjectId);
+
+    return this.projectRepository.moveProjectStage(
+      normalizedProjectId,
+      normalizeProjectStageId(stageId),
+      {
+        ...normalizeProjectStageMove(input),
+        actorUserId: normalizeActorUserId(actorUserId),
+      },
+    );
+  }
+
+  async deleteProjectStage(
+    projectId: string,
+    stageId: string,
+    input: DeleteProjectStageInput,
+    actorUserId: string,
+  ): Promise<void> {
+    const normalizedProjectId = normalizeProjectId(projectId);
+    await assertProjectAllowsStageChanges(this.projectRepository, normalizedProjectId);
+
+    await this.projectRepository.deleteProjectStage(
+      normalizedProjectId,
+      normalizeProjectStageId(stageId),
+      {
+        ...normalizeProjectStageDeletion(input),
+        actorUserId: normalizeActorUserId(actorUserId),
+      },
+    );
   }
 
   async updateCodeSettings(
@@ -262,6 +366,101 @@ function normalizeProjectName(value: unknown): string {
   }
 
   return name;
+}
+
+function normalizeProjectStageCreation(
+  value: CreateProjectStageInput,
+): CreateProjectStageInput {
+  if (typeof value !== "object" || value === null) {
+    throw new ProjectStageValidationError("Project Stage creation must be an object.");
+  }
+
+  return { name: normalizeProjectStageName(value.name) };
+}
+
+function normalizeProjectStageUpdate(value: UpdateProjectStageInput): UpdateProjectStageInput {
+  if (typeof value !== "object" || value === null) {
+    throw new ProjectStageValidationError("Project Stage update must be an object.");
+  }
+
+  return {
+    name: normalizeProjectStageName(value.name),
+    version: normalizeProjectStageVersion(value.version),
+  };
+}
+
+function normalizeProjectStageMove(value: MoveProjectStageInput): MoveProjectStageInput {
+  if (typeof value !== "object" || value === null) {
+    throw new ProjectStageValidationError("Project Stage move must be an object.");
+  }
+
+  return {
+    direction: normalizeProjectStageDirection(value.direction),
+    version: normalizeProjectStageVersion(value.version),
+  };
+}
+
+function normalizeProjectStageDeletion(
+  value: DeleteProjectStageInput,
+): DeleteProjectStageInput {
+  if (typeof value !== "object" || value === null) {
+    throw new ProjectStageValidationError("Project Stage deletion must be an object.");
+  }
+
+  return { version: normalizeProjectStageVersion(value.version) };
+}
+
+function normalizeProjectStageId(value: unknown): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new ProjectStageValidationError("Project Stage id must be a non-empty string.");
+  }
+
+  return value;
+}
+
+function normalizeProjectStageName(value: unknown): string {
+  if (typeof value !== "string") {
+    throw new ProjectStageValidationError("Project Stage name must be a string.");
+  }
+
+  const name = value.trim();
+
+  if (name.length < 1 || name.length > 15) {
+    throw new ProjectStageValidationError(
+      "Project Stage name must contain between 1 and 15 characters.",
+    );
+  }
+
+  return name;
+}
+
+function normalizeProjectStageVersion(value: unknown): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) {
+    throw new ProjectStageValidationError("Project Stage version must be a positive integer.");
+  }
+
+  return value;
+}
+
+function normalizeProjectStageDirection(value: unknown): ProjectStageDirection {
+  if (value !== "up" && value !== "down") {
+    throw new ProjectStageValidationError("Project Stage direction must be up or down.");
+  }
+
+  return value;
+}
+
+async function assertProjectAllowsStageChanges(
+  repository: Pick<ProjectStore, "getProject">,
+  projectId: string,
+): Promise<void> {
+  const project = await repository.getProject(projectId);
+
+  if (project.status === "finalized" || project.status === "cancelled") {
+    throw new ProjectTerminalStatusError(
+      "Project Stages cannot be changed when their Project is finalized or cancelled.",
+    );
+  }
 }
 
 function normalizeDescription(value: unknown): string | null | undefined {

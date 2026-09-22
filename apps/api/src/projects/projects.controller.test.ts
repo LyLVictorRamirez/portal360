@@ -1,16 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 
 import {
   type CreateProjectInput,
+  type CreateProjectStageInput,
+  type DeleteProjectStageInput,
   type ListProjectsInput,
   type Project,
   type ProjectCodeSettings,
   type ProjectList,
+  type ProjectStage,
   ProjectNotFoundError,
   ProjectRelatedRecordsError,
+  ProjectStageNameConflictError,
   ProjectTerminalStatusError,
   ProjectVersionConflictError,
 } from "./projects.contracts.js";
@@ -55,12 +64,29 @@ function createCodeSettings(): ProjectCodeSettings {
   };
 }
 
+function createProjectStage(): ProjectStage {
+  return {
+    createdAt: timestamp,
+    createdByUserId: "user-1",
+    id: "4f9b1c2d-3513-4cc1-a266-c53589bbab77",
+    name: "Diseño",
+    position: 1,
+    updatedAt: timestamp,
+    updatedByUserId: "user-1",
+    version: 1,
+  };
+}
+
 function createStore(overrides: Partial<ProjectsControllerStore> = {}): ProjectsControllerStore {
   return {
     async createProject(): Promise<Project> {
       return createProject();
     },
+    async createProjectStage(): Promise<ProjectStage> {
+      return createProjectStage();
+    },
     async deleteProject(): Promise<void> {},
+    async deleteProjectStage(): Promise<void> {},
     async getCodeSettings(): Promise<ProjectCodeSettings> {
       return createCodeSettings();
     },
@@ -70,11 +96,17 @@ function createStore(overrides: Partial<ProjectsControllerStore> = {}): Projects
     async listProjects(): Promise<ProjectList> {
       return { page: 1, pageSize: 25, projects: [createProject()], total: 1 };
     },
+    async moveProjectStage(): Promise<ProjectStage> {
+      return createProjectStage();
+    },
     async updateCodeSettings(): Promise<ProjectCodeSettings> {
       return createCodeSettings();
     },
     async updateProject(): Promise<Project> {
       return createProject();
+    },
+    async updateProjectStage(): Promise<ProjectStage> {
+      return createProjectStage();
     },
     ...overrides,
   };
@@ -87,11 +119,90 @@ test("declares the Project permission boundary for every route", () => {
     [ProjectsController.prototype.getCodeSettings, ["projects.settings.manage"]],
     [ProjectsController.prototype.updateCodeSettings, ["projects.settings.manage"]],
     [ProjectsController.prototype.getProject, ["projects.read"]],
+    [ProjectsController.prototype.createProjectStage, ["projects.manage"]],
+    [ProjectsController.prototype.updateProjectStage, ["projects.manage"]],
+    [ProjectsController.prototype.moveProjectStage, ["projects.manage"]],
+    [ProjectsController.prototype.deleteProjectStage, ["projects.manage"]],
     [ProjectsController.prototype.updateProject, ["projects.manage"]],
     [ProjectsController.prototype.deleteProject, ["projects.manage"]],
   ]) {
     assert.deepEqual(Reflect.getMetadata(requiredPermissionsMetadataKey, route), permissions);
   }
+});
+
+test("creates a Project Stage and serializes its technical fields", async () => {
+  let receivedProjectId: string | undefined;
+  let receivedInput: CreateProjectStageInput | undefined;
+  const controller = new ProjectsController(
+    createStore({
+      async createProjectStage(projectId, input) {
+        receivedProjectId = projectId;
+        receivedInput = input;
+        return createProjectStage();
+      },
+    }),
+  );
+
+  const response = await controller.createProjectStage(
+    "5d676d8c-9939-4a25-bdda-1a4df8b17873",
+    { name: "Diseño" },
+    requestContext,
+  );
+
+  assert.equal(receivedProjectId, "5d676d8c-9939-4a25-bdda-1a4df8b17873");
+  assert.deepEqual(receivedInput, { name: "Diseño" });
+  assert.equal(response.stage.version, 1);
+  assert.equal(response.stage.createdByUserId, "user-1");
+});
+
+test("requires a version query parameter when deleting a Project Stage", async () => {
+  let receivedInput: DeleteProjectStageInput | undefined;
+  const controller = new ProjectsController(
+    createStore({
+      async deleteProjectStage(_projectId, _stageId, input) {
+        receivedInput = input;
+      },
+    }),
+  );
+
+  await controller.deleteProjectStage(
+    "5d676d8c-9939-4a25-bdda-1a4df8b17873",
+    "4f9b1c2d-3513-4cc1-a266-c53589bbab77",
+    "2",
+    requestContext,
+  );
+  assert.deepEqual(receivedInput, { version: 2 });
+  await assert.rejects(
+    () =>
+      controller.deleteProjectStage(
+        "5d676d8c-9939-4a25-bdda-1a4df8b17873",
+        "4f9b1c2d-3513-4cc1-a266-c53589bbab77",
+        undefined,
+        requestContext,
+      ),
+    (error: unknown) => error instanceof BadRequestException && error.getStatus() === 400,
+  );
+});
+
+test("maps a duplicate Project Stage name to HTTP 422", async () => {
+  const controller = new ProjectsController(
+    createStore({
+      async createProjectStage() {
+        throw new ProjectStageNameConflictError("Stage name already exists.");
+      },
+    }),
+  );
+
+  await assert.rejects(
+    () =>
+      controller.createProjectStage(
+        "5d676d8c-9939-4a25-bdda-1a4df8b17873",
+        { name: "Diseño" },
+        requestContext,
+      ),
+    (error: unknown) =>
+      error instanceof UnprocessableEntityException && error.getStatus() === 422,
+  );
 });
 
 test("lists Projects with the requested pagination, search, Client, and status", async () => {

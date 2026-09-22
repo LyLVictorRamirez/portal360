@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { ClientSearchField } from "./client-search-field";
+import { shouldLoadProjectStages } from "./project-stages-access";
+import { ProjectStagesSection } from "./project-stages-section";
 import { Button } from "../../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { SelectField } from "../../../components/ui/select-field";
@@ -12,15 +14,18 @@ import { TextField } from "../../../components/ui/text-field";
 import type { Client } from "../../../lib/clients-client";
 import {
   createProject,
+  getProject,
   projectStatuses,
   updateProject,
   type Project,
+  type ProjectDetail,
   type ProjectStatus,
 } from "../../../lib/projects-client";
 
 export type ProjectEditorMode = "create" | "edit" | "view";
 
 type ProjectEditorDialogProps = {
+  canManageProjects: boolean;
   mode: ProjectEditorMode;
   onOpenChange: (open: boolean) => void;
   onProjectSaved: (project: Project, created: boolean) => void;
@@ -61,6 +66,7 @@ function getSaveErrorMessage(kind: "conflict" | "error" | "unauthorized" | "vali
 }
 
 export function ProjectEditorDialog({
+  canManageProjects,
   mode,
   onOpenChange,
   onProjectSaved,
@@ -73,6 +79,9 @@ export function ProjectEditorDialog({
   const isReadOnly = isViewMode || isTerminalProject;
   const [committedEndDate, setCommittedEndDate] = useState("");
   const [description, setDescription] = useState("");
+  const [detail, setDetail] = useState<ProjectDetail | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -96,6 +105,45 @@ export function ProjectEditorDialog({
     setStartDate(project?.startDate ?? "");
     setStatus(project?.status ?? "new");
   }, [isCreateMode, open, project]);
+
+  useEffect(() => {
+    let current = true;
+
+    if (!open || !shouldLoadProjectStages(mode) || !project) {
+      setDetail(null);
+      setDetailError(null);
+      setIsDetailLoading(false);
+      return () => {
+        current = false;
+      };
+    }
+
+    setDetail(null);
+    setDetailError(null);
+    setIsDetailLoading(true);
+    void getProject(project.id).then((result) => {
+      if (!current) {
+        return;
+      }
+
+      setIsDetailLoading(false);
+
+      if (result.kind === "success") {
+        setDetail(result.data);
+        return;
+      }
+
+      setDetailError(
+        result.kind === "unauthorized"
+          ? "Tu sesión no tiene permisos para ver las Etapas."
+          : "No fue posible cargar las Etapas del Proyecto.",
+      );
+    });
+
+    return () => {
+      current = false;
+    };
+  }, [isViewMode, open, project]);
 
   function closeDialog() {
     if (!isSaving) {
@@ -215,6 +263,25 @@ export function ProjectEditorDialog({
                 </dd>
               </div>
             </dl>
+            {isDetailLoading ? (
+              <p aria-live="polite" className="text-sm text-muted-foreground">
+                Cargando Etapas…
+              </p>
+            ) : null}
+            {detailError ? (
+              <p className="text-sm leading-6 text-danger" role="alert">
+                {detailError}
+              </p>
+            ) : null}
+            {detail ? (
+              <ProjectStagesSection
+                canManage={canManageProjects}
+                onStagesChange={(stages) => setDetail({ ...detail, stages })}
+                projectId={detail.id}
+                status={detail.status}
+                stages={detail.stages}
+              />
+            ) : null}
             <div className="flex justify-end">
               <Button onClick={closeDialog} type="button" variant="cancel">
                 Cerrar

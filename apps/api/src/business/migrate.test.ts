@@ -17,6 +17,7 @@ test("defines the business client schema and initial CLI-001 configuration", asy
       "0005-business-requirements-and-code-settings.sql",
       "0006-business-unified-project-and-requirement-statuses.sql",
       "0007-business-tickets.sql",
+      "0008-business-project-stages.sql",
     ],
   );
 
@@ -128,6 +129,25 @@ test("defines the ticket schema without changing existing business entities", as
   assert.match(migration.sql, /"title" = btrim\("title"\)/i);
   assert.doesNotMatch(migration.sql, /alter table "business"\."(?:client|project|requirement)"/i);
   assert.doesNotMatch(migration.sql, /update "business"\."(?:client|project|requirement)"/i);
+});
+
+test("defines Project Stages without inserting records for existing Projects", async () => {
+  const migrations = await readBusinessMigrations();
+  const migration = migrations.find(({ name }) => name === "0008-business-project-stages.sql");
+
+  assert.ok(migration);
+  assert.match(migration.sql, /create table "business"\."project_stage"/i);
+  assert.match(migration.sql, /"project_id" uuid not null references "business"\."project"/i);
+  assert.match(migration.sql, /"name" varchar\(15\) not null/i);
+  assert.match(migration.sql, /project_stage_name_trimmed_check/i);
+  assert.match(migration.sql, /char_length\("name"\) between 1 and 15/i);
+  assert.match(migration.sql, /project_stage_project_id_position_key/i);
+  assert.match(migration.sql, /project_stage_project_id_normalized_name_key/i);
+  assert.match(migration.sql, /lower\("name"\)/i);
+  assert.match(migration.sql, /project_stage_position_positive_check/i);
+  assert.match(migration.sql, /project_stage_version_positive_check/i);
+  assert.match(migration.sql, /on delete restrict/i);
+  assert.doesNotMatch(migration.sql, /insert into "business"\."project_stage"/i);
 });
 
 test("reads only business migrations in filename order", async () => {

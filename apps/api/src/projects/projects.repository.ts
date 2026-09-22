@@ -2,6 +2,8 @@ import { Inject, Injectable } from "@nestjs/common";
 
 import {
   type CreateProjectRecordInput,
+  type CreateProjectStageRecordInput,
+  type DeleteProjectStageRecordInput,
   type ListProjectsQuery,
   type Project,
   ProjectClientInactiveError,
@@ -10,13 +12,23 @@ import {
   ProjectCodeSettingsNotFoundError,
   ProjectCodeSettingsVersionConflictError,
   type ProjectCodeSettings,
+  type ProjectDetail,
   type ProjectList,
   ProjectNotFoundError,
   ProjectRelatedRecordsError,
+  ProjectStageNameConflictError,
+  ProjectStageNotFoundError,
+  ProjectStageOrderError,
+  ProjectStageRelatedRecordsError,
+  type ProjectStage,
+  ProjectStageVersionConflictError,
+  ProjectTerminalStatusError,
   ProjectValidationError,
   ProjectVersionConflictError,
+  type MoveProjectStageRecordInput,
   type UpdateProjectCodeSettingsRecordInput,
   type UpdateProjectRecordInput,
+  type UpdateProjectStageRecordInput,
 } from "./projects.contracts.js";
 
 export const PROJECTS_DATABASE = Symbol("PROJECTS_DATABASE");
@@ -74,6 +86,108 @@ const findProjectByIdQuery = `
   from "business"."project" as "project"
   inner join "business"."client" as "client" on "client"."id" = "project"."client_id"
   where "project"."id" = $1
+`;
+
+const projectStageSelection = (table: string) => `
+  "${table}"."id",
+  "${table}"."name",
+  "${table}"."position",
+  "${table}"."version",
+  "${table}"."created_at",
+  "${table}"."created_by_user_id",
+  "${table}"."updated_at",
+  "${table}"."updated_by_user_id"
+`;
+
+const findProjectStagesQuery = `
+  select ${projectStageSelection("stage")}
+  from "business"."project_stage" as "stage"
+  where "stage"."project_id" = $1
+  order by "stage"."position" asc, "stage"."id" asc
+`;
+
+const findProjectForStageMutationQuery = `
+  select "id", "status"
+  from "business"."project"
+  where "id" = $1
+  for update
+`;
+
+const findProjectStageForMutationQuery = `
+  select
+    ${projectStageSelection("stage")},
+    "project"."status" as "project_status"
+  from "business"."project_stage" as "stage"
+  inner join "business"."project" as "project" on "project"."id" = "stage"."project_id"
+  where "stage"."id" = $1 and "stage"."project_id" = $2
+  for update of "stage", "project"
+`;
+
+const findLastProjectStagePositionQuery = `
+  select "position"
+  from "business"."project_stage"
+  where "project_id" = $1
+  order by "position" desc
+  limit 1
+  for update
+`;
+
+const insertProjectStageQuery = `
+  insert into "business"."project_stage" (
+    "project_id",
+    "name",
+    "position",
+    "created_by_user_id",
+    "updated_by_user_id"
+  )
+  values ($1, $2, $3, $4, $4)
+  returning ${projectStageSelection("project_stage")}
+`;
+
+const updateProjectStageQuery = `
+  update "business"."project_stage"
+  set "name" = $3,
+      "updated_at" = current_timestamp,
+      "updated_by_user_id" = $4,
+      "version" = "version" + 1
+  where "id" = $1 and "project_id" = $2
+  returning ${projectStageSelection("project_stage")}
+`;
+
+const findProjectStageNeighborQuery = `
+  select ${projectStageSelection("stage")}
+  from "business"."project_stage" as "stage"
+  where "stage"."project_id" = $1
+    and "stage"."position" = $2
+  for update
+`;
+
+const reserveProjectStagePositionQuery = `
+  select coalesce(max("position"), 0) + 1 as "position"
+  from "business"."project_stage"
+  where "project_id" = $1
+`;
+
+const setProjectStagePositionQuery = `
+  update "business"."project_stage"
+  set "position" = $3,
+      "updated_at" = current_timestamp,
+      "updated_by_user_id" = $4,
+      "version" = "version" + 1
+  where "id" = $1 and "project_id" = $2
+  returning ${projectStageSelection("project_stage")}
+`;
+
+const setProjectStageTemporaryPositionQuery = `
+  update "business"."project_stage"
+  set "position" = $3
+  where "id" = $1 and "project_id" = $2
+`;
+
+const deleteProjectStageQuery = `
+  delete from "business"."project_stage"
+  where "id" = $1 and "project_id" = $2
+  returning "id"
 `;
 
 const listProjectsQuery = `
@@ -200,7 +314,7 @@ export class ProjectRepository {
     return readCodeSettings(row);
   }
 
-  async getProject(projectId: string): Promise<Project> {
+  async getProject(projectId: string): Promise<ProjectDetail> {
     const result = await this.database.query(findProjectByIdQuery, [projectId]);
     const row = result.rows[0];
 
@@ -208,7 +322,12 @@ export class ProjectRepository {
       throw new ProjectNotFoundError(`Project ${projectId} does not exist.`);
     }
 
-    return readProject(row);
+    const stagesResult = await this.database.query(findProjectStagesQuery, [projectId]);
+
+    return {
+      ...readProject(row),
+      stages: stagesResult.rows.map(readProjectStage),
+    };
   }
 
   async listProjects(query: ListProjectsQuery): Promise<ProjectList> {
@@ -346,6 +465,197 @@ export class ProjectRepository {
     }
   }
 
+  async createProjectStage(
+    projectId: string,
+    input: CreateProjectStageRecordInput,
+  ): Promise<ProjectStage> {
+    const transaction = await this.database.connect();
+
+    try {
+      await transaction.query("BEGIN");
+      await readProjectForStageMutation(transaction, projectId);
+      const lastPositionResult = await transaction.query(findLastProjectStagePositionQuery, [
+        projectId,
+      ]);
+      const lastPosition = lastPositionResult.rows[0]
+        ? readPositiveInteger(lastPositionResult.rows[0].position, "Project Stage position")
+        : 0;
+      const createdResult = await transaction.query(insertProjectStageQuery, [
+        projectId,
+        input.name,
+        lastPosition + 1,
+        input.actorUserId,
+      ]);
+      const createdRow = createdResult.rows[0];
+
+      if (!createdRow) {
+        throw new Error("The business database did not return the created Project Stage.");
+      }
+
+      await transaction.query("COMMIT");
+      return readProjectStage(createdRow);
+    } catch (error) {
+      await transaction.query("ROLLBACK");
+
+      if (isUniqueViolation(error)) {
+        throw new ProjectStageNameConflictError(
+          "A Project Stage with that name or position already exists for this Project.",
+        );
+      }
+
+      throw error;
+    } finally {
+      transaction.release();
+    }
+  }
+
+  async updateProjectStage(
+    projectId: string,
+    stageId: string,
+    input: UpdateProjectStageRecordInput,
+  ): Promise<ProjectStage> {
+    const transaction = await this.database.connect();
+
+    try {
+      await transaction.query("BEGIN");
+      const stage = await readProjectStageForMutation(transaction, projectId, stageId);
+      assertProjectStageVersion(stage, input.version);
+      const updatedResult = await transaction.query(updateProjectStageQuery, [
+        stageId,
+        projectId,
+        input.name,
+        input.actorUserId,
+      ]);
+      const updatedRow = updatedResult.rows[0];
+
+      if (!updatedRow) {
+        throw new Error("The business database did not return the updated Project Stage.");
+      }
+
+      await transaction.query("COMMIT");
+      return readProjectStage(updatedRow);
+    } catch (error) {
+      await transaction.query("ROLLBACK");
+
+      if (isUniqueViolation(error)) {
+        throw new ProjectStageNameConflictError(
+          "A Project Stage with that name already exists for this Project.",
+        );
+      }
+
+      throw error;
+    } finally {
+      transaction.release();
+    }
+  }
+
+  async moveProjectStage(
+    projectId: string,
+    stageId: string,
+    input: MoveProjectStageRecordInput,
+  ): Promise<ProjectStage> {
+    const transaction = await this.database.connect();
+
+    try {
+      await transaction.query("BEGIN");
+      const stage = await readProjectStageForMutation(transaction, projectId, stageId);
+      assertProjectStageVersion(stage, input.version);
+      const neighborPosition = stage.position + (input.direction === "up" ? -1 : 1);
+
+      if (neighborPosition < 1) {
+        throw new ProjectStageOrderError("The first Project Stage cannot be moved up.");
+      }
+
+      const neighborResult = await transaction.query(findProjectStageNeighborQuery, [
+        projectId,
+        neighborPosition,
+      ]);
+      const neighborRow = neighborResult.rows[0];
+
+      if (!neighborRow) {
+        throw new ProjectStageOrderError("The last Project Stage cannot be moved down.");
+      }
+
+      const neighbor = readProjectStage(neighborRow);
+      const temporaryPositionResult = await transaction.query(reserveProjectStagePositionQuery, [
+        projectId,
+      ]);
+      const temporaryPositionRow = temporaryPositionResult.rows[0];
+
+      if (!temporaryPositionRow) {
+        throw new Error("The business database did not return a temporary Project Stage position.");
+      }
+
+      const temporaryPosition = readPositiveInteger(
+        temporaryPositionRow.position,
+        "Temporary Project Stage position",
+      );
+      await transaction.query(setProjectStageTemporaryPositionQuery, [
+        stageId,
+        projectId,
+        temporaryPosition,
+      ]);
+      await transaction.query(setProjectStagePositionQuery, [
+        neighbor.id,
+        projectId,
+        stage.position,
+        input.actorUserId,
+      ]);
+      const movedResult = await transaction.query(setProjectStagePositionQuery, [
+        stageId,
+        projectId,
+        neighbor.position,
+        input.actorUserId,
+      ]);
+      const movedRow = movedResult.rows[0];
+
+      if (!movedRow) {
+        throw new Error("The business database did not return the moved Project Stage.");
+      }
+
+      await transaction.query("COMMIT");
+      return readProjectStage(movedRow);
+    } catch (error) {
+      await transaction.query("ROLLBACK");
+      throw error;
+    } finally {
+      transaction.release();
+    }
+  }
+
+  async deleteProjectStage(
+    projectId: string,
+    stageId: string,
+    input: DeleteProjectStageRecordInput,
+  ): Promise<void> {
+    const transaction = await this.database.connect();
+
+    try {
+      await transaction.query("BEGIN");
+      const stage = await readProjectStageForMutation(transaction, projectId, stageId);
+      assertProjectStageVersion(stage, input.version);
+      const deletedResult = await transaction.query(deleteProjectStageQuery, [stageId, projectId]);
+
+      if (!deletedResult.rows[0]) {
+        throw new Error("The business database did not delete the Project Stage.");
+      }
+
+      await transaction.query("COMMIT");
+    } catch (error) {
+      await transaction.query("ROLLBACK");
+
+      if (isForeignKeyViolation(error)) {
+        throw new ProjectStageRelatedRecordsError(
+          "A Project Stage with related Activities cannot be deleted.",
+        );
+      }
+
+      throw error;
+    } finally {
+      transaction.release();
+    }
+  }
+
   async updateCodeSettings(
     input: UpdateProjectCodeSettingsRecordInput,
   ): Promise<ProjectCodeSettings> {
@@ -433,6 +743,69 @@ function readProject(row: Record<string, unknown>): Project {
     updatedByUserId: readString(row.updated_by_user_id, "Project updater"),
     version: readPositiveInteger(row.version, "Project version"),
   };
+}
+
+function readProjectStage(row: Record<string, unknown>): ProjectStage {
+  return {
+    createdAt: readDate(row.created_at, "Project Stage creation date"),
+    createdByUserId: readString(row.created_by_user_id, "Project Stage creator"),
+    id: readString(row.id, "Project Stage id"),
+    name: readString(row.name, "Project Stage name"),
+    position: readPositiveInteger(row.position, "Project Stage position"),
+    updatedAt: readDate(row.updated_at, "Project Stage update date"),
+    updatedByUserId: readString(row.updated_by_user_id, "Project Stage updater"),
+    version: readPositiveInteger(row.version, "Project Stage version"),
+  };
+}
+
+async function readProjectForStageMutation(
+  transaction: ProjectsTransaction,
+  projectId: string,
+): Promise<void> {
+  const projectResult = await transaction.query(findProjectForStageMutationQuery, [projectId]);
+  const projectRow = projectResult.rows[0];
+
+  if (!projectRow) {
+    throw new ProjectNotFoundError(`Project ${projectId} does not exist.`);
+  }
+
+  assertProjectAllowsStageChanges(projectRow.project_status ?? projectRow.status);
+}
+
+async function readProjectStageForMutation(
+  transaction: ProjectsTransaction,
+  projectId: string,
+  stageId: string,
+): Promise<ProjectStage> {
+  const stageResult = await transaction.query(findProjectStageForMutationQuery, [stageId, projectId]);
+  const stageRow = stageResult.rows[0];
+
+  if (!stageRow) {
+    throw new ProjectStageNotFoundError(
+      `Project Stage ${stageId} does not exist in Project ${projectId}.`,
+    );
+  }
+
+  assertProjectAllowsStageChanges(stageRow.project_status);
+  return readProjectStage(stageRow);
+}
+
+function assertProjectAllowsStageChanges(status: unknown): void {
+  const projectStatus = readProjectStatus(status);
+
+  if (projectStatus === "finalized" || projectStatus === "cancelled") {
+    throw new ProjectTerminalStatusError(
+      "Project Stages cannot be changed when their Project is finalized or cancelled.",
+    );
+  }
+}
+
+function assertProjectStageVersion(stage: ProjectStage, expectedVersion: number): void {
+  if (stage.version !== expectedVersion) {
+    throw new ProjectStageVersionConflictError(
+      "The Project Stage was updated by another person. Reload it before trying again.",
+    );
+  }
 }
 
 function readCodeSettings(row: Record<string, unknown>): ProjectCodeSettings {
@@ -552,5 +925,14 @@ function isForeignKeyViolation(error: unknown): boolean {
     error !== null &&
     "code" in error &&
     (error as { code?: unknown }).code === "23503"
+  );
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23505"
   );
 }

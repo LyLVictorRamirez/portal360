@@ -569,6 +569,7 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
 
       {editor ? (
         <ProjectEditorDialog
+          canManageProjects={canManageProjects}
           mode={editor.mode}
           onOpenChange={(open) => {
             if (!open) {

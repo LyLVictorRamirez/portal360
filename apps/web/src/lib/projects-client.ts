@@ -21,6 +21,23 @@ export type Project = Readonly<{
   version: number;
 }>;
 
+export type ProjectStage = Readonly<{
+  createdAt: string;
+  createdByUserId: string;
+  id: string;
+  name: string;
+  position: number;
+  updatedAt: string;
+  updatedByUserId: string;
+  version: number;
+}>;
+
+export type ProjectDetail = Readonly<
+  Project & {
+    stages: readonly ProjectStage[];
+  }
+>;
+
 export type ProjectCodeSettings = Readonly<{
   codeLength: number;
   nextSequence: string;
@@ -64,6 +81,20 @@ export type UpdateProjectCodeSettingsInput = Readonly<{
   codeLength: number;
   nextSequence: string;
   prefix: string;
+  version: number;
+}>;
+
+export type CreateProjectStageInput = Readonly<{
+  name: string;
+}>;
+
+export type UpdateProjectStageInput = Readonly<{
+  name: string;
+  version: number;
+}>;
+
+export type MoveProjectStageInput = Readonly<{
+  direction: "up" | "down";
   version: number;
 }>;
 
@@ -111,13 +142,84 @@ export async function listProjects(
 export async function getProject(
   projectId: string,
   fetchImplementation: typeof fetch = fetch,
-): Promise<ProjectApiResult<Project>> {
+): Promise<ProjectApiResult<ProjectDetail>> {
   return requestProjectData(
     `/api/projects/${encodeURIComponent(projectId)}`,
-    (value) => readProjectFromRecord(value, "project"),
+    (value) => readProjectDetailFromRecord(value, "project"),
     fetchImplementation,
     "No fue posible cargar el Proyecto.",
   );
+}
+
+export async function createProjectStage(
+  projectId: string,
+  input: CreateProjectStageInput,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<ProjectApiResult<ProjectStage>> {
+  return mutateProject(
+    `/api/projects/${encodeURIComponent(projectId)}/stages`,
+    "POST",
+    input,
+    (value) => readProjectStageFromRecord(value, "stage"),
+    fetchImplementation,
+    "No fue posible crear la Etapa.",
+  );
+}
+
+export async function updateProjectStage(
+  projectId: string,
+  stageId: string,
+  input: UpdateProjectStageInput,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<ProjectApiResult<ProjectStage>> {
+  return mutateProject(
+    `/api/projects/${encodeURIComponent(projectId)}/stages/${encodeURIComponent(stageId)}`,
+    "PUT",
+    input,
+    (value) => readProjectStageFromRecord(value, "stage"),
+    fetchImplementation,
+    "No fue posible guardar la Etapa.",
+  );
+}
+
+export async function moveProjectStage(
+  projectId: string,
+  stageId: string,
+  input: MoveProjectStageInput,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<ProjectApiResult<ProjectStage>> {
+  return mutateProject(
+    `/api/projects/${encodeURIComponent(projectId)}/stages/${encodeURIComponent(stageId)}/move`,
+    "POST",
+    input,
+    (value) => readProjectStageFromRecord(value, "stage"),
+    fetchImplementation,
+    "No fue posible reordenar la Etapa.",
+  );
+}
+
+export async function deleteProjectStage(
+  projectId: string,
+  stageId: string,
+  version: number,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<ProjectApiResult<void>> {
+  try {
+    const searchParams = new URLSearchParams({ version: String(version) });
+    const response = await fetchImplementation(
+      `/api/projects/${encodeURIComponent(projectId)}/stages/${encodeURIComponent(stageId)}?${searchParams}`,
+      { method: "DELETE" },
+    );
+    const error = await readProjectApiError(response);
+
+    if (error) {
+      return error;
+    }
+
+    return { data: undefined, kind: "success" };
+  } catch {
+    return { kind: "error", message: "No fue posible eliminar la Etapa." };
+  }
 }
 
 export async function createProject(
@@ -197,7 +299,13 @@ export async function updateProjectCodeSettings(
 async function mutateProject<Value>(
   path: string,
   method: "POST" | "PUT",
-  input: CreateProjectInput | UpdateProjectInput | UpdateProjectCodeSettingsInput,
+  input:
+    | CreateProjectInput
+    | UpdateProjectInput
+    | UpdateProjectCodeSettingsInput
+    | CreateProjectStageInput
+    | UpdateProjectStageInput
+    | MoveProjectStageInput,
   readValue: (value: unknown) => Value | null,
   fetchImplementation: typeof fetch,
   connectionErrorMessage: string,
@@ -261,7 +369,7 @@ async function readProjectApiError(
 
   const message = await readApiErrorMessage(response);
 
-  if (response.status === 400) {
+  if (response.status === 400 || response.status === 422) {
     return { kind: "validation", message };
   }
 
@@ -304,6 +412,37 @@ function readProjectFromRecord(value: unknown, key: string): Project | null {
   return isRecord(value) ? readProject(value[key]) : null;
 }
 
+function readProjectDetailFromRecord(value: unknown, key: string): ProjectDetail | null {
+  if (!isRecord(value) || !isRecord(value[key])) {
+    return null;
+  }
+
+  const project = readProject(value[key]);
+  const stagesValue = value[key].stages;
+
+  if (!project || !Array.isArray(stagesValue)) {
+    return null;
+  }
+
+  const stages: ProjectStage[] = [];
+
+  for (const stageValue of stagesValue) {
+    const stage = readProjectStage(stageValue);
+
+    if (!stage) {
+      return null;
+    }
+
+    stages.push(stage);
+  }
+
+  return { ...project, stages };
+}
+
+function readProjectStageFromRecord(value: unknown, key: string): ProjectStage | null {
+  return isRecord(value) ? readProjectStage(value[key]) : null;
+}
+
 function readProject(value: unknown): Project | null {
   if (!isRecord(value) || !isRecord(value.client)) {
     return null;
@@ -336,6 +475,33 @@ function readProject(value: unknown): Project | null {
     name: value.name,
     startDate: value.startDate,
     status: value.status,
+    version: value.version,
+  };
+}
+
+function readProjectStage(value: unknown): ProjectStage | null {
+  if (
+    !isRecord(value) ||
+    !isTimestamp(value.createdAt) ||
+    typeof value.createdByUserId !== "string" ||
+    typeof value.id !== "string" ||
+    typeof value.name !== "string" ||
+    !isPositiveInteger(value.position) ||
+    !isTimestamp(value.updatedAt) ||
+    typeof value.updatedByUserId !== "string" ||
+    !isPositiveInteger(value.version)
+  ) {
+    return null;
+  }
+
+  return {
+    createdAt: value.createdAt,
+    createdByUserId: value.createdByUserId,
+    id: value.id,
+    name: value.name,
+    position: value.position,
+    updatedAt: value.updatedAt,
+    updatedByUserId: value.updatedByUserId,
     version: value.version,
   };
 }
@@ -390,6 +556,10 @@ async function readApiErrorMessage(response: Response): Promise<string> {
 
 function isDateOnly(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function isTimestamp(value: unknown): value is string {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
 
 function isPositiveInteger(value: unknown): value is number {

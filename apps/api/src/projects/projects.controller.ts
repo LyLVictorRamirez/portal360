@@ -13,6 +13,7 @@ import {
   Post,
   Put,
   Query,
+  UnprocessableEntityException,
   UseGuards,
 } from "@nestjs/common";
 
@@ -22,6 +23,8 @@ import { RequirePermissions } from "../authorization/require-permissions.decorat
 import type { AuthorizationRequestContext } from "../authorization/authorization.types.js";
 import {
   type CreateProjectInput,
+  type CreateProjectStageInput,
+  type DeleteProjectStageInput,
   type ListProjectsInput,
   type Project,
   ProjectClientInactiveError,
@@ -30,16 +33,27 @@ import {
   ProjectCodeSettingsNotFoundError,
   ProjectCodeSettingsVersionConflictError,
   type ProjectCodeSettings,
+  type ProjectDetail,
   type ProjectList,
+  type ProjectStage,
+  type ProjectStageDirection,
   type ProjectStatus,
   type ProjectStatusFilter,
   ProjectNotFoundError,
   ProjectRelatedRecordsError,
+  ProjectStageNameConflictError,
+  ProjectStageNotFoundError,
+  ProjectStageOrderError,
+  ProjectStageRelatedRecordsError,
+  ProjectStageValidationError,
+  ProjectStageVersionConflictError,
   ProjectTerminalStatusError,
   ProjectValidationError,
   ProjectVersionConflictError,
   type UpdateProjectCodeSettingsInput,
   type UpdateProjectInput,
+  type MoveProjectStageInput,
+  type UpdateProjectStageInput,
 } from "./projects.contracts.js";
 import { ProjectService } from "./projects.service.js";
 
@@ -66,12 +80,44 @@ interface ProjectCodeSettingsResponse {
   version: number;
 }
 
+interface ProjectStageResponse {
+  createdAt: Date;
+  createdByUserId: string;
+  id: string;
+  name: string;
+  position: number;
+  updatedAt: Date;
+  updatedByUserId: string;
+  version: number;
+}
+
+interface ProjectDetailResponse extends ProjectResponse {
+  stages: ProjectStageResponse[];
+}
+
 export interface ProjectsControllerStore {
   createProject(input: CreateProjectInput, actorUserId: string): Promise<Project>;
+  createProjectStage(
+    projectId: string,
+    input: CreateProjectStageInput,
+    actorUserId: string,
+  ): Promise<ProjectStage>;
   deleteProject(projectId: string): Promise<void>;
+  deleteProjectStage(
+    projectId: string,
+    stageId: string,
+    input: DeleteProjectStageInput,
+    actorUserId: string,
+  ): Promise<void>;
   getCodeSettings(): Promise<ProjectCodeSettings>;
-  getProject(projectId: string): Promise<Project>;
+  getProject(projectId: string): Promise<Project | ProjectDetail>;
   listProjects(input: ListProjectsInput): Promise<ProjectList>;
+  moveProjectStage(
+    projectId: string,
+    stageId: string,
+    input: MoveProjectStageInput,
+    actorUserId: string,
+  ): Promise<ProjectStage>;
   updateCodeSettings(
     input: UpdateProjectCodeSettingsInput,
     actorUserId: string,
@@ -81,6 +127,12 @@ export interface ProjectsControllerStore {
     input: UpdateProjectInput,
     actorUserId: string,
   ): Promise<Project>;
+  updateProjectStage(
+    projectId: string,
+    stageId: string,
+    input: UpdateProjectStageInput,
+    actorUserId: string,
+  ): Promise<ProjectStage>;
 }
 
 @Controller("api/projects")
@@ -160,9 +212,102 @@ export class ProjectsController {
 
   @Get(":projectId")
   @RequirePermissions("projects.read")
-  async getProject(@Param("projectId") projectId: string): Promise<{ project: ProjectResponse }> {
+  async getProject(
+    @Param("projectId") projectId: string,
+  ): Promise<{ project: ProjectDetailResponse }> {
     try {
-      return { project: toProjectResponse(await this.projectService.getProject(projectId)) };
+      return { project: toProjectDetailResponse(await this.projectService.getProject(projectId)) };
+    } catch (error) {
+      throw toHttpException(error);
+    }
+  }
+
+  @Post(":projectId/stages")
+  @RequirePermissions("projects.manage")
+  async createProjectStage(
+    @Param("projectId") projectId: string,
+    @Body() body: unknown,
+    @AuthorizationContext() context: AuthorizationRequestContext,
+  ): Promise<{ stage: ProjectStageResponse }> {
+    try {
+      return {
+        stage: toProjectStageResponse(
+          await this.projectService.createProjectStage(
+            projectId,
+            readCreateProjectStageInput(body),
+            context.userId,
+          ),
+        ),
+      };
+    } catch (error) {
+      throw toHttpException(error);
+    }
+  }
+
+  @Put(":projectId/stages/:stageId")
+  @RequirePermissions("projects.manage")
+  async updateProjectStage(
+    @Param("projectId") projectId: string,
+    @Param("stageId") stageId: string,
+    @Body() body: unknown,
+    @AuthorizationContext() context: AuthorizationRequestContext,
+  ): Promise<{ stage: ProjectStageResponse }> {
+    try {
+      return {
+        stage: toProjectStageResponse(
+          await this.projectService.updateProjectStage(
+            projectId,
+            stageId,
+            readUpdateProjectStageInput(body),
+            context.userId,
+          ),
+        ),
+      };
+    } catch (error) {
+      throw toHttpException(error);
+    }
+  }
+
+  @Post(":projectId/stages/:stageId/move")
+  @RequirePermissions("projects.manage")
+  async moveProjectStage(
+    @Param("projectId") projectId: string,
+    @Param("stageId") stageId: string,
+    @Body() body: unknown,
+    @AuthorizationContext() context: AuthorizationRequestContext,
+  ): Promise<{ stage: ProjectStageResponse }> {
+    try {
+      return {
+        stage: toProjectStageResponse(
+          await this.projectService.moveProjectStage(
+            projectId,
+            stageId,
+            readMoveProjectStageInput(body),
+            context.userId,
+          ),
+        ),
+      };
+    } catch (error) {
+      throw toHttpException(error);
+    }
+  }
+
+  @Delete(":projectId/stages/:stageId")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @RequirePermissions("projects.manage")
+  async deleteProjectStage(
+    @Param("projectId") projectId: string,
+    @Param("stageId") stageId: string,
+    @Query("version") version: string | undefined,
+    @AuthorizationContext() context: AuthorizationRequestContext,
+  ): Promise<void> {
+    try {
+      await this.projectService.deleteProjectStage(
+        projectId,
+        stageId,
+        { version: readPositiveIntegerQuery(version, "version") },
+        context.userId,
+      );
     } catch (error) {
       throw toHttpException(error);
     }
@@ -282,6 +427,42 @@ function readUpdateProjectInput(body: unknown): UpdateProjectInput {
   return input;
 }
 
+function readCreateProjectStageInput(body: unknown): CreateProjectStageInput {
+  const record = readRecord(body);
+
+  if (typeof record.name !== "string") {
+    throw new BadRequestException("name is required.");
+  }
+
+  return { name: record.name };
+}
+
+function readUpdateProjectStageInput(body: unknown): UpdateProjectStageInput {
+  const record = readRecord(body);
+
+  if (typeof record.name !== "string") {
+    throw new BadRequestException("name is required.");
+  }
+
+  return {
+    name: record.name,
+    version: readPositiveInteger(record.version, "version"),
+  };
+}
+
+function readMoveProjectStageInput(body: unknown): MoveProjectStageInput {
+  const record = readRecord(body);
+
+  if (record.direction !== "up" && record.direction !== "down") {
+    throw new BadRequestException("direction must be up or down.");
+  }
+
+  return {
+    direction: record.direction as ProjectStageDirection,
+    version: readPositiveInteger(record.version, "version"),
+  };
+}
+
 function readUpdateCodeSettingsInput(body: unknown): UpdateProjectCodeSettingsInput {
   const record = readRecord(body);
 
@@ -369,6 +550,14 @@ function readPositiveInteger(value: unknown, field: string): number {
   return value;
 }
 
+function readPositiveIntegerQuery(value: string | undefined, field: string): number {
+  if (value === undefined || !/^\d+$/.test(value)) {
+    throw new BadRequestException(`${field} must be a positive integer.`);
+  }
+
+  return readPositiveInteger(Number(value), field);
+}
+
 function toProjectResponse(project: Project): ProjectResponse {
   return {
     client: project.client,
@@ -380,6 +569,26 @@ function toProjectResponse(project: Project): ProjectResponse {
     startDate: project.startDate,
     status: project.status,
     version: project.version,
+  };
+}
+
+function toProjectDetailResponse(project: Project | ProjectDetail): ProjectDetailResponse {
+  return {
+    ...toProjectResponse(project),
+    stages: ("stages" in project ? project.stages : []).map(toProjectStageResponse),
+  };
+}
+
+function toProjectStageResponse(stage: ProjectStage): ProjectStageResponse {
+  return {
+    createdAt: stage.createdAt,
+    createdByUserId: stage.createdByUserId,
+    id: stage.id,
+    name: stage.name,
+    position: stage.position,
+    updatedAt: stage.updatedAt,
+    updatedByUserId: stage.updatedByUserId,
+    version: stage.version,
   };
 }
 
@@ -401,7 +610,8 @@ function toHttpException(error: unknown): Error {
   if (
     error instanceof ProjectNotFoundError ||
     error instanceof ProjectClientNotFoundError ||
-    error instanceof ProjectCodeSettingsNotFoundError
+    error instanceof ProjectCodeSettingsNotFoundError ||
+    error instanceof ProjectStageNotFoundError
   ) {
     return new NotFoundException(error.message);
   }
@@ -410,14 +620,24 @@ function toHttpException(error: unknown): Error {
     error instanceof ProjectCodeExhaustedError ||
     error instanceof ProjectCodeSettingsVersionConflictError ||
     error instanceof ProjectRelatedRecordsError ||
+    error instanceof ProjectStageRelatedRecordsError ||
     error instanceof ProjectTerminalStatusError ||
-    error instanceof ProjectVersionConflictError
+    error instanceof ProjectVersionConflictError ||
+    error instanceof ProjectStageVersionConflictError
   ) {
     return new ConflictException(error.message);
   }
 
   if (error instanceof ProjectClientInactiveError || error instanceof ProjectValidationError) {
     return new BadRequestException(error.message);
+  }
+
+  if (
+    error instanceof ProjectStageNameConflictError ||
+    error instanceof ProjectStageOrderError ||
+    error instanceof ProjectStageValidationError
+  ) {
+    return new UnprocessableEntityException(error.message);
   }
 
   if (error instanceof Error) {
