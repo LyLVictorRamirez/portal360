@@ -166,7 +166,7 @@ function projectRow(
     id: "5d676d8c-9939-4a25-bdda-1a4df8b17873",
     name: "Proyecto Uno",
     start_date: "2026-10-01",
-    status: "planned",
+    status: "new",
     updated_at: timestamp,
     updated_by_user_id: "user-1",
     version: 1,
@@ -185,7 +185,7 @@ test("reserves a distinct Project code for simultaneous creations", async () => 
       committedEndDate: "2026-10-31",
       name: "Proyecto Uno",
       startDate: "2026-10-01",
-      status: "planned",
+      status: "new",
     }),
     repository.createProject({
       actorUserId: "user-2",
@@ -193,7 +193,7 @@ test("reserves a distinct Project code for simultaneous creations", async () => 
       committedEndDate: "2026-11-30",
       name: "Proyecto Dos",
       startDate: "2026-11-01",
-      status: "active",
+      status: "in_execution",
     }),
   ]);
 
@@ -214,7 +214,7 @@ test("rejects Project creation for an inactive Client", async () => {
         committedEndDate: "2026-10-31",
         name: "Proyecto Uno",
         startDate: "2026-10-01",
-        status: "planned",
+        status: "new",
       }),
     ProjectClientInactiveError,
   );
@@ -340,7 +340,7 @@ test("rejects a stale Project update without overwriting the current version", a
     () =>
       repository.updateProject("5d676d8c-9939-4a25-bdda-1a4df8b17873", {
         actorUserId: "user-1",
-        status: "active",
+        status: "in_execution",
         version: 1,
       }),
     ProjectVersionConflictError,
@@ -352,7 +352,7 @@ test("rejects a stale Project update without overwriting the current version", a
     null,
     null,
     null,
-    "active",
+    "in_execution",
     "user-1",
     1,
   ]);

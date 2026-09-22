@@ -15,6 +15,7 @@ test("defines the business client schema and initial CLI-001 configuration", asy
       "0003-business-clients.sql",
       "0004-business-projects-and-code-settings.sql",
       "0005-business-requirements-and-code-settings.sql",
+      "0006-business-unified-project-and-requirement-statuses.sql",
     ],
   );
 

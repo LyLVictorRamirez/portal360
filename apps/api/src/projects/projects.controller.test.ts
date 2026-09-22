@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ConflictException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
 
 import {
   type CreateProjectInput,
@@ -11,6 +11,7 @@ import {
   type ProjectList,
   ProjectNotFoundError,
   ProjectRelatedRecordsError,
+  ProjectTerminalStatusError,
   ProjectVersionConflictError,
 } from "./projects.contracts.js";
 import { ProjectsController, type ProjectsControllerStore } from "./projects.controller.js";
@@ -34,7 +35,7 @@ function createProject(): Project {
     id: "5d676d8c-9939-4a25-bdda-1a4df8b17873",
     name: "Proyecto Uno",
     startDate: "2026-10-01",
-    status: "planned",
+    status: "new",
     updatedAt: timestamp,
     updatedByUserId: "user-1",
     version: 1,
@@ -108,14 +109,14 @@ test("lists Projects with the requested pagination, search, Client, and status",
     "2",
     "PRY",
     "f6323093-e2fb-4875-a787-d1542064d138",
-    "active",
+    "in_execution",
   );
 
   assert.deepEqual(receivedInput, {
     clientId: "f6323093-e2fb-4875-a787-d1542064d138",
     page: 2,
     query: "PRY",
-    status: "active",
+    status: "in_execution",
   });
   assert.deepEqual(response, {
     page: 2,
@@ -133,7 +134,7 @@ test("lists Projects with the requested pagination, search, Client, and status",
         id: "5d676d8c-9939-4a25-bdda-1a4df8b17873",
         name: "Proyecto Uno",
         startDate: "2026-10-01",
-        status: "planned",
+        status: "new",
         version: 1,
       },
     ],
@@ -196,7 +197,50 @@ test("maps a stale Project update to HTTP 409", async () => {
     () =>
       controller.updateProject(
         "5d676d8c-9939-4a25-bdda-1a4df8b17873",
-        { status: "active", version: 1 },
+        { status: "in_execution", version: 1 },
+        requestContext,
+      ),
+    (error: unknown) => error instanceof ConflictException && error.getStatus() === 409,
+  );
+});
+
+test("rejects replaced Project statuses at the HTTP boundary", async () => {
+  const controller = new ProjectsController(createStore());
+
+  await assert.rejects(
+    () => controller.listProjects(undefined, undefined, undefined, "active"),
+    (error: unknown) => error instanceof BadRequestException && error.getStatus() === 400,
+  );
+  await assert.rejects(
+    () =>
+      controller.createProject(
+        {
+          clientId: "f6323093-e2fb-4875-a787-d1542064d138",
+          committedEndDate: "2026-10-31",
+          name: "Proyecto Uno",
+          startDate: "2026-10-01",
+          status: "planned",
+        },
+        requestContext,
+      ),
+    (error: unknown) => error instanceof BadRequestException && error.getStatus() === 400,
+  );
+});
+
+test("maps terminal Project updates to HTTP 409", async () => {
+  const controller = new ProjectsController(
+    createStore({
+      async updateProject() {
+        throw new ProjectTerminalStatusError("The Project is finalized.");
+      },
+    }),
+  );
+
+  await assert.rejects(
+    () =>
+      controller.updateProject(
+        "5d676d8c-9939-4a25-bdda-1a4df8b17873",
+        { status: "paused", version: 1 },
         requestContext,
       ),
     (error: unknown) => error instanceof ConflictException && error.getStatus() === 409,

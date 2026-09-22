@@ -7,6 +7,7 @@ import {
   type Project,
   type ProjectCodeSettings,
   type ProjectList,
+  ProjectTerminalStatusError,
   ProjectValidationError,
   type UpdateProjectRecordInput,
 } from "./projects.contracts.js";
@@ -30,7 +31,7 @@ function createProject(): Project {
     id: "5d676d8c-9939-4a25-bdda-1a4df8b17873",
     name: "Proyecto Uno",
     startDate: "2026-10-01",
-    status: "planned",
+    status: "new",
     updatedAt: timestamp,
     updatedByUserId: "user-1",
     version: 1,
@@ -75,7 +76,7 @@ function createStore(overrides: Partial<ProjectStore> = {}): ProjectStore {
   };
 }
 
-test("defaults a new Project to planned while allowing a selected initial status", async () => {
+test("defaults a new Project to new while allowing a selected initial status", async () => {
   const inputs: CreateProjectRecordInput[] = [];
   const service = new ProjectService(
     createStore({
@@ -95,19 +96,19 @@ test("defaults a new Project to planned while allowing a selected initial status
     },
     "user-1",
   );
-  const activeProject = await service.createProject(
+  const inExecutionProject = await service.createProject(
     {
       clientId: "f6323093-e2fb-4875-a787-d1542064d138",
       committedEndDate: "2026-10-31",
       name: "Proyecto Dos",
       startDate: "2026-10-01",
-      status: "active",
+      status: "in_execution",
     },
     "user-1",
   );
 
-  assert.equal(defaultProject.status, "planned");
-  assert.equal(activeProject.status, "active");
+  assert.equal(defaultProject.status, "new");
+  assert.equal(inExecutionProject.status, "in_execution");
   assert.deepEqual(inputs[0], {
     actorUserId: "user-1",
     clientId: "f6323093-e2fb-4875-a787-d1542064d138",
@@ -115,7 +116,7 @@ test("defaults a new Project to planned while allowing a selected initial status
     description: undefined,
     name: "Proyecto Uno",
     startDate: "2026-10-01",
-    status: "planned",
+    status: "new",
   });
 });
 
@@ -151,7 +152,7 @@ test("rejects invalid Project dates and statuses before reaching storage", async
           committedEndDate: "2026-10-31",
           name: "Proyecto Uno",
           startDate: "2026-10-01",
-          status: "unknown" as "planned",
+          status: "unknown" as "new",
         },
         "user-1",
       ),
@@ -217,7 +218,7 @@ test("normalizes a Project update and allows clearing its optional description",
 
   const project = await service.updateProject(
     "5d676d8c-9939-4a25-bdda-1a4df8b17873",
-    { description: null, status: "active", version: 1 },
+    { description: null, status: "in_execution", version: 1 },
     "user-2",
   );
 
@@ -225,10 +226,38 @@ test("normalizes a Project update and allows clearing its optional description",
   assert.deepEqual(receivedInput, {
     actorUserId: "user-2",
     description: null,
-    status: "active",
+    status: "in_execution",
     version: 1,
   });
   assert.equal(project.version, 2);
+});
+
+test("rejects updates to finalized and cancelled Projects before reaching storage", async () => {
+  for (const status of ["finalized", "cancelled"] as const) {
+    let updateAttempts = 0;
+    const service = new ProjectService(
+      createStore({
+        async getProject() {
+          return { ...createProject(), status };
+        },
+        async updateProject() {
+          updateAttempts += 1;
+          return createProject();
+        },
+      }),
+    );
+
+    await assert.rejects(
+      () =>
+        service.updateProject(
+          "5d676d8c-9939-4a25-bdda-1a4df8b17873",
+          { name: "Proyecto actualizado", version: 1 },
+          "user-1",
+        ),
+      ProjectTerminalStatusError,
+    );
+    assert.equal(updateAttempts, 0);
+  }
 });
 
 test("rejects an invalid Project code configuration before reaching storage", async () => {
