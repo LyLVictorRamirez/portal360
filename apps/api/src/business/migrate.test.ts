@@ -16,6 +16,7 @@ test("defines the business client schema and initial CLI-001 configuration", asy
       "0004-business-projects-and-code-settings.sql",
       "0005-business-requirements-and-code-settings.sql",
       "0006-business-unified-project-and-requirement-statuses.sql",
+      "0007-business-tickets.sql",
     ],
   );
 
@@ -101,6 +102,31 @@ test("adds requirement code settings and schema without changing existing settin
   assert.match(migration.sql, /on delete restrict/i);
   assert.doesNotMatch(migration.sql, /update "business"\."entity_code_settings"/i);
   assert.doesNotMatch(migration.sql, /delete from "business"\."entity_code_settings"/i);
+});
+
+test("defines the ticket schema without changing existing business entities", async () => {
+  const migrations = await readBusinessMigrations();
+  const migration = migrations.find(({ name }) => name === "0007-business-tickets.sql");
+
+  assert.ok(migration);
+  assert.match(migration.sql, /create table "business"\."ticket"/i);
+  assert.match(migration.sql, /"client_id" uuid not null references "business"\."client"/i);
+  assert.match(migration.sql, /"external_reference" varchar\(200\) not null/i);
+  assert.doesNotMatch(migration.sql, /unique/i);
+  assert.match(migration.sql, /"external_url" varchar\(2048\)/i);
+  assert.match(migration.sql, /ticket_external_url_format_check/i);
+  assert.match(migration.sql, /"title" varchar\(200\) not null/i);
+  assert.match(migration.sql, /"description" varchar\(2000\)/i);
+  assert.match(migration.sql, /"external_priority" text not null default 'medium'/i);
+  assert.match(
+    migration.sql,
+    /"external_priority" in \('critical', 'high', 'medium', 'low'\)/i,
+  );
+  assert.match(migration.sql, /ticket_version_positive_check/i);
+  assert.match(migration.sql, /ticket_prevent_client_mutation/i);
+  assert.match(migration.sql, /on delete restrict/i);
+  assert.doesNotMatch(migration.sql, /alter table "business"\."(?:client|project|requirement)"/i);
+  assert.doesNotMatch(migration.sql, /update "business"\."(?:client|project|requirement)"/i);
 });
 
 test("reads only business migrations in filename order", async () => {
