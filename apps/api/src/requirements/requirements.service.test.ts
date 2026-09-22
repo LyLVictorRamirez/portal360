@@ -30,6 +30,7 @@ function createRequirement(overrides: Partial<Requirement> = {}): Requirement {
     description: null,
     id: requirementId,
     name: "Requerimiento Uno",
+    pausedFromStatus: null,
     quotedOn: null,
     requestedOn: "2026-10-01",
     status: "new",
@@ -178,22 +179,126 @@ test("requires approval data and records the authenticated approver on approval"
     actorUserId: "user-2",
     approvedByUserId: "user-2",
     approvedOn: "2026-10-03",
+    pausedFromStatus: null,
     status: "approved",
     version: 1,
   });
 });
 
 test("does not allow a terminal Requirement to change status", async () => {
+  for (const status of ["finalized", "cancelled"] as const) {
+    const service = new RequirementService(
+      createStore({
+        async getRequirement() {
+          return createRequirement({ status });
+        },
+      }),
+    );
+
+    await assert.rejects(
+      () => service.updateRequirement(requirementId, { status: "in_analysis", version: 1 }, "user-1"),
+      RequirementValidationError,
+    );
+  }
+});
+
+test("pauses, resumes, and cancels a Requirement while preserving its workflow state", async () => {
+  const executingRequirement = createRequirement({
+    approvedByUserId: "user-1",
+    approvedOn: "2026-10-03",
+    quotedOn: "2026-10-02",
+    status: "in_execution",
+  });
+  let pausedInput: UpdateRequirementRecordInput | undefined;
+  const pauseService = new RequirementService(
+    createStore({
+      async getRequirement() {
+        return executingRequirement;
+      },
+      async updateRequirement(_id, input) {
+        pausedInput = input;
+        return createRequirement({
+          ...executingRequirement,
+          pausedFromStatus: input.pausedFromStatus,
+          status: input.status ?? executingRequirement.status,
+        });
+      },
+    }),
+  );
+
+  const paused = await pauseService.updateRequirement(
+    requirementId,
+    { status: "paused", version: 1 },
+    "user-2",
+  );
+
+  assert.equal(paused.status, "paused");
+  assert.equal(paused.pausedFromStatus, "in_execution");
+  assert.deepEqual(pausedInput, {
+    actorUserId: "user-2",
+    approvedByUserId: undefined,
+    pausedFromStatus: "in_execution",
+    status: "paused",
+    version: 1,
+  });
+
+  let resumedInput: UpdateRequirementRecordInput | undefined;
+  const resumeService = new RequirementService(
+    createStore({
+      async getRequirement() {
+        return paused;
+      },
+      async updateRequirement(_id, input) {
+        resumedInput = input;
+        return createRequirement({
+          ...paused,
+          pausedFromStatus: input.pausedFromStatus,
+          status: input.status ?? paused.status,
+        });
+      },
+    }),
+  );
+
+  const resumed = await resumeService.updateRequirement(
+    requirementId,
+    { status: "in_execution", version: 2 },
+    "user-2",
+  );
+
+  assert.equal(resumed.status, "in_execution");
+  assert.equal(resumed.pausedFromStatus, null);
+  assert.deepEqual(resumedInput, {
+    actorUserId: "user-2",
+    approvedByUserId: undefined,
+    pausedFromStatus: null,
+    status: "in_execution",
+    version: 2,
+  });
+
+  const cancelService = new RequirementService(
+    createStore({
+      async getRequirement() {
+        return paused;
+      },
+    }),
+  );
+
+  await assert.doesNotReject(() =>
+    cancelService.updateRequirement(requirementId, { status: "cancelled", version: 2 }, "user-2"),
+  );
+});
+
+test("rejects a paused Requirement transition other than its saved state or cancellation", async () => {
   const service = new RequirementService(
     createStore({
       async getRequirement() {
-        return createRequirement({ status: "closed" });
+        return createRequirement({ pausedFromStatus: "quoted", quotedOn: "2026-10-02", status: "paused" });
       },
     }),
   );
 
   await assert.rejects(
-    () => service.updateRequirement(requirementId, { status: "cancelled", version: 1 }, "user-1"),
+    () => service.updateRequirement(requirementId, { status: "approved", version: 1 }, "user-1"),
     RequirementValidationError,
   );
 });

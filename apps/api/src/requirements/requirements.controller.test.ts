@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ConflictException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
 
 import {
   type CreateRequirementInput,
@@ -37,6 +37,7 @@ function createRequirement(): Requirement {
     description: null,
     id: requirementId,
     name: "Requerimiento Uno",
+    pausedFromStatus: null,
     quotedOn: null,
     requestedOn: "2026-10-01",
     status: "new",
@@ -128,6 +129,7 @@ test("lists Requirements with pagination, search, Client, and status", async () 
         description: null,
         id: requirementId,
         name: "Requerimiento Uno",
+        pausedFromStatus: null,
         quotedOn: null,
         requestedOn: "2026-10-01",
         status: "new",
@@ -213,5 +215,20 @@ test("maps Requirement conflicts, missing records, and relation restrictions", a
   await assert.rejects(
     () => relatedController.deleteRequirement(requirementId),
     (error: unknown) => error instanceof ConflictException && error.getStatus() === 409,
+  );
+});
+
+test("accepts paused and finalized Requirement statuses and rejects closed", async () => {
+  const controller = new RequirementsController(createStore());
+
+  await assert.doesNotReject(() =>
+    controller.listRequirements(undefined, undefined, undefined, "paused"),
+  );
+  await assert.doesNotReject(() =>
+    controller.listRequirements(undefined, undefined, undefined, "finalized"),
+  );
+  await assert.rejects(
+    () => controller.listRequirements(undefined, undefined, undefined, "closed"),
+    (error: unknown) => error instanceof BadRequestException && error.getStatus() === 400,
   );
 });

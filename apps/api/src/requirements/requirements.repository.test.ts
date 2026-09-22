@@ -147,6 +147,7 @@ function requirementRow(
     code: string;
     committed_on: Date | string | null;
     id: string;
+    paused_from_status: string | null;
     quoted_on: Date | string | null;
     requested_on: Date | string;
     status: string;
@@ -167,6 +168,7 @@ function requirementRow(
     description: null,
     id: requirementId,
     name: "Requerimiento Uno",
+    paused_from_status: null,
     quoted_on: null,
     requested_on: "2026-10-01",
     status: "new",
@@ -309,6 +311,35 @@ test("returns the approver name with a Requirement detail", async () => {
   assert.match(queries[0] ?? "", /left join "auth"\."user" as "approver"/i);
 });
 
+test("returns the preserved workflow state for a paused Requirement", async () => {
+  const database: RequirementsDatabase = {
+    async connect() {
+      throw new Error("Not used by this test.");
+    },
+    async query() {
+      return {
+        rowCount: 1,
+        rows: [
+          requirementRow({
+            approved_by_user_id: "user-1",
+            approved_by_user_name: "María Pérez",
+            approved_on: "2026-10-03",
+            paused_from_status: "in_execution",
+            quoted_on: "2026-10-02",
+            status: "paused",
+          }),
+        ],
+      };
+    },
+  };
+  const repository = new RequirementRepository(database);
+
+  const requirement = await repository.getRequirement(requirementId);
+
+  assert.equal(requirement.status, "paused");
+  assert.equal(requirement.pausedFromStatus, "in_execution");
+});
+
 test("rejects a stale Requirement update without overwriting the current version", async () => {
   const queries: Array<{ query: string; values?: unknown[] }> = [];
   const database: RequirementsDatabase = {
@@ -337,6 +368,7 @@ test("rejects a stale Requirement update without overwriting the current version
         actorUserId: "user-1",
         approvedByUserId: "user-1",
         approvedOn: "2026-10-03",
+        pausedFromStatus: null,
         status: "approved",
         version: 1,
       }),
@@ -356,6 +388,7 @@ test("rejects a stale Requirement update without overwriting the current version
     "2026-10-03",
     "user-1",
     "approved",
+    null,
     "user-1",
     1,
   ]);
