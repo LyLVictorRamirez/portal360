@@ -47,13 +47,13 @@ const requirementStatusLabels: Record<RequirementStatus, string> = {
 };
 
 const requirementStatusTones: Record<RequirementStatus, StatusBadgeTone> = {
-  approved: "success",
+  approved: "approved",
   cancelled: "danger",
   finalized: "info",
-  in_analysis: "warning",
+  in_analysis: "analysis",
   in_execution: "success",
   new: "planned",
-  paused: "warning",
+  paused: "paused",
   quoted: "quoted",
 };
 

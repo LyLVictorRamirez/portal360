@@ -46,7 +46,7 @@ const projectStatusTones: Record<ProjectStatus, StatusBadgeTone> = {
   finalized: "info",
   in_execution: "success",
   new: "planned",
-  paused: "warning",
+  paused: "paused",
 };
 
 function getSaveErrorMessage(kind: "conflict" | "error" | "unauthorized" | "validation") {
