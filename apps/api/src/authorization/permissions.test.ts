@@ -33,3 +33,12 @@ test("recognizes the fixed Requirement permission catalog", () => {
   assert.equal(isAuthorizationPermission("requirements.delete"), false);
   assert.equal(authorizationPermissionKeys.includes("requirements.read"), true);
 });
+
+test("recognizes the fixed Ticket permission catalog", () => {
+  for (const permission of ["tickets.read", "tickets.manage"]) {
+    assert.equal(isAuthorizationPermission(permission), true);
+  }
+
+  assert.equal(isAuthorizationPermission("tickets.delete"), false);
+  assert.equal(authorizationPermissionKeys.includes("tickets.read"), true);
+});

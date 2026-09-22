@@ -9,6 +9,8 @@ export const authorizationPermissionKeys = [
   "requirements.read",
   "requirements.manage",
   "requirements.settings.manage",
+  "tickets.read",
+  "tickets.manage",
   "authorization.users.read",
   "authorization.users.manage",
   "authorization.roles.read",

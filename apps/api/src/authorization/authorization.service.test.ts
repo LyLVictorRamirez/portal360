@@ -104,3 +104,47 @@ test("resolves Requirement permissions from the current database state on every 
   assert.deepEqual(afterAssignmentChange.permissions, ["requirements.manage"]);
   assert.equal(queryCount, 2);
 });
+
+test("resolves Ticket permissions from the current database state on every request", async () => {
+  let queryCount = 0;
+  const database: AuthorizationQueryExecutor = {
+    async query() {
+      queryCount += 1;
+
+      return {
+        rows:
+          queryCount === 1
+            ? [
+                {
+                  permission_key: "app.access",
+                  role_description: "Minimum access.",
+                  role_is_active: true,
+                  role_is_default: true,
+                  role_key: "estandar",
+                  role_kind: "system",
+                  role_name: "Estándar",
+                },
+              ]
+            : [
+                {
+                  permission_key: "tickets.manage",
+                  role_description: "Can manage tickets.",
+                  role_is_active: true,
+                  role_is_default: false,
+                  role_key: "lider",
+                  role_kind: "system",
+                  role_name: "Líder",
+                },
+              ],
+      };
+    },
+  };
+  const service = new AuthorizationService(new AuthorizationRepository(database));
+
+  const beforeAssignmentChange = await service.resolveUserAuthorization("user-1");
+  const afterAssignmentChange = await service.resolveUserAuthorization("user-1");
+
+  assert.deepEqual(beforeAssignmentChange.permissions, ["app.access"]);
+  assert.deepEqual(afterAssignmentChange.permissions, ["tickets.manage"]);
+  assert.equal(queryCount, 2);
+});
