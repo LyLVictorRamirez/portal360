@@ -38,31 +38,34 @@ type RequirementEditorDialogProps = {
 const requirementStatusLabels: Record<RequirementStatus, string> = {
   approved: "Aprobado",
   cancelled: "Cancelado",
-  closed: "Cerrado",
+  finalized: "Finalizado",
   in_analysis: "En análisis",
   in_execution: "En ejecución",
   new: "Nuevo",
+  paused: "Pausado",
   quoted: "Cotizado",
 };
 
 const requirementStatusTones: Record<RequirementStatus, StatusBadgeTone> = {
   approved: "success",
   cancelled: "danger",
-  closed: "info",
+  finalized: "info",
   in_analysis: "warning",
   in_execution: "success",
   new: "planned",
+  paused: "warning",
   quoted: "quoted",
 };
 
 const availableStatusTransitions: Record<RequirementStatus, readonly RequirementStatus[]> = {
-  approved: ["approved", "in_execution", "cancelled"],
+  approved: ["approved", "in_execution", "paused", "cancelled"],
   cancelled: ["cancelled"],
-  closed: ["closed"],
-  in_analysis: ["in_analysis", "quoted", "cancelled"],
-  in_execution: ["in_execution", "closed", "cancelled"],
-  new: ["new", "in_analysis", "cancelled"],
-  quoted: ["quoted", "approved", "cancelled"],
+  finalized: ["finalized"],
+  in_analysis: ["in_analysis", "quoted", "paused", "cancelled"],
+  in_execution: ["in_execution", "finalized", "paused", "cancelled"],
+  new: ["new", "in_analysis", "paused", "cancelled"],
+  paused: ["paused", "cancelled"],
+  quoted: ["quoted", "approved", "paused", "cancelled"],
 };
 
 function getSaveErrorMessage(kind: "conflict" | "error" | "unauthorized" | "validation") {
@@ -83,12 +86,23 @@ function getSaveErrorMessage(kind: "conflict" | "error" | "unauthorized" | "vali
 
 function isQuotedOrLater(status: RequirementStatus) {
   return (
-    status === "quoted" || status === "approved" || status === "in_execution" || status === "closed"
+    status === "quoted" ||
+    status === "approved" ||
+    status === "in_execution" ||
+    status === "finalized"
   );
 }
 
 function isApprovedOrLater(status: RequirementStatus) {
-  return status === "approved" || status === "in_execution" || status === "closed";
+  return status === "approved" || status === "in_execution" || status === "finalized";
+}
+
+function getAvailableStatusTransitions(requirement: Requirement | null): readonly RequirementStatus[] {
+  if (requirement?.status === "paused" && requirement.pausedFromStatus !== null) {
+    return ["paused", requirement.pausedFromStatus, "cancelled"];
+  }
+
+  return availableStatusTransitions[requirement?.status ?? "new"];
 }
 
 type RequirementDateFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "type"> & {
@@ -143,6 +157,14 @@ export function RequirementEditorDialog({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [status, setStatus] = useState<RequirementStatus>("new");
+  const statusForDates =
+    status === "paused"
+      ? requirement?.pausedFromStatus ?? requirement?.status ?? "new"
+      : status;
+  const statusHelpText =
+    requirement?.status === "paused" && requirement.pausedFromStatus !== null
+      ? `Al reanudar, el Requerimiento volverá a ${requirementStatusLabels[requirement.pausedFromStatus]}.`
+      : "Solo se muestran las transiciones disponibles para el estado actual.";
 
   useEffect(() => {
     if (!open) {
@@ -198,7 +220,7 @@ export function RequirementEditorDialog({
       return;
     }
 
-    if (isQuotedOrLater(status) && !quotedOn) {
+    if (isQuotedOrLater(statusForDates) && !quotedOn) {
       setFormError("Indica la fecha de cotización para este estado.");
       return;
     }
@@ -208,7 +230,7 @@ export function RequirementEditorDialog({
       return;
     }
 
-    if (isApprovedOrLater(status) && !approvedOn) {
+    if (isApprovedOrLater(statusForDates) && !approvedOn) {
       setFormError("Indica la fecha de aprobación para este estado.");
       return;
     }
@@ -279,6 +301,14 @@ export function RequirementEditorDialog({
                   />
                 </dd>
               </div>
+              {requirement.status === "paused" && requirement.pausedFromStatus !== null ? (
+                <div>
+                  <dt className="font-medium text-muted-foreground">Estado al reanudar</dt>
+                  <dd className="mt-1 text-foreground">
+                    {requirementStatusLabels[requirement.pausedFromStatus]}
+                  </dd>
+                </div>
+              ) : null}
               <div className="sm:col-span-2">
                 <dt className="font-medium text-muted-foreground">Nombre del requerimiento</dt>
                 <dd className="mt-1 text-foreground">{requirement.name}</dd>
@@ -374,13 +404,13 @@ export function RequirementEditorDialog({
             {!isCreateMode ? (
               <SelectField
                 disabled={isSaving}
-                helpText="Solo se muestran las transiciones disponibles para el estado actual."
+                helpText={statusHelpText}
                 id="requirement-status"
                 label="Estado"
                 onChange={(event) => setStatus(event.target.value as RequirementStatus)}
                 value={status}
               >
-                {availableStatusTransitions[requirement?.status ?? "new"].map(
+                {getAvailableStatusTransitions(requirement).map(
                   (availableStatus) => (
                     <option key={availableStatus} value={availableStatus}>
                       {requirementStatusLabels[availableStatus]}
@@ -399,7 +429,7 @@ export function RequirementEditorDialog({
                 required
                 value={requestedOn}
               />
-              {!isCreateMode && isQuotedOrLater(status) ? (
+              {!isCreateMode && isQuotedOrLater(statusForDates) ? (
                 <RequirementDateField
                   disabled={isSaving}
                   id="requirement-quoted-on"
@@ -410,7 +440,7 @@ export function RequirementEditorDialog({
                   value={quotedOn}
                 />
               ) : null}
-              {!isCreateMode && isApprovedOrLater(status) ? (
+              {!isCreateMode && isApprovedOrLater(statusForDates) ? (
                 <RequirementDateField
                   disabled={isSaving}
                   id="requirement-approved-on"

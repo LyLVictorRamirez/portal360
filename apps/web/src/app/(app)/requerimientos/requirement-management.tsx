@@ -67,20 +67,22 @@ type RequirementManagementProps = Readonly<{
 const requirementStatusLabels: Record<RequirementStatus, string> = {
   approved: "Aprobado",
   cancelled: "Cancelado",
-  closed: "Cerrado",
+  finalized: "Finalizado",
   in_analysis: "En análisis",
   in_execution: "En ejecución",
   new: "Nuevo",
+  paused: "Pausado",
   quoted: "Cotizado",
 };
 
 const requirementStatusTones: Record<RequirementStatus, StatusBadgeTone> = {
   approved: "success",
   cancelled: "danger",
-  closed: "info",
+  finalized: "info",
   in_analysis: "warning",
   in_execution: "success",
   new: "planned",
+  paused: "warning",
   quoted: "quoted",
 };
 
