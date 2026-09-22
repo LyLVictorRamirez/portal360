@@ -23,7 +23,7 @@ const project = {
   id: "5d676d8c-9939-4a25-bdda-1a4df8b17873",
   name: "Proyecto Uno",
   startDate: "2026-10-01",
-  status: "planned",
+  status: "new",
   version: 1,
 } as const;
 
@@ -35,7 +35,7 @@ test("lists Projects through the same-origin API with search, Client, and status
       clientId: "  f6323093-e2fb-4875-a787-d1542064d138  ",
       page: 2,
       query: "  pry-001  ",
-      status: "active",
+      status: "in_execution",
     },
     async (input, init) => {
       requestedUrl = input.toString();
@@ -46,7 +46,7 @@ test("lists Projects through the same-origin API with search, Client, and status
 
   assert.equal(
     requestedUrl,
-    "/api/projects?page=2&query=pry-001&clientId=f6323093-e2fb-4875-a787-d1542064d138&status=active",
+    "/api/projects?page=2&query=pry-001&clientId=f6323093-e2fb-4875-a787-d1542064d138&status=in_execution",
   );
   assert.deepEqual(result, {
     data: { page: 2, pageSize: 25, projects: [project], total: 26 },
@@ -83,7 +83,7 @@ test("creates, updates, and deletes Projects through scoped endpoints", async ()
         committedEndDate: "2026-10-31",
         name: "Proyecto Uno",
         startDate: "2026-10-01",
-        status: "planned",
+        status: "new",
       },
       fetchImplementation,
     ),
@@ -92,7 +92,7 @@ test("creates, updates, and deletes Projects through scoped endpoints", async ()
   assert.deepEqual(
     await updateProject(
       "project/1",
-      { description: null, status: "active", version: 1 },
+      { description: null, status: "in_execution", version: 1 },
       fetchImplementation,
     ),
     { data: project, kind: "success" },
@@ -109,7 +109,7 @@ test("creates, updates, and deletes Projects through scoped endpoints", async ()
           committedEndDate: "2026-10-31",
           name: "Proyecto Uno",
           startDate: "2026-10-01",
-          status: "planned",
+          status: "new",
         }),
         headers: { "content-type": "application/json" },
         method: "POST",
@@ -118,7 +118,7 @@ test("creates, updates, and deletes Projects through scoped endpoints", async ()
     },
     {
       init: {
-        body: JSON.stringify({ description: null, status: "active", version: 1 }),
+        body: JSON.stringify({ description: null, status: "in_execution", version: 1 }),
         headers: { "content-type": "application/json" },
         method: "PUT",
       },

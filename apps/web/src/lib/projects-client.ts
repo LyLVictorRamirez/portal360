@@ -1,4 +1,4 @@
-export const projectStatuses = ["planned", "active", "paused", "finalized", "cancelled"] as const;
+export const projectStatuses = ["new", "in_execution", "paused", "finalized", "cancelled"] as const;
 
 export type ProjectStatus = (typeof projectStatuses)[number];
 export type ProjectStatusFilter = "all" | ProjectStatus;

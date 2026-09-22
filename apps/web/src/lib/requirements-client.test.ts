@@ -25,6 +25,7 @@ const requirement = {
   description: null,
   id: "5d676d8c-9939-4a25-bdda-1a4df8b17873",
   name: "Requerimiento Uno",
+  pausedFromStatus: null,
   quotedOn: null,
   requestedOn: "2026-10-01",
   status: "new",
@@ -66,6 +67,24 @@ test("gets a Requirement detail through its scoped endpoint", async () => {
   });
 
   assert.deepEqual(result, { data: requirement, kind: "success" });
+});
+
+test("reads a paused Requirement with its preserved workflow state", async () => {
+  const pausedRequirement = {
+    ...requirement,
+    approvedByUserId: "user-1",
+    approvedByUserName: "María Pérez",
+    approvedOn: "2026-10-03",
+    pausedFromStatus: "in_execution",
+    quotedOn: "2026-10-02",
+    status: "paused",
+  } as const;
+
+  const result = await getRequirement("requirement-1", async () =>
+    Response.json({ requirement: pausedRequirement }),
+  );
+
+  assert.deepEqual(result, { data: pausedRequirement, kind: "success" });
 });
 
 test("creates, updates transitions, and deletes Requirements through scoped endpoints", async () => {

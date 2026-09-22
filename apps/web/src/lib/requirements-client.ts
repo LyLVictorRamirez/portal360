@@ -4,11 +4,16 @@ export const requirementStatuses = [
   "quoted",
   "approved",
   "in_execution",
-  "closed",
+  "finalized",
+  "paused",
   "cancelled",
 ] as const;
 
 export type RequirementStatus = (typeof requirementStatuses)[number];
+export type RequirementPausableStatus = Exclude<
+  RequirementStatus,
+  "paused" | "finalized" | "cancelled"
+>;
 export type RequirementStatusFilter = "all" | RequirementStatus;
 
 export type RequirementClient = Readonly<{
@@ -27,6 +32,7 @@ export type Requirement = Readonly<{
   description: string | null;
   id: string;
   name: string;
+  pausedFromStatus: RequirementPausableStatus | null;
   quotedOn: string | null;
   requestedOn: string;
   status: RequirementStatus;
@@ -337,6 +343,9 @@ function readRequirement(value: unknown): Requirement | null {
     (value.description !== null && typeof value.description !== "string") ||
     typeof value.id !== "string" ||
     typeof value.name !== "string" ||
+    !isRequirementPausedFromStatus(value.pausedFromStatus) ||
+    (value.status === "paused" && value.pausedFromStatus === null) ||
+    (value.status !== "paused" && value.pausedFromStatus !== null) ||
     !isNullableDateOnly(value.quotedOn) ||
     !isDateOnly(value.requestedOn) ||
     !isRequirementStatus(value.status) ||
@@ -355,6 +364,7 @@ function readRequirement(value: unknown): Requirement | null {
     description: value.description,
     id: value.id,
     name: value.name,
+    pausedFromStatus: value.pausedFromStatus,
     quotedOn: value.quotedOn,
     requestedOn: value.requestedOn,
     status: value.status,
@@ -428,6 +438,17 @@ function isPositiveOrZeroInteger(value: unknown): value is number {
 
 function isRequirementStatus(value: unknown): value is RequirementStatus {
   return (requirementStatuses as readonly string[]).includes(value as string);
+}
+
+function isRequirementPausedFromStatus(value: unknown): value is RequirementPausableStatus | null {
+  return (
+    value === null ||
+    value === "new" ||
+    value === "in_analysis" ||
+    value === "quoted" ||
+    value === "approved" ||
+    value === "in_execution"
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
