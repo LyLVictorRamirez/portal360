@@ -1,6 +1,6 @@
 # SPEC 10 — Estados unificados de Proyectos y Requerimientos
 
-> **Status:** Aprobada
+> **Status:** Implementada
 > **Depends on:** SPEC 07, SPEC 08, SPEC 09
 > **Date:** 2026-09-21
 > **Objective:** Unificar los nombres técnicos y visibles de los estados de Proyecto y Requerimiento, e incorporar la pausa reanudable al flujo de Requerimientos.
