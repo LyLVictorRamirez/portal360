@@ -10,6 +10,7 @@ import {
   type ProjectList,
   type ProjectStatus,
   projectStatuses,
+  ProjectTerminalStatusError,
   ProjectValidationError,
   type UpdateProjectCodeSettingsInput,
   type UpdateProjectCodeSettingsRecordInput,
@@ -72,7 +73,16 @@ export class ProjectService {
     input: UpdateProjectInput,
     actorUserId: string,
   ): Promise<Project> {
-    return this.projectRepository.updateProject(normalizeProjectId(projectId), {
+    const normalizedProjectId = normalizeProjectId(projectId);
+    const currentProject = await this.projectRepository.getProject(normalizedProjectId);
+
+    if (currentProject.status === "finalized" || currentProject.status === "cancelled") {
+      throw new ProjectTerminalStatusError(
+        "A finalized or cancelled Project cannot be changed.",
+      );
+    }
+
+    return this.projectRepository.updateProject(normalizedProjectId, {
       ...normalizeProjectUpdate(input),
       actorUserId: normalizeActorUserId(actorUserId),
     });
@@ -110,7 +120,7 @@ function normalizeProjectCreation(
     description: normalizeDescription(value.description),
     name: normalizeProjectName(value.name),
     startDate,
-    status: value.status === undefined ? "planned" : normalizeProjectStatus(value.status),
+    status: value.status === undefined ? "new" : normalizeProjectStatus(value.status),
   };
 }
 
@@ -285,7 +295,7 @@ function normalizeDate(value: unknown, field: string): string {
 function normalizeProjectStatus(value: unknown): ProjectStatus {
   if (!(projectStatuses as readonly string[]).includes(value as string)) {
     throw new ProjectValidationError(
-      "Project status must be planned, active, paused, finalized, or cancelled.",
+      "Project status must be new, in_execution, paused, finalized, or cancelled.",
     );
   }
 

@@ -35,6 +35,7 @@ import {
   type ProjectStatusFilter,
   ProjectNotFoundError,
   ProjectRelatedRecordsError,
+  ProjectTerminalStatusError,
   ProjectValidationError,
   ProjectVersionConflictError,
   type UpdateProjectCodeSettingsInput,
@@ -326,14 +327,14 @@ function readOptionalListStatus(value: unknown): ProjectStatusFilter | undefined
 
 function readRequiredStatus(value: unknown): ProjectStatus {
   if (
-    value !== "planned" &&
-    value !== "active" &&
+    value !== "new" &&
+    value !== "in_execution" &&
     value !== "paused" &&
     value !== "finalized" &&
     value !== "cancelled"
   ) {
     throw new BadRequestException(
-      "status must be planned, active, paused, finalized, or cancelled.",
+      "status must be new, in_execution, paused, finalized, or cancelled.",
     );
   }
 
@@ -409,6 +410,7 @@ function toHttpException(error: unknown): Error {
     error instanceof ProjectCodeExhaustedError ||
     error instanceof ProjectCodeSettingsVersionConflictError ||
     error instanceof ProjectRelatedRecordsError ||
+    error instanceof ProjectTerminalStatusError ||
     error instanceof ProjectVersionConflictError
   ) {
     return new ConflictException(error.message);

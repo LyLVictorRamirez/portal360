@@ -517,8 +517,8 @@ function readPositiveOrZeroInteger(value: unknown, field: string): number {
 
 function readProjectStatus(value: unknown): Project["status"] {
   if (
-    value !== "planned" &&
-    value !== "active" &&
+    value !== "new" &&
+    value !== "in_execution" &&
     value !== "paused" &&
     value !== "finalized" &&
     value !== "cancelled"
