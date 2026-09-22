@@ -58,7 +58,8 @@ const requirementSelection = (table: string) => `
   ${requirementRecordSelection(table)},
   "client"."id" as "client_id",
   "client"."code" as "client_code",
-  "client"."name" as "client_name"
+  "client"."name" as "client_name",
+  "approver"."name" as "approved_by_user_name"
 `;
 
 const codeSettingsSelection = `
@@ -76,6 +77,7 @@ const findRequirementByIdQuery = `
   select ${requirementSelection("requirement")}
   from "business"."requirement" as "requirement"
   inner join "business"."client" as "client" on "client"."id" = "requirement"."client_id"
+  left join "auth"."user" as "approver" on "approver"."id" = "requirement"."approved_by_user_id"
   where "requirement"."id" = $1
 `;
 
@@ -83,6 +85,7 @@ const listRequirementsQuery = `
   select ${requirementSelection("requirement")}
   from "business"."requirement" as "requirement"
   inner join "business"."client" as "client" on "client"."id" = "requirement"."client_id"
+  left join "auth"."user" as "approver" on "approver"."id" = "requirement"."approved_by_user_id"
   where (
     $1::text is null
     or "requirement"."code" ilike '%' || $1 || '%'
@@ -140,6 +143,7 @@ const insertRequirementQuery = `
   select ${requirementSelection("created")}
   from "created"
   inner join "business"."client" as "client" on "client"."id" = "created"."client_id"
+  left join "auth"."user" as "approver" on "approver"."id" = "created"."approved_by_user_id"
 `;
 
 const advanceCodeSettingsSequenceQuery = `
@@ -171,6 +175,7 @@ const updateRequirementQuery = `
   select ${requirementSelection("updated")}
   from "updated"
   inner join "business"."client" as "client" on "client"."id" = "updated"."client_id"
+  left join "auth"."user" as "approver" on "approver"."id" = "updated"."approved_by_user_id"
 `;
 
 const deleteRequirementQuery = `
@@ -437,6 +442,7 @@ export function formatRequirementCode(
 function readRequirement(row: Record<string, unknown>): Requirement {
   return {
     approvedByUserId: readNullableString(row.approved_by_user_id, "Requirement approver"),
+    approvedByUserName: readNullableString(row.approved_by_user_name, "Requirement approver name"),
     approvedOn: readNullableDateOnly(row.approved_on, "Requirement approval date"),
     client: {
       code: readString(row.client_code, "Requirement Client code"),

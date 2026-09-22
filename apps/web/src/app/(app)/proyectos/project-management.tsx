@@ -77,7 +77,7 @@ const projectStatusTones: Record<ProjectStatus, StatusBadgeTone> = {
   cancelled: "danger",
   finalized: "info",
   paused: "warning",
-  planned: "neutral",
+  planned: "planned",
 };
 
 const projectStatusFilterLabels: Record<ProjectStatusFilter, string> = {
@@ -127,7 +127,6 @@ export function ProjectManagement({ canManageProjects }: ProjectManagementProps)
   useEffect(() => {
     let current = true;
     const timeout = window.setTimeout(async () => {
-      setState({ kind: "loading" });
       const result = await listProjects({
         clientId: clientFilterId === "all" ? undefined : clientFilterId,
         page,

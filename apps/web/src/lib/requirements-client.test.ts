@@ -13,6 +13,7 @@ import {
 
 const requirement = {
   approvedByUserId: null,
+  approvedByUserName: null,
   approvedOn: null,
   client: {
     code: "CLI-001",

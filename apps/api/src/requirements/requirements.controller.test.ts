@@ -27,6 +27,7 @@ const requestContext = { authorization: { permissions: [], roles: [] }, userId: 
 function createRequirement(): Requirement {
   return {
     approvedByUserId: null,
+    approvedByUserName: null,
     approvedOn: null,
     client: { code: "CLI-001", id: clientId, name: "Cliente Uno" },
     code: "REQ-001",
@@ -119,6 +120,7 @@ test("lists Requirements with pagination, search, Client, and status", async () 
     requirements: [
       {
         approvedByUserId: null,
+        approvedByUserName: null,
         approvedOn: null,
         client: { code: "CLI-001", id: clientId, name: "Cliente Uno" },
         code: "REQ-001",

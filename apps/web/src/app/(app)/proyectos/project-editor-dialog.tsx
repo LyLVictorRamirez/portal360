@@ -7,7 +7,6 @@ import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "../../../components/ui/dialog";
@@ -47,7 +46,7 @@ const projectStatusTones: Record<ProjectStatus, StatusBadgeTone> = {
   cancelled: "danger",
   finalized: "info",
   paused: "warning",
-  planned: "neutral",
+  planned: "planned",
 };
 
 function getSaveErrorMessage(kind: "conflict" | "error" | "unauthorized" | "validation") {
@@ -175,20 +174,15 @@ export function ProjectEditorDialog({
     : isViewMode
       ? "Detalle del Proyecto"
       : "Editar Proyecto";
-  const descriptionText = isCreateMode
-    ? "El código se asignará automáticamente al guardar."
-    : "El Cliente y el código del Proyecto no se pueden modificar.";
-
   return (
     <Dialog onOpenChange={closeDialog} open={open}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{descriptionText}</DialogDescription>
         </DialogHeader>
         {isViewMode && project ? (
-          <div className="space-y-5">
-            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+          <div className="space-y-6">
+            <dl className="grid gap-5 rounded-xl bg-muted/45 px-4 py-5 text-sm sm:grid-cols-2 sm:px-5">
               <div>
                 <dt className="font-medium text-muted-foreground">Código</dt>
                 <dd className="mt-1 font-semibold tabular-nums text-primary">{project.code}</dd>
@@ -224,8 +218,8 @@ export function ProjectEditorDialog({
                 </dd>
               </div>
             </dl>
-            <div className="flex justify-end border-t border-border pt-4">
-              <Button onClick={closeDialog} type="button" variant="secondary">
+            <div className="flex justify-end">
+              <Button onClick={closeDialog} type="button" variant="cancel">
                 Cerrar
               </Button>
             </div>

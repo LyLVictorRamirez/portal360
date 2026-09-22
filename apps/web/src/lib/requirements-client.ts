@@ -19,6 +19,7 @@ export type RequirementClient = Readonly<{
 
 export type Requirement = Readonly<{
   approvedByUserId: string | null;
+  approvedByUserName: string | null;
   approvedOn: string | null;
   client: RequirementClient;
   code: string;
@@ -326,6 +327,7 @@ function readRequirement(value: unknown): Requirement | null {
 
   if (
     (value.approvedByUserId !== null && typeof value.approvedByUserId !== "string") ||
+    (value.approvedByUserName !== null && typeof value.approvedByUserName !== "string") ||
     !isNullableDateOnly(value.approvedOn) ||
     typeof client.code !== "string" ||
     typeof client.id !== "string" ||
@@ -345,6 +347,7 @@ function readRequirement(value: unknown): Requirement | null {
 
   return {
     approvedByUserId: value.approvedByUserId,
+    approvedByUserName: value.approvedByUserName,
     approvedOn: value.approvedOn,
     client: { code: client.code, id: client.id, name: client.name },
     code: value.code,

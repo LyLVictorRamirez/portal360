@@ -142,6 +142,7 @@ function settingsRow(settings: {
 function requirementRow(
   overrides: Partial<{
     approved_by_user_id: string | null;
+    approved_by_user_name: string | null;
     approved_on: Date | string | null;
     code: string;
     committed_on: Date | string | null;
@@ -154,6 +155,7 @@ function requirementRow(
 ): Record<string, unknown> {
   return {
     approved_by_user_id: null,
+    approved_by_user_name: null,
     approved_on: null,
     client_code: "CLI-001",
     client_id: clientId,
@@ -276,6 +278,35 @@ test("reads Requirement settings from the requirement row of the shared code set
 
   assert.equal(settings.prefix, "REQ");
   assert.match(queries[0] ?? "", /where "entity_type" = 'requirement'/i);
+});
+
+test("returns the approver name with a Requirement detail", async () => {
+  const queries: string[] = [];
+  const database: RequirementsDatabase = {
+    async connect() {
+      throw new Error("Not used by this test.");
+    },
+    async query(query) {
+      queries.push(query);
+      return {
+        rowCount: 1,
+        rows: [
+          requirementRow({
+            approved_by_user_id: "user-1",
+            approved_by_user_name: "María Pérez",
+            approved_on: "2026-10-03",
+            status: "approved",
+          }),
+        ],
+      };
+    },
+  };
+  const repository = new RequirementRepository(database);
+
+  const requirement = await repository.getRequirement(requirementId);
+
+  assert.equal(requirement.approvedByUserName, "María Pérez");
+  assert.match(queries[0] ?? "", /left join "auth"\."user" as "approver"/i);
 });
 
 test("rejects a stale Requirement update without overwriting the current version", async () => {

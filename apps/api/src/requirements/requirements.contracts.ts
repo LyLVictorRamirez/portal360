@@ -19,6 +19,7 @@ export interface RequirementClientReference {
 
 export interface Requirement {
   approvedByUserId: string | null;
+  approvedByUserName: string | null;
   approvedOn: string | null;
   client: RequirementClientReference;
   code: string;

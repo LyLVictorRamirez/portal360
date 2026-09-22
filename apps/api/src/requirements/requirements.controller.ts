@@ -44,6 +44,7 @@ import { RequirementService } from "./requirements.service.js";
 
 interface RequirementResponse {
   approvedByUserId: string | null;
+  approvedByUserName: string | null;
   approvedOn: string | null;
   client: {
     code: string;
@@ -386,6 +387,7 @@ function readPositiveInteger(value: unknown, field: string): number {
 function toRequirementResponse(requirement: Requirement): RequirementResponse {
   return {
     approvedByUserId: requirement.approvedByUserId,
+    approvedByUserName: requirement.approvedByUserName,
     approvedOn: requirement.approvedOn,
     client: requirement.client,
     code: requirement.code,

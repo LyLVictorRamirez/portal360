@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { Icons } from "../../../components/icons";
 import { Button } from "../../../components/ui/button";
@@ -36,6 +36,7 @@ export function ClientSearchField({
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [state, setState] = useState<ClientSearchState>({ kind: "loading" });
+  const fieldRef = useRef<HTMLDivElement>(null);
   const triggerId = useId();
 
   useEffect(() => {
@@ -79,7 +80,7 @@ export function ClientSearchField({
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" ref={fieldRef}>
       <Label htmlFor={triggerId}>Cliente</Label>
       <Popover onOpenChange={setIsOpen} open={isOpen}>
         <PopoverTrigger asChild>
@@ -103,7 +104,11 @@ export function ClientSearchField({
             />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-(--radix-popover-trigger-width) gap-0 p-0">
+        <PopoverContent
+          align="start"
+          className="w-(--radix-popover-trigger-width) gap-0 p-0"
+          container={fieldRef.current}
+        >
           <Command shouldFilter={false}>
             <CommandInput
               aria-label="Buscar Cliente"

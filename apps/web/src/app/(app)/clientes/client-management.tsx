@@ -70,7 +70,6 @@ export function ClientManagement({ canManageClients }: ClientManagementProps) {
   useEffect(() => {
     let current = true;
     const timeout = window.setTimeout(async () => {
-      setState({ kind: "loading" });
       const result = await listClients({ page, query, status });
 
       if (!current) {

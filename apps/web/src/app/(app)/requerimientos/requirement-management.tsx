@@ -77,11 +77,11 @@ const requirementStatusLabels: Record<RequirementStatus, string> = {
 const requirementStatusTones: Record<RequirementStatus, StatusBadgeTone> = {
   approved: "success",
   cancelled: "danger",
-  closed: "neutral",
+  closed: "info",
   in_analysis: "warning",
-  in_execution: "info",
-  new: "neutral",
-  quoted: "info",
+  in_execution: "success",
+  new: "planned",
+  quoted: "quoted",
 };
 
 const requirementStatusFilterLabels: Record<RequirementStatusFilter, string> = {
@@ -131,7 +131,6 @@ export function RequirementManagement({ canManageRequirements }: RequirementMana
   useEffect(() => {
     let current = true;
     const timeout = window.setTimeout(async () => {
-      setState({ kind: "loading" });
       const result = await listRequirements({
         clientId: clientFilterId === "all" ? undefined : clientFilterId,
         page,

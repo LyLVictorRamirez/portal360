@@ -102,17 +102,17 @@ export function ClientEditorDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {isReadOnly && client ? (
-          <div className="space-y-5">
-            <dl className="divide-y divide-border border-y border-border text-sm">
-              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+          <div className="space-y-6">
+            <dl className="grid gap-5 rounded-xl bg-muted/45 px-4 py-5 text-sm sm:px-5">
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
                 <dt className="font-medium text-muted-foreground">Código</dt>
                 <dd className="font-semibold tabular-nums text-primary">{client.code}</dd>
               </div>
-              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
                 <dt className="font-medium text-muted-foreground">Nombre</dt>
                 <dd className="font-semibold text-foreground">{client.name}</dd>
               </div>
-              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
                 <dt className="font-medium text-muted-foreground">Estado</dt>
                 <dd>
                   <StatusBadge
@@ -122,8 +122,8 @@ export function ClientEditorDialog({
                 </dd>
               </div>
             </dl>
-            <div className="flex justify-end border-t border-border pt-4">
-              <Button onClick={() => onOpenChange(false)} variant="secondary">
+            <div className="flex justify-end">
+              <Button onClick={() => onOpenChange(false)} variant="cancel">
                 Cerrar
               </Button>
             </div>

@@ -20,6 +20,7 @@ const clientId = "f6323093-e2fb-4875-a787-d1542064d138";
 function createRequirement(overrides: Partial<Requirement> = {}): Requirement {
   return {
     approvedByUserId: null,
+    approvedByUserName: null,
     approvedOn: null,
     client: { code: "CLI-001", id: clientId, name: "Cliente Uno" },
     code: "REQ-001",

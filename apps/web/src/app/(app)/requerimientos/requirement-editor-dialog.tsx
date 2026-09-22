@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState, type InputHTMLAttributes } from "react";
 
 import { ClientSearchField } from "../proyectos/client-search-field";
+import { Icons } from "../../../components/icons";
 import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "../../../components/ui/dialog";
@@ -15,6 +15,8 @@ import { SelectField } from "../../../components/ui/select-field";
 import { StatusBadge, type StatusBadgeTone } from "../../../components/ui/status-badge";
 import { TextareaField } from "../../../components/ui/textarea-field";
 import { TextField } from "../../../components/ui/text-field";
+import { Field, FieldLabel } from "../../../components/ui/field";
+import { Input } from "../../../components/ui/input";
 import type { Client } from "../../../lib/clients-client";
 import {
   createRequirement,
@@ -46,11 +48,11 @@ const requirementStatusLabels: Record<RequirementStatus, string> = {
 const requirementStatusTones: Record<RequirementStatus, StatusBadgeTone> = {
   approved: "success",
   cancelled: "danger",
-  closed: "neutral",
+  closed: "info",
   in_analysis: "warning",
-  in_execution: "info",
-  new: "neutral",
-  quoted: "info",
+  in_execution: "success",
+  new: "planned",
+  quoted: "quoted",
 };
 
 const availableStatusTransitions: Record<RequirementStatus, readonly RequirementStatus[]> = {
@@ -87,6 +89,38 @@ function isQuotedOrLater(status: RequirementStatus) {
 
 function isApprovedOrLater(status: RequirementStatus) {
   return status === "approved" || status === "in_execution" || status === "closed";
+}
+
+type RequirementDateFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "type"> & {
+  id: string;
+  label: string;
+};
+
+function RequirementDateField({ id, label, required, ...props }: RequirementDateFieldProps) {
+  const labelId = useId();
+
+  return (
+    <Field>
+      <FieldLabel id={labelId} htmlFor={id}>
+        {label}
+        {required ? <span aria-hidden="true"> *</span> : null}
+      </FieldLabel>
+      <div className="relative">
+        <Icons.calendar
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          aria-labelledby={labelId}
+          className="pl-10 [appearance:none] [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+          id={id}
+          required={required}
+          type="date"
+          {...props}
+        />
+      </div>
+    </Field>
+  );
 }
 
 export function RequirementEditorDialog({
@@ -155,12 +189,12 @@ export function RequirementEditorDialog({
     }
 
     if (!requestedOn) {
-      setFormError("La fecha de solicitud es obligatoria.");
+      setFormError("La fecha es obligatoria.");
       return;
     }
 
     if (committedOn && committedOn < requestedOn) {
-      setFormError("La fecha comprometida no puede ser anterior a la solicitud.");
+      setFormError("La fecha comprometida de entrega no puede ser anterior a la fecha.");
       return;
     }
 
@@ -223,20 +257,15 @@ export function RequirementEditorDialog({
     : isViewMode
       ? "Detalle del Requerimiento"
       : "Editar Requerimiento";
-  const descriptionText = isCreateMode
-    ? "El código se asignará automáticamente al guardar."
-    : "El Cliente y el código del Requerimiento no se pueden modificar.";
-
   return (
     <Dialog onOpenChange={closeDialog} open={open}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{descriptionText}</DialogDescription>
         </DialogHeader>
         {isViewMode && requirement ? (
-          <div className="space-y-5">
-            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+          <div className="space-y-6">
+            <dl className="grid gap-5 rounded-xl bg-muted/45 px-4 py-5 text-sm sm:grid-cols-2 sm:px-5">
               <div>
                 <dt className="font-medium text-muted-foreground">Código</dt>
                 <dd className="mt-1 font-semibold tabular-nums text-primary">{requirement.code}</dd>
@@ -251,6 +280,10 @@ export function RequirementEditorDialog({
                 </dd>
               </div>
               <div className="sm:col-span-2">
+                <dt className="font-medium text-muted-foreground">Nombre del requerimiento</dt>
+                <dd className="mt-1 text-foreground">{requirement.name}</dd>
+              </div>
+              <div className="sm:col-span-2">
                 <dt className="font-medium text-muted-foreground">Cliente</dt>
                 <dd className="mt-1 text-foreground">
                   {requirement.client.name}{" "}
@@ -260,25 +293,25 @@ export function RequirementEditorDialog({
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-muted-foreground">Solicitud</dt>
+                <dt className="font-medium text-muted-foreground">Fecha</dt>
                 <dd className="mt-1 text-foreground">{requirement.requestedOn}</dd>
               </div>
               <div>
-                <dt className="font-medium text-muted-foreground">Compromiso</dt>
-                <dd className="mt-1 text-foreground">{requirement.committedOn ?? "Sin fecha"}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-muted-foreground">Cotización</dt>
+                <dt className="font-medium text-muted-foreground">Fecha de cotización</dt>
                 <dd className="mt-1 text-foreground">{requirement.quotedOn ?? "Sin fecha"}</dd>
               </div>
               <div>
-                <dt className="font-medium text-muted-foreground">Aprobación</dt>
+                <dt className="font-medium text-muted-foreground">Fecha aprobación cliente</dt>
                 <dd className="mt-1 text-foreground">{requirement.approvedOn ?? "Sin fecha"}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-muted-foreground">Fecha comprometida de entrega</dt>
+                <dd className="mt-1 text-foreground">{requirement.committedOn ?? "Sin fecha"}</dd>
               </div>
               <div className="sm:col-span-2">
                 <dt className="font-medium text-muted-foreground">Aprobado por</dt>
                 <dd className="mt-1 text-foreground">
-                  {requirement.approvedByUserId ?? "Sin aprobación registrada"}
+                  {requirement.approvedByUserName ?? "Sin aprobación registrada"}
                 </dd>
               </div>
               <div className="sm:col-span-2">
@@ -288,8 +321,8 @@ export function RequirementEditorDialog({
                 </dd>
               </div>
             </dl>
-            <div className="flex justify-end border-t border-border pt-4">
-              <Button onClick={closeDialog} type="button" variant="secondary">
+            <div className="flex justify-end">
+              <Button onClick={closeDialog} type="button" variant="cancel">
                 Cerrar
               </Button>
             </div>
@@ -338,73 +371,65 @@ export function RequirementEditorDialog({
               value={description}
             />
 
+            {!isCreateMode ? (
+              <SelectField
+                disabled={isSaving}
+                helpText="Solo se muestran las transiciones disponibles para el estado actual."
+                id="requirement-status"
+                label="Estado"
+                onChange={(event) => setStatus(event.target.value as RequirementStatus)}
+                value={status}
+              >
+                {availableStatusTransitions[requirement?.status ?? "new"].map(
+                  (availableStatus) => (
+                    <option key={availableStatus} value={availableStatus}>
+                      {requirementStatusLabels[availableStatus]}
+                    </option>
+                  ),
+                )}
+              </SelectField>
+            ) : null}
+
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
+              <RequirementDateField
                 disabled={isSaving}
                 id="requirement-requested-on"
-                label="Fecha de solicitud"
+                label="Fecha"
                 onChange={(event) => setRequestedOn(event.target.value)}
                 required
-                type="date"
                 value={requestedOn}
               />
-              <TextField
+              {!isCreateMode && isQuotedOrLater(status) ? (
+                <RequirementDateField
+                  disabled={isSaving}
+                  id="requirement-quoted-on"
+                  label="Fecha de cotización"
+                  min={requestedOn || undefined}
+                  onChange={(event) => setQuotedOn(event.target.value)}
+                  required
+                  value={quotedOn}
+                />
+              ) : null}
+              {!isCreateMode && isApprovedOrLater(status) ? (
+                <RequirementDateField
+                  disabled={isSaving}
+                  id="requirement-approved-on"
+                  label="Fecha aprobación cliente"
+                  min={requestedOn || undefined}
+                  onChange={(event) => setApprovedOn(event.target.value)}
+                  required
+                  value={approvedOn}
+                />
+              ) : null}
+              <RequirementDateField
                 disabled={isSaving}
                 id="requirement-committed-on"
-                label="Fecha comprometida"
+                label="Fecha comprometida de entrega"
                 min={requestedOn || undefined}
                 onChange={(event) => setCommittedOn(event.target.value)}
-                type="date"
                 value={committedOn}
               />
             </div>
-
-            {!isCreateMode ? (
-              <>
-                <SelectField
-                  disabled={isSaving}
-                  helpText="Solo se muestran las transiciones disponibles para el estado actual."
-                  id="requirement-status"
-                  label="Estado"
-                  onChange={(event) => setStatus(event.target.value as RequirementStatus)}
-                  value={status}
-                >
-                  {availableStatusTransitions[requirement?.status ?? "new"].map(
-                    (availableStatus) => (
-                      <option key={availableStatus} value={availableStatus}>
-                        {requirementStatusLabels[availableStatus]}
-                      </option>
-                    ),
-                  )}
-                </SelectField>
-
-                {isQuotedOrLater(status) ? (
-                  <TextField
-                    disabled={isSaving}
-                    id="requirement-quoted-on"
-                    label="Fecha de cotización"
-                    min={requestedOn || undefined}
-                    onChange={(event) => setQuotedOn(event.target.value)}
-                    required
-                    type="date"
-                    value={quotedOn}
-                  />
-                ) : null}
-
-                {isApprovedOrLater(status) ? (
-                  <TextField
-                    disabled={isSaving}
-                    id="requirement-approved-on"
-                    label="Fecha de aprobación"
-                    min={requestedOn || undefined}
-                    onChange={(event) => setApprovedOn(event.target.value)}
-                    required
-                    type="date"
-                    value={approvedOn}
-                  />
-                ) : null}
-              </>
-            ) : null}
 
             {formError || saveError ? (
               <p className="text-sm leading-6 text-danger" role="alert">
