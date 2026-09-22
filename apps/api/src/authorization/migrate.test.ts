@@ -13,6 +13,7 @@ test("keeps the RBAC schema, catalog, and system-role safeguards in the authoriz
       "0003-authorization-clients-permissions.sql",
       "0004-authorization-projects-permissions.sql",
       "0005-authorization-requirements-permissions.sql",
+      "0007-authorization-tickets-permissions.sql",
     ],
   );
 
@@ -129,6 +130,34 @@ test("adds idempotent Requirement permissions with the agreed system-role grants
     ["lider", "requirements.read"],
     ["lider", "requirements.manage"],
     ["miembro", "requirements.read"],
+  ]) {
+    assert.match(migration.sql, new RegExp(`\\('${grant[0]}', '${grant[1]}'\\)`));
+  }
+
+  assert.match(migration.sql, /on conflict \("key"\) do nothing/i);
+  assert.match(migration.sql, /on conflict \("role_key", "permission_key"\) do nothing/i);
+  assert.doesNotMatch(migration.sql, /update "authorization"/i);
+  assert.doesNotMatch(migration.sql, /delete from "authorization"/i);
+});
+
+test("adds idempotent Ticket permissions with the agreed system-role grants", async () => {
+  const migrations = await readAuthorizationMigrations();
+  const migration = migrations.find(
+    (candidate) => candidate.name === "0007-authorization-tickets-permissions.sql",
+  );
+
+  assert.ok(migration);
+
+  for (const permission of ["tickets.read", "tickets.manage"]) {
+    assert.match(migration.sql, new RegExp(`'${permission}'`));
+  }
+
+  for (const grant of [
+    ["administrador", "tickets.read"],
+    ["administrador", "tickets.manage"],
+    ["lider", "tickets.read"],
+    ["lider", "tickets.manage"],
+    ["miembro", "tickets.read"],
   ]) {
     assert.match(migration.sql, new RegExp(`\\('${grant[0]}', '${grant[1]}'\\)`));
   }
