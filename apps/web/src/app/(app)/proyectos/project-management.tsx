@@ -65,25 +65,29 @@ type ProjectManagementProps = Readonly<{
 }>;
 
 const projectStatusLabels: Record<ProjectStatus, string> = {
-  active: "Activo",
   cancelled: "Cancelado",
   finalized: "Finalizado",
+  in_execution: "En ejecución",
+  new: "Nuevo",
   paused: "Pausado",
-  planned: "Planeado",
 };
 
 const projectStatusTones: Record<ProjectStatus, StatusBadgeTone> = {
-  active: "success",
   cancelled: "danger",
   finalized: "info",
+  in_execution: "success",
+  new: "planned",
   paused: "warning",
-  planned: "planned",
 };
 
 const projectStatusFilterLabels: Record<ProjectStatusFilter, string> = {
   all: "Todos",
   ...projectStatusLabels,
 };
+
+function isTerminalProject(project: Project): boolean {
+  return project.status === "finalized" || project.status === "cancelled";
+}
 
 export function ProjectManagement({ canManageProjects }: ProjectManagementProps) {
   const [actionError, setActionError] = useState<string | null>(null);
@@ -677,10 +681,12 @@ function createColumns(
             </DropdownMenuItem>
             {canManageProjects ? (
               <>
-                <DropdownMenuItem onSelect={() => onEdit(project)}>
-                  <Icons.edit />
-                  Editar
-                </DropdownMenuItem>
+                {!isTerminalProject(project) ? (
+                  <DropdownMenuItem onSelect={() => onEdit(project)}>
+                    <Icons.edit />
+                    Editar
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => onDelete(project)} variant="destructive">
                   <Icons.trash />

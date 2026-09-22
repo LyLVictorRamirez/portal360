@@ -34,19 +34,19 @@ type ProjectEditorDialogProps = {
 };
 
 const projectStatusLabels: Record<ProjectStatus, string> = {
-  active: "Activo",
   cancelled: "Cancelado",
   finalized: "Finalizado",
+  in_execution: "En ejecución",
+  new: "Nuevo",
   paused: "Pausado",
-  planned: "Planeado",
 };
 
 const projectStatusTones: Record<ProjectStatus, StatusBadgeTone> = {
-  active: "success",
   cancelled: "danger",
   finalized: "info",
+  in_execution: "success",
+  new: "planned",
   paused: "warning",
-  planned: "planned",
 };
 
 function getSaveErrorMessage(kind: "conflict" | "error" | "unauthorized" | "validation") {
@@ -74,6 +74,8 @@ export function ProjectEditorDialog({
 }: ProjectEditorDialogProps) {
   const isViewMode = mode === "view";
   const isCreateMode = mode === "create";
+  const isTerminalProject = project?.status === "finalized" || project?.status === "cancelled";
+  const isReadOnly = isViewMode || isTerminalProject;
   const [committedEndDate, setCommittedEndDate] = useState("");
   const [description, setDescription] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export function ProjectEditorDialog({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [startDate, setStartDate] = useState("");
-  const [status, setStatus] = useState<ProjectStatus>("planned");
+  const [status, setStatus] = useState<ProjectStatus>("new");
 
   useEffect(() => {
     if (!open) {
@@ -97,7 +99,7 @@ export function ProjectEditorDialog({
     setSaveError(null);
     setSelectedClient(null);
     setStartDate(project?.startDate ?? "");
-    setStatus(project?.status ?? "planned");
+    setStatus(project?.status ?? "new");
   }, [isCreateMode, open, project]);
 
   function closeDialog() {
@@ -171,7 +173,7 @@ export function ProjectEditorDialog({
 
   const title = isCreateMode
     ? "Nuevo Proyecto"
-    : isViewMode
+    : isReadOnly
       ? "Detalle del Proyecto"
       : "Editar Proyecto";
   return (
@@ -180,7 +182,7 @@ export function ProjectEditorDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        {isViewMode && project ? (
+        {isReadOnly && project ? (
           <div className="space-y-6">
             <dl className="grid gap-5 rounded-xl bg-muted/45 px-4 py-5 text-sm sm:grid-cols-2 sm:px-5">
               <div>
