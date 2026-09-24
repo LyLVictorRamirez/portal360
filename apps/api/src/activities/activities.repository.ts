@@ -4,16 +4,31 @@ import {
   type Activity,
   type ActivityAssignee,
   type ActivityAuditEvent,
+<<<<<<< HEAD
+=======
+  type ActivityDependencies,
+  type ActivityDependency,
+  type ActivityDetail,
+>>>>>>> spec-14-dependencias-de-actividades
   ActivityAssigneeInvalidError,
   ActivityCategoryInactiveError,
   ActivityContainerNotFoundError,
   ActivityContainerTerminalError,
+<<<<<<< HEAD
+=======
+  ActivityDependencyValidationError,
+>>>>>>> spec-14-dependencias-de-actividades
   ActivityNotFoundError,
   ActivityOrderError,
   ActivityRelatedRecordsError,
   ActivityValidationError,
   ActivityVersionConflictError,
   type CreateActivityRecordInput,
+<<<<<<< HEAD
+=======
+  type CreateActivityDependencyRecordInput,
+  type DeleteActivityDependencyRecordInput,
+>>>>>>> spec-14-dependencias-de-actividades
   type DeleteActivityInput,
   type ListActivitiesQuery,
   type ActivityList,
@@ -88,6 +103,33 @@ const listAssigneesQuery = `
     and ($1::text = '' or "user"."name" ilike '%' || $1 || '%' or "user"."email" ilike '%' || $1 || '%')
   order by "user"."name" asc, "user"."email" asc
   limit 25`;
+<<<<<<< HEAD
+=======
+const listPredecessorsQuery = `
+  select "activity"."id", "activity"."name", "activity"."status", "activity"."version"
+  from "business"."activity_dependency" as "dependency"
+  inner join "business"."activity" as "activity"
+    on "activity"."id" = "dependency"."predecessor_activity_id"
+  where "dependency"."successor_activity_id" = $1
+  order by "activity"."name" asc, "activity"."id" asc`;
+const listSuccessorsQuery = `
+  select "activity"."id", "activity"."name", "activity"."status", "activity"."version"
+  from "business"."activity_dependency" as "dependency"
+  inner join "business"."activity" as "activity"
+    on "activity"."id" = "dependency"."successor_activity_id"
+  where "dependency"."predecessor_activity_id" = $1
+  order by "activity"."name" asc, "activity"."id" asc`;
+const listRelatedActivityNamesQuery = `
+  select "activity"."name"
+  from "business"."activity_dependency" as "dependency"
+  inner join "business"."activity" as "activity"
+    on "activity"."id" = case
+      when "dependency"."predecessor_activity_id" = $1 then "dependency"."successor_activity_id"
+      else "dependency"."predecessor_activity_id"
+    end
+  where "dependency"."predecessor_activity_id" = $1 or "dependency"."successor_activity_id" = $1
+  order by "activity"."name" asc, "activity"."id" asc`;
+>>>>>>> spec-14-dependencias-de-actividades
 const listActivitiesQuery = `
   select ${activitySelection("activity")}
   from "business"."activity" as "activity"
@@ -111,10 +153,25 @@ const countActivitiesQuery = `
 export class ActivityRepository {
   constructor(@Inject(ACTIVITIES_DATABASE) private readonly database: ActivitiesDatabase) {}
 
+<<<<<<< HEAD
   async getActivity(activityId: string): Promise<Activity> {
     const result = await this.database.query(findActivityQuery, [activityId]);
     if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
     return readActivity(result.rows[0]);
+=======
+  async getActivity(activityId: string): Promise<ActivityDetail> {
+    const result = await this.database.query(findActivityQuery, [activityId]);
+    if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
+    return {
+      ...readActivity(result.rows[0]),
+      dependencies: await this.readActivityDependencies(activityId),
+    };
+  }
+
+  async listActivityDependencies(activityId: string): Promise<ActivityDependencies> {
+    await this.getActivity(activityId);
+    return this.readActivityDependencies(activityId);
+>>>>>>> spec-14-dependencias-de-actividades
   }
 
   async listAuditEvents(activityId: string): Promise<ActivityAuditEvent[]> {
@@ -252,6 +309,18 @@ export class ActivityRepository {
         throw new ActivityVersionConflictError(
           "The Activity was updated by another person. Reload it before deleting.",
         );
+<<<<<<< HEAD
+=======
+      const relatedActivities = await transaction.query(listRelatedActivityNamesQuery, [
+        activityId,
+      ]);
+      if (relatedActivities.rows.length > 0) {
+        throw new ActivityRelatedRecordsError(
+          "The Activity cannot be deleted while it has dependencies.",
+          relatedActivities.rows.map((row) => readString(row.name, "Related Activity name")),
+        );
+      }
+>>>>>>> spec-14-dependencias-de-actividades
       await recordAuditEvent(transaction, input.actorUserId, "delete", current, null);
       const result = await transaction.query(
         `delete from "business"."activity" where "id" = $1 returning "id"`,
@@ -313,6 +382,110 @@ export class ActivityRepository {
       transaction.release();
     }
   }
+<<<<<<< HEAD
+=======
+
+  async createActivityDependency(
+    successorActivityId: string,
+    input: CreateActivityDependencyRecordInput,
+  ): Promise<ActivityDependencies> {
+    const transaction = await this.database.connect();
+    try {
+      await transaction.query("BEGIN");
+      const successor = await getActivityForUpdate(transaction, successorActivityId);
+      if (successor.version !== input.version) {
+        throw new ActivityVersionConflictError(
+          "The Activity was updated by another person. Reload it before changing dependencies.",
+        );
+      }
+      const predecessor = await getActivity(transaction, input.predecessorActivityId);
+      await assertValidActivityDependency(transaction, predecessor, successor);
+      await transaction.query(
+        `insert into "business"."activity_dependency" ("predecessor_activity_id", "successor_activity_id", "created_by_user_id") values ($1, $2, $3)`,
+        [predecessor.id, successor.id, input.actorUserId],
+      );
+      await touchActivity(transaction, successor.id, input.actorUserId);
+      await recordActivityDependencyAudit(
+        transaction,
+        input.actorUserId,
+        successor.id,
+        "predecessors",
+        predecessor,
+        null,
+      );
+      await recordActivityDependencyAudit(
+        transaction,
+        input.actorUserId,
+        predecessor.id,
+        "successors",
+        successor,
+        null,
+      );
+      const dependencies = await readActivityDependencies(transaction, successor.id);
+      await transaction.query("COMMIT");
+      return dependencies;
+    } catch (error) {
+      await transaction.query("ROLLBACK");
+      throw mapDatabaseError(error);
+    } finally {
+      transaction.release();
+    }
+  }
+
+  async deleteActivityDependency(
+    successorActivityId: string,
+    predecessorActivityId: string,
+    input: DeleteActivityDependencyRecordInput,
+  ): Promise<ActivityDependencies> {
+    const transaction = await this.database.connect();
+    try {
+      await transaction.query("BEGIN");
+      const successor = await getActivityForUpdate(transaction, successorActivityId);
+      if (successor.version !== input.version) {
+        throw new ActivityVersionConflictError(
+          "The Activity was updated by another person. Reload it before changing dependencies.",
+        );
+      }
+      const predecessor = await getActivity(transaction, predecessorActivityId);
+      const removed = await transaction.query(
+        `delete from "business"."activity_dependency" where "predecessor_activity_id" = $1 and "successor_activity_id" = $2 returning "predecessor_activity_id"`,
+        [predecessor.id, successor.id],
+      );
+      if (!removed.rows[0]) {
+        throw new ActivityDependencyValidationError("The Activity dependency does not exist.");
+      }
+      await touchActivity(transaction, successor.id, input.actorUserId);
+      await recordActivityDependencyAudit(
+        transaction,
+        input.actorUserId,
+        successor.id,
+        "predecessors",
+        null,
+        predecessor,
+      );
+      await recordActivityDependencyAudit(
+        transaction,
+        input.actorUserId,
+        predecessor.id,
+        "successors",
+        null,
+        successor,
+      );
+      const dependencies = await readActivityDependencies(transaction, successor.id);
+      await transaction.query("COMMIT");
+      return dependencies;
+    } catch (error) {
+      await transaction.query("ROLLBACK");
+      throw mapDatabaseError(error);
+    } finally {
+      transaction.release();
+    }
+  }
+
+  private async readActivityDependencies(activityId: string): Promise<ActivityDependencies> {
+    return readActivityDependencies(this.database, activityId);
+  }
+>>>>>>> spec-14-dependencias-de-actividades
 }
 
 function buildUpdateQuery(
@@ -371,6 +544,76 @@ async function getActivityForUpdate(
   if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
   return readActivity(result.rows[0]);
 }
+<<<<<<< HEAD
+=======
+async function getActivity(transaction: Transaction, activityId: string): Promise<Activity> {
+  const result = await transaction.query(findActivityQuery, [activityId]);
+  if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
+  return readActivity(result.rows[0]);
+}
+async function readActivityDependencies(
+  database: Pick<ActivitiesDatabase, "query">,
+  activityId: string,
+): Promise<ActivityDependencies> {
+  const [predecessors, successors] = await Promise.all([
+    database.query(listPredecessorsQuery, [activityId]),
+    database.query(listSuccessorsQuery, [activityId]),
+  ]);
+  return {
+    predecessors: predecessors.rows.map(readActivityDependency),
+    successors: successors.rows.map(readActivityDependency),
+  };
+}
+async function assertValidActivityDependency(
+  transaction: Transaction,
+  predecessor: Activity,
+  successor: Activity,
+): Promise<void> {
+  if (predecessor.id === successor.id) {
+    throw new ActivityDependencyValidationError("An Activity cannot depend on itself.");
+  }
+  if (
+    predecessor.containerType !== successor.containerType ||
+    predecessor.containerId !== successor.containerId
+  ) {
+    throw new ActivityDependencyValidationError(
+      "Activity dependencies must use Activities in the same container.",
+    );
+  }
+  const existing = await transaction.query(
+    `select 1 from "business"."activity_dependency" where "predecessor_activity_id" = $1 and "successor_activity_id" = $2`,
+    [predecessor.id, successor.id],
+  );
+  if (existing.rows[0]) {
+    throw new ActivityDependencyValidationError("The Activity dependency already exists.");
+  }
+  const cycle = await transaction.query(
+    `with recursive descendants("activity_id") as (
+      select $1::uuid
+      union
+      select "dependency"."successor_activity_id"
+      from "business"."activity_dependency" as "dependency"
+      inner join descendants on "dependency"."predecessor_activity_id" = descendants."activity_id"
+    )
+    select 1 from descendants where "activity_id" = $2::uuid`,
+    [successor.id, predecessor.id],
+  );
+  if (cycle.rows[0]) {
+    throw new ActivityDependencyValidationError("Activity dependencies cannot form a cycle.");
+  }
+}
+async function touchActivity(
+  transaction: Transaction,
+  activityId: string,
+  actorUserId: string,
+): Promise<void> {
+  const result = await transaction.query(
+    `update "business"."activity" set "updated_at" = current_timestamp, "updated_by_user_id" = $2, "version" = "version" + 1 where "id" = $1 returning "id"`,
+    [activityId, actorUserId],
+  );
+  if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
+}
+>>>>>>> spec-14-dependencias-de-actividades
 function containerIds(
   type: ActivityContainerType,
   id: string,
@@ -484,6 +727,17 @@ function readActivity(row: Record<string, unknown>): Activity {
     waitingStartedAt: nullableDate(row.waiting_started_at, "Waiting date"),
   };
 }
+<<<<<<< HEAD
+=======
+function readActivityDependency(row: Record<string, unknown>): ActivityDependency {
+  return {
+    id: readString(row.id, "Activity dependency id"),
+    name: readString(row.name, "Activity dependency name"),
+    status: readStatus(row.status),
+    version: readPositiveInteger(row.version, "Activity dependency version"),
+  };
+}
+>>>>>>> spec-14-dependencias-de-actividades
 function readString(value: unknown, field: string): string {
   if (typeof value !== "string")
     throw new Error(`Invalid ${field} returned by the business database.`);
@@ -569,6 +823,34 @@ async function recordAuditEvent(
     [entityId, action, actorUserId, JSON.stringify(activityChanges(before, after))],
   );
 }
+<<<<<<< HEAD
+=======
+async function recordActivityDependencyAudit(
+  transaction: Transaction,
+  actorUserId: string,
+  activityId: string,
+  field: "predecessors" | "successors",
+  added: Activity | null,
+  removed: Activity | null,
+): Promise<void> {
+  await transaction.query(
+    `insert into "business"."audit_event" ("entity_type", "entity_id", "action", "actor_user_id", "occurred_at", "changes") values ('activity', $1, 'modify', $2, current_timestamp, $3::jsonb)`,
+    [
+      activityId,
+      actorUserId,
+      JSON.stringify({
+        [field]: {
+          after: added ? activityDependencyAuditValue(added) : null,
+          before: removed ? activityDependencyAuditValue(removed) : null,
+        },
+      }),
+    ],
+  );
+}
+function activityDependencyAuditValue(activity: Activity): { id: string; name: string } {
+  return { id: activity.id, name: activity.name };
+}
+>>>>>>> spec-14-dependencias-de-actividades
 function activityChanges(
   before: Activity | null,
   after: Activity | null,

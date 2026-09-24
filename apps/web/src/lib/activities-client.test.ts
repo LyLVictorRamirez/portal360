@@ -3,8 +3,17 @@ import test from "node:test";
 
 import {
   createActivity,
+<<<<<<< HEAD
   deleteActivity,
   listActivityAssignees,
+=======
+  createActivityDependency,
+  deleteActivity,
+  deleteActivityDependency,
+  getActivity,
+  listActivityAssignees,
+  listActivityDependencies,
+>>>>>>> spec-14-dependencias-de-actividades
   listActivities,
   moveActivity,
 } from "./activities-client.ts";
@@ -99,3 +108,76 @@ test("maps Activity conflicts and validation responses", async () => {
     { kind: "validation", message: "Nombre requerido." },
   );
 });
+<<<<<<< HEAD
+=======
+
+test("reads and mutates Activity dependencies with versioned same-origin requests", async () => {
+  const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
+  const dependencies = {
+    predecessors: [{ id: "activity-0", name: "Preparar", status: "pending", version: 2 }],
+    successors: [{ id: "activity-2", name: "Entregar", status: "finalized", version: 3 }],
+  };
+  const fetchImplementation: typeof fetch = async (input, init) => {
+    requests.push({ url: input.toString(), init });
+    if (input.toString() === "/api/activities/activity-1") {
+      return Response.json({ activity: { ...activity, dependencies } });
+    }
+    return Response.json(dependencies);
+  };
+
+  assert.deepEqual(await getActivity("activity-1", fetchImplementation), {
+    kind: "success",
+    data: { ...activity, dependencies },
+  });
+  assert.deepEqual(await listActivityDependencies("activity-1", fetchImplementation), {
+    kind: "success",
+    data: dependencies,
+  });
+  assert.deepEqual(
+    await createActivityDependency(
+      "activity-1",
+      { predecessorActivityId: "activity-0", version: 1 },
+      fetchImplementation,
+    ),
+    { kind: "success", data: dependencies },
+  );
+  assert.deepEqual(
+    await deleteActivityDependency("activity-1", "activity-0", 2, fetchImplementation),
+    { kind: "success", data: dependencies },
+  );
+  assert.deepEqual(
+    requests.map(({ url, init }) => ({ body: init?.body, method: init?.method, url })),
+    [
+      { body: undefined, method: undefined, url: "/api/activities/activity-1" },
+      { body: undefined, method: undefined, url: "/api/activities/activity-1/dependencies" },
+      {
+        body: '{"predecessorActivityId":"activity-0","version":1}',
+        method: "POST",
+        url: "/api/activities/activity-1/dependencies",
+      },
+      {
+        body: undefined,
+        method: "DELETE",
+        url: "/api/activities/activity-1/dependencies/activity-0?version=2",
+      },
+    ],
+  );
+});
+
+test("propagates dependency conflicts and validation responses", async () => {
+  assert.deepEqual(
+    await createActivityDependency(
+      "activity-1",
+      { predecessorActivityId: "activity-0", version: 1 },
+      async () => Response.json({ message: "Recarga." }, { status: 409 }),
+    ),
+    { kind: "conflict", message: "Recarga." },
+  );
+  assert.deepEqual(
+    await deleteActivityDependency("activity-1", "activity-0", 1, async () =>
+      Response.json({ message: "No se permite un ciclo." }, { status: 422 }),
+    ),
+    { kind: "validation", message: "No se permite un ciclo." },
+  );
+});
+>>>>>>> spec-14-dependencias-de-actividades

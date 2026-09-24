@@ -17,11 +17,24 @@ import {
 import {
   activityPriorities,
   activityStatuses,
+<<<<<<< HEAD
   createActivity,
+=======
+  createActivityDependency,
+  deleteActivityDependency,
+  createActivity,
+  getActivity,
+  listActivities,
+>>>>>>> spec-14-dependencias-de-actividades
   listActivityAuditEvents,
   updateActivity,
   type Activity,
   type ActivityAuditEvent,
+<<<<<<< HEAD
+=======
+  type ActivityDetail as ActivityDetailData,
+  type ActivityDependency,
+>>>>>>> spec-14-dependencias-de-actividades
   type ActivityPriority,
   type ActivityStatus,
 } from "../../../lib/activities-client";
@@ -31,6 +44,10 @@ import {
   type ActivityCategory,
 } from "../../../lib/activity-categories-client";
 import {
+<<<<<<< HEAD
+=======
+  ActivityPredecessorSearchField,
+>>>>>>> spec-14-dependencias-de-actividades
   AssigneeSearchField,
   ContainerSearchField,
   ProjectStageSearchField,
@@ -129,17 +146,33 @@ export function ActivitySheet({
   const isCreate = mode === "create";
   const isView = mode === "view";
   const [auditEvents, setAuditEvents] = useState<readonly ActivityAuditEvent[]>([]);
+<<<<<<< HEAD
+=======
+  const [detailActivity, setDetailActivity] = useState<ActivityDetailData | null>(null);
+>>>>>>> spec-14-dependencias-de-actividades
   const [categories, setCategories] = useState<readonly ActivityCategory[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ActivityFormErrors>({});
   const [form, setForm] = useState<ActivityFormValues>(emptyForm);
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
+<<<<<<< HEAD
   const [isSaving, setIsSaving] = useState(false);
   const [projectStages, setProjectStages] = useState<readonly ProjectStage[]>([]);
+=======
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [projectStages, setProjectStages] = useState<readonly ProjectStage[]>([]);
+  const [selectedPredecessors, setSelectedPredecessors] = useState<readonly Activity[]>([]);
+>>>>>>> spec-14-dependencias-de-actividades
 
   useEffect(() => {
     if (!open) return;
     setAuditEvents([]);
+<<<<<<< HEAD
+=======
+    setDetailActivity(null);
+    setSelectedPredecessors([]);
+>>>>>>> spec-14-dependencias-de-actividades
     setError(null);
     setFieldErrors({});
     setForm(activityForm(activity));
@@ -147,7 +180,17 @@ export function ActivitySheet({
     void listActivityCategories().then((result) => {
       if (result.kind === "success") setCategories(result.data);
     });
+<<<<<<< HEAD
     if (activity && isView) {
+=======
+    if (activity && !isCreate) {
+      setIsLoadingDetail(true);
+      void getActivity(activity.id).then((result) => {
+        if (result.kind === "success") setDetailActivity(result.data);
+        else if (result.kind !== "unauthorized") setError(result.message);
+        setIsLoadingDetail(false);
+      });
+>>>>>>> spec-14-dependencias-de-actividades
       setIsLoadingTimeline(true);
       void listActivityAuditEvents(activity.id).then((result) => {
         if (result.kind === "success") setAuditEvents(result.data);
@@ -193,7 +236,14 @@ export function ActivitySheet({
     const payload = toPayload(form);
     const result = isCreate
       ? await createActivity(payload)
+<<<<<<< HEAD
       : await updateActivity(activity?.id ?? "", { ...payload, version: activity?.version ?? 0 });
+=======
+      : await updateActivity(activity?.id ?? "", {
+          ...payload,
+          version: detailActivity?.version ?? activity?.version ?? 0,
+        });
+>>>>>>> spec-14-dependencias-de-actividades
     setIsSaving(false);
     if (result.kind !== "success") {
       setError(
@@ -203,7 +253,34 @@ export function ActivitySheet({
       );
       return;
     }
+<<<<<<< HEAD
     onSaved(result.data, isCreate);
+=======
+    if (isCreate && selectedPredecessors.length) {
+      let current = result.data;
+      for (const predecessor of selectedPredecessors) {
+        const dependency = await createActivityDependency(current.id, {
+          predecessorActivityId: predecessor.id,
+          version: current.version,
+        });
+        if (dependency.kind !== "success") {
+          setError(
+            dependency.kind === "unauthorized"
+              ? "La Actividad fue creada, pero no puedes vincular sus predecesoras."
+              : `La Actividad fue creada, pero no se vinculó ${predecessor.name}: ${dependency.message}`,
+          );
+          return;
+        }
+        const refreshed = await getActivity(current.id);
+        if (refreshed.kind !== "success") {
+          setError("La Actividad fue creada, pero no se pudo actualizar sus dependencias.");
+          return;
+        }
+        current = refreshed.data;
+      }
+      onSaved(current, true);
+    } else onSaved(result.data, isCreate);
+>>>>>>> spec-14-dependencias-de-actividades
     onOpenChange(false);
   }
   const title = isCreate ? "Nueva Actividad" : isView ? "Detalle de Actividad" : "Editar Actividad";
@@ -220,8 +297,17 @@ export function ActivitySheet({
         </SheetHeader>
         {isView && activity ? (
           <ActivityDetail
+<<<<<<< HEAD
             activity={activity}
             auditEvents={auditEvents}
+=======
+            activity={detailActivity ?? activity}
+            auditEvents={auditEvents}
+            canManage={canManage}
+            detailActivity={detailActivity}
+            isLoadingDetail={isLoadingDetail}
+            onDetailChanged={setDetailActivity}
+>>>>>>> spec-14-dependencias-de-actividades
             categories={categories}
             isLoadingTimeline={isLoadingTimeline}
           />
@@ -410,6 +496,17 @@ export function ActivitySheet({
                       </option>
                     ))}
                   </LabeledSelect>
+<<<<<<< HEAD
+=======
+                  {detailActivity && pendingPredecessors(detailActivity).length ? (
+                    <div className="sm:col-span-2">
+                      <PendingDependenciesWarning
+                        emphasized={form.status === "finalized"}
+                        predecessors={pendingPredecessors(detailActivity)}
+                      />
+                    </div>
+                  ) : null}
+>>>>>>> spec-14-dependencias-de-actividades
                   {form.status === "blocked" ? (
                     <div className="sm:col-span-2">
                       <LabeledTextarea
@@ -452,6 +549,24 @@ export function ActivitySheet({
                   ) : null}
                 </div>
               </section>
+<<<<<<< HEAD
+=======
+              {isCreate ? (
+                <CreateDependenciesSelector
+                  containerId={form.containerId}
+                  containerType={form.containerType}
+                  onChange={setSelectedPredecessors}
+                  selected={selectedPredecessors}
+                />
+              ) : detailActivity ? (
+                <DependenciesSection
+                  activity={detailActivity}
+                  canManage={canManage}
+                  isLoading={isLoadingDetail}
+                  onChanged={setDetailActivity}
+                />
+              ) : null}
+>>>>>>> spec-14-dependencias-de-actividades
               {error ? (
                 <div
                   className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger"
@@ -498,12 +613,28 @@ export function ActivitySheet({
 function ActivityDetail({
   activity,
   auditEvents,
+<<<<<<< HEAD
   categories,
+=======
+  canManage,
+  categories,
+  detailActivity,
+  isLoadingDetail,
+  onDetailChanged,
+>>>>>>> spec-14-dependencias-de-actividades
   isLoadingTimeline,
 }: Readonly<{
   activity: Activity;
   auditEvents: readonly ActivityAuditEvent[];
+<<<<<<< HEAD
   categories: readonly ActivityCategory[];
+=======
+  canManage: boolean;
+  categories: readonly ActivityCategory[];
+  detailActivity: ActivityDetailData | null;
+  isLoadingDetail: boolean;
+  onDetailChanged: (activity: ActivityDetailData) => void;
+>>>>>>> spec-14-dependencias-de-actividades
   isLoadingTimeline: boolean;
 }>) {
   const category =
@@ -530,6 +661,21 @@ function ActivityDetail({
           </Detail>
         </dl>
       </section>
+<<<<<<< HEAD
+=======
+      {pendingPredecessors(detailActivity).length ? (
+        <PendingDependenciesWarning
+          emphasized={activity.status === "finalized"}
+          predecessors={pendingPredecessors(detailActivity)}
+        />
+      ) : null}
+      <DependenciesSection
+        activity={detailActivity}
+        canManage={canManage}
+        isLoading={isLoadingDetail}
+        onChanged={onDetailChanged}
+      />
+>>>>>>> spec-14-dependencias-de-actividades
       <section>
         <SectionTitle
           title="Línea de tiempo"
@@ -562,6 +708,295 @@ function ActivityDetail({
   );
 }
 
+<<<<<<< HEAD
+=======
+function CreateDependenciesSelector({
+  containerId,
+  containerType,
+  onChange,
+  selected,
+}: Readonly<{
+  containerId: string;
+  containerType: Activity["containerType"];
+  onChange: (activities: readonly Activity[]) => void;
+  selected: readonly Activity[];
+}>) {
+  const [candidates, setCandidates] = useState<readonly Activity[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    if (!containerId) {
+      setCandidates([]);
+      setIsSearching(false);
+      return;
+    }
+    let current = true;
+    setIsSearching(true);
+    const timeout = window.setTimeout(async () => {
+      const result = await listActivities({ containerId, containerType, query });
+      if (current && result.kind === "success") {
+        const selectedIds = new Set(selected.map((item) => item.id));
+        setCandidates(result.data.activities.filter((item) => !selectedIds.has(item.id)));
+      }
+      if (current) setIsSearching(false);
+    }, 200);
+    return () => {
+      current = false;
+      window.clearTimeout(timeout);
+    };
+  }, [containerId, containerType, query, selected]);
+  return (
+    <section>
+      <SectionTitle
+        title="Dependencias"
+        description="Selecciona Actividades que deben realizarse antes."
+      />
+      {!containerId ? (
+        <p className="mt-4 text-sm text-muted-foreground">Selecciona primero un contenedor.</p>
+      ) : (
+        <div className="mt-4">
+          <ActivityPredecessorSearchField
+            activities={candidates}
+            disabled={false}
+            emptyMessage="No hay Actividades disponibles para agregar."
+            isLoading={isSearching}
+            onQueryChange={setQuery}
+            onSelected={(candidate) => onChange([...selected, candidate])}
+          />
+        </div>
+      )}
+      {selected.length ? (
+        <ul className="mt-3 space-y-2">
+          {selected.map((item) => (
+            <li
+              className="flex items-center gap-3 rounded-md border border-border px-3 py-2"
+              key={item.id}
+            >
+              <span className="min-w-0 flex-1 truncate text-sm">{item.name}</span>
+              <Button
+                onClick={() =>
+                  onChange(selected.filter((selectedItem) => selectedItem.id !== item.id))
+                }
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                Quitar
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function pendingPredecessors(activity: ActivityDetailData | null): readonly ActivityDependency[] {
+  return (
+    activity?.dependencies.predecessors.filter(
+      (predecessor) => predecessor.status !== "finalized",
+    ) ?? []
+  );
+}
+function PendingDependenciesWarning({
+  emphasized,
+  predecessors,
+}: Readonly<{ emphasized: boolean; predecessors: readonly ActivityDependency[] }>) {
+  return (
+    <div
+      className={
+        emphasized
+          ? "rounded-md border border-warning/50 bg-warning/10 px-3 py-3 text-sm text-foreground"
+          : "rounded-md border border-border bg-muted/40 px-3 py-3 text-sm text-foreground"
+      }
+      role="status"
+    >
+      <p className="font-medium">Hay actividades previas pendientes.</p>
+      <p className="mt-1 text-muted-foreground">
+        {emphasized
+          ? "Puedes finalizar esta Actividad si existe una excepción operativa."
+          : "Completa estas Actividades antes cuando sea posible."}
+      </p>
+      <ul className="mt-2 list-disc pl-5 text-muted-foreground">
+        {predecessors.map((predecessor) => (
+          <li key={predecessor.id}>{predecessor.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DependenciesSection({
+  activity,
+  canManage,
+  isLoading,
+  onChanged,
+}: Readonly<{
+  activity: ActivityDetailData | null;
+  canManage: boolean;
+  isLoading: boolean;
+  onChanged: (activity: ActivityDetailData) => void;
+}>) {
+  const [candidates, setCandidates] = useState<readonly Activity[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    if (!activity || !canManage) return;
+    let current = true;
+    setIsSearching(true);
+    const timeout = window.setTimeout(async () => {
+      const result = await listActivities({
+        containerId: activity.containerId,
+        containerType: activity.containerType,
+        query,
+      });
+      if (!current) return;
+      if (result.kind === "success") {
+        const predecessorIds = new Set(activity.dependencies.predecessors.map((item) => item.id));
+        setCandidates(
+          result.data.activities.filter(
+            (item) => item.id !== activity.id && !predecessorIds.has(item.id),
+          ),
+        );
+      } else if (result.kind !== "unauthorized") setError(result.message);
+      setIsSearching(false);
+    }, 200);
+    return () => {
+      current = false;
+      window.clearTimeout(timeout);
+    };
+  }, [activity, canManage, query]);
+  async function refresh() {
+    if (!activity) return;
+    const result = await getActivity(activity.id);
+    if (result.kind === "success") onChanged(result.data);
+    else if (result.kind !== "unauthorized") setError(result.message);
+  }
+  async function add(predecessorActivityId: string) {
+    if (!activity) return;
+    setError(null);
+    setIsSaving(true);
+    const result = await createActivityDependency(activity.id, {
+      predecessorActivityId,
+      version: activity.version,
+    });
+    if (result.kind === "success") await refresh();
+    else
+      setError(
+        result.kind === "unauthorized" ? "No puedes gestionar dependencias." : result.message,
+      );
+    setIsSaving(false);
+  }
+  async function remove(predecessor: ActivityDependency) {
+    if (!activity) return;
+    setError(null);
+    setIsSaving(true);
+    const result = await deleteActivityDependency(activity.id, predecessor.id, activity.version);
+    if (result.kind === "success") await refresh();
+    else
+      setError(
+        result.kind === "unauthorized" ? "No puedes gestionar dependencias." : result.message,
+      );
+    setIsSaving(false);
+  }
+  return (
+    <section>
+      <SectionTitle
+        title="Dependencias"
+        description="Indican qué Actividades deben realizarse antes."
+      />
+      {isLoading ? (
+        <p className="mt-4 text-sm text-muted-foreground">Cargando dependencias…</p>
+      ) : null}
+      {!isLoading && !activity ? (
+        <p className="mt-4 text-sm text-muted-foreground">No hay dependencias disponibles.</p>
+      ) : null}
+      {activity ? (
+        <div className="mt-4 space-y-4">
+          <DependencyList
+            emptyMessage="No tiene Actividades predecesoras."
+            items={activity.dependencies.predecessors}
+            label="Predecesoras"
+            onRemove={canManage ? remove : undefined}
+            saving={isSaving}
+          />
+          <DependencyList
+            emptyMessage="No tiene Actividades sucesoras."
+            items={activity.dependencies.successors}
+            label="Sucesoras"
+            saving={false}
+          />
+          {canManage ? (
+            <div className="border-t border-border pt-4">
+              <ActivityPredecessorSearchField
+                activities={candidates}
+                disabled={isSaving}
+                emptyMessage="No hay Actividades disponibles para agregar."
+                isLoading={isSearching}
+                onQueryChange={setQuery}
+                onSelected={(candidate) => void add(candidate.id)}
+              />
+            </div>
+          ) : null}
+          {error ? (
+            <p className="text-sm text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+function DependencyList({
+  emptyMessage,
+  items,
+  label,
+  onRemove,
+  saving,
+}: Readonly<{
+  emptyMessage: string;
+  items: readonly ActivityDependency[];
+  label: string;
+  onRemove?: (item: ActivityDependency) => void;
+  saving: boolean;
+}>) {
+  return (
+    <div>
+      <h3 className="text-sm font-medium text-foreground">{label}</h3>
+      {items.length ? (
+        <ul className="mt-2 space-y-2">
+          {items.map((item) => (
+            <li
+              className="flex items-center gap-3 rounded-md border border-border px-3 py-2"
+              key={item.id}
+            >
+              <span className="min-w-0 flex-1 truncate text-sm">{item.name}</span>
+              <span className="text-xs text-muted-foreground">{statusLabels[item.status]}</span>
+              {onRemove ? (
+                <Button
+                  disabled={saving}
+                  onClick={() => void onRemove(item)}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  Quitar
+                </Button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-sm text-muted-foreground">{emptyMessage}</p>
+      )}
+    </div>
+  );
+}
+
+>>>>>>> spec-14-dependencias-de-actividades
 function ChangeSummary({
   activity,
   event,

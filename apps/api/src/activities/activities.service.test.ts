@@ -3,8 +3,16 @@ import test from "node:test";
 
 import {
   type Activity,
+<<<<<<< HEAD
   ActivityValidationError,
   type CreateActivityRecordInput,
+=======
+  ActivityDependencyValidationError,
+  ActivityValidationError,
+  ActivityVersionConflictError,
+  type CreateActivityRecordInput,
+  type CreateActivityDependencyRecordInput,
+>>>>>>> spec-14-dependencias-de-actividades
   type ListActivitiesQuery,
   type UpdateActivityRecordInput,
 } from "./activities.contracts.js";
@@ -53,13 +61,29 @@ function store(overrides: Partial<ActivityStore> = {}): ActivityStore {
     async createActivity() {
       return activity();
     },
+<<<<<<< HEAD
     async deleteActivity() {},
+=======
+    async createActivityDependency() {
+      return { predecessors: [], successors: [] };
+    },
+    async deleteActivity() {},
+    async deleteActivityDependency() {
+      return { predecessors: [], successors: [] };
+    },
+>>>>>>> spec-14-dependencias-de-actividades
     async getActivity() {
       return activity();
     },
     async listAuditEvents() {
       return [];
     },
+<<<<<<< HEAD
+=======
+    async listActivityDependencies() {
+      return { predecessors: [], successors: [] };
+    },
+>>>>>>> spec-14-dependencias-de-actividades
     async listAssignees() {
       return [];
     },
@@ -120,6 +144,98 @@ test("creates Activities with pending and medium defaults", async () => {
   });
 });
 
+<<<<<<< HEAD
+=======
+test("creates and removes dependencies with the successor version and authenticated actor", async () => {
+  let created: CreateActivityDependencyRecordInput | undefined;
+  let removed:
+    | {
+        activityId: string;
+        predecessorActivityId: string;
+        input: { actorUserId: string; version: number };
+      }
+    | undefined;
+  const service = new ActivityService(
+    store({
+      async createActivityDependency(_id, input) {
+        created = input;
+        return { predecessors: [], successors: [] };
+      },
+      async deleteActivityDependency(id, predecessorActivityId, input) {
+        removed = { activityId: id, predecessorActivityId, input };
+        return { predecessors: [], successors: [] };
+      },
+    }),
+  );
+
+  await service.createActivityDependency(
+    activityId,
+    { predecessorActivityId: "predecessor-1", version: 4 },
+    "user-2",
+  );
+  assert.deepEqual(created, {
+    actorUserId: "user-2",
+    predecessorActivityId: "predecessor-1",
+    version: 4,
+  });
+
+  await service.deleteActivityDependency(activityId, "predecessor-1", { version: 5 }, "user-2");
+  assert.deepEqual(removed, {
+    activityId,
+    predecessorActivityId: "predecessor-1",
+    input: { actorUserId: "user-2", version: 5 },
+  });
+});
+
+test("rejects malformed dependency mutations before they reach storage", async () => {
+  let called = false;
+  const service = new ActivityService(
+    store({
+      async createActivityDependency() {
+        called = true;
+        return { predecessors: [], successors: [] };
+      },
+    }),
+  );
+  await assert.rejects(
+    () =>
+      service.createActivityDependency(
+        activityId,
+        { predecessorActivityId: "predecessor-1", version: 0 },
+        "user-1",
+      ),
+    ActivityValidationError,
+  );
+  assert.equal(called, false);
+});
+
+test("keeps dependency conflicts and validation errors controlled", async () => {
+  const service = new ActivityService(
+    store({
+      async createActivityDependency() {
+        throw new ActivityDependencyValidationError("Activity dependencies cannot form a cycle.");
+      },
+      async deleteActivityDependency() {
+        throw new ActivityVersionConflictError("Reload Activity.");
+      },
+    }),
+  );
+  await assert.rejects(
+    () =>
+      service.createActivityDependency(
+        activityId,
+        { predecessorActivityId: "predecessor-1", version: 1 },
+        "user-1",
+      ),
+    ActivityDependencyValidationError,
+  );
+  await assert.rejects(
+    () => service.deleteActivityDependency(activityId, "predecessor-1", { version: 1 }, "user-1"),
+    ActivityVersionConflictError,
+  );
+});
+
+>>>>>>> spec-14-dependencias-de-actividades
 test("sets and clears transient blocked state data", async () => {
   let received: UpdateActivityRecordInput | undefined;
   const service = new ActivityService(
