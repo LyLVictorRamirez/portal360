@@ -62,12 +62,14 @@ const primaryNavigation: readonly NavigationItem[] = [
 ];
 
 const administrationNavigationIcons = {
+  "activity-categories": "settings",
   "code-settings": "settings",
   roles: "lock",
   users: "teams",
 } as const satisfies Record<string, NavigationIcon>;
 
 const businessNavigationIcons = {
+  activities: "forms",
   clients: "workspace",
   projects: "kanban",
   requirements: "forms",

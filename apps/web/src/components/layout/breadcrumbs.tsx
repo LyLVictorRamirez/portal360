@@ -24,6 +24,7 @@ const breadcrumbMap: Record<string, readonly BreadcrumbItemData[]> = {
   "/clientes": [{ href: "/", title: "Inicio" }, { title: "Clientes" }],
   "/proyectos": [{ href: "/", title: "Inicio" }, { title: "Proyectos" }],
   "/requerimientos": [{ href: "/", title: "Inicio" }, { title: "Requerimientos" }],
+  "/actividades": [{ href: "/", title: "Inicio" }, { title: "Actividades" }],
   "/administracion/configuracion/codigos": [
     { href: "/", title: "Inicio" },
     { title: "Administración" },
@@ -38,6 +39,11 @@ const breadcrumbMap: Record<string, readonly BreadcrumbItemData[]> = {
     { href: "/", title: "Inicio" },
     { title: "Administración" },
     { title: "Roles y permisos" },
+  ],
+  "/administracion/categorias-actividad": [
+    { href: "/", title: "Inicio" },
+    { title: "Administración" },
+    { title: "Categorías de actividad" },
   ],
 };
 

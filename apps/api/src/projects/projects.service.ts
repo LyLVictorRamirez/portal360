@@ -35,7 +35,10 @@ const projectListPageSize = 25;
 
 export interface ProjectStore {
   createProject(input: CreateProjectRecordInput): Promise<Project>;
-  createProjectStage(projectId: string, input: CreateProjectStageRecordInput): Promise<ProjectStage>;
+  createProjectStage(
+    projectId: string,
+    input: CreateProjectStageRecordInput,
+  ): Promise<ProjectStage>;
   deleteProject(projectId: string): Promise<void>;
   deleteProjectStage(
     projectId: string,
@@ -368,9 +371,7 @@ function normalizeProjectName(value: unknown): string {
   return name;
 }
 
-function normalizeProjectStageCreation(
-  value: CreateProjectStageInput,
-): CreateProjectStageInput {
+function normalizeProjectStageCreation(value: CreateProjectStageInput): CreateProjectStageInput {
   if (typeof value !== "object" || value === null) {
     throw new ProjectStageValidationError("Project Stage creation must be an object.");
   }
@@ -400,9 +401,7 @@ function normalizeProjectStageMove(value: MoveProjectStageInput): MoveProjectSta
   };
 }
 
-function normalizeProjectStageDeletion(
-  value: DeleteProjectStageInput,
-): DeleteProjectStageInput {
+function normalizeProjectStageDeletion(value: DeleteProjectStageInput): DeleteProjectStageInput {
   if (typeof value !== "object" || value === null) {
     throw new ProjectStageValidationError("Project Stage deletion must be an object.");
   }

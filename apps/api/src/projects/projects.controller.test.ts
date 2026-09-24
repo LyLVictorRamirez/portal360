@@ -200,8 +200,7 @@ test("maps a duplicate Project Stage name to HTTP 422", async () => {
         { name: "Diseño" },
         requestContext,
       ),
-    (error: unknown) =>
-      error instanceof UnprocessableEntityException && error.getStatus() === 422,
+    (error: unknown) => error instanceof UnprocessableEntityException && error.getStatus() === 422,
   );
 });
 

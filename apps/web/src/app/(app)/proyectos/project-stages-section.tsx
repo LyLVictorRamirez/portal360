@@ -128,7 +128,10 @@ export function ProjectStagesSection({
   async function reorderStage(stage: ProjectStage, direction: "up" | "down") {
     setErrorMessage(null);
     setIsSaving(true);
-    const result = await moveProjectStage(projectId, stage.id, { direction, version: stage.version });
+    const result = await moveProjectStage(projectId, stage.id, {
+      direction,
+      version: stage.version,
+    });
     setIsSaving(false);
 
     if (result.kind !== "success") {
@@ -173,7 +176,10 @@ export function ProjectStagesSection({
   }
 
   return (
-    <section aria-labelledby="project-stages-title" className="space-y-4 border-t border-border pt-6">
+    <section
+      aria-labelledby="project-stages-title"
+      className="space-y-4 border-t border-border pt-6"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div>
           <h2 className="font-semibold text-foreground" id="project-stages-title">
@@ -267,7 +273,9 @@ export function ProjectStagesSection({
                       </Button>
                     </div>
                   ) : (
-                    <p className="min-w-0 truncate pt-1 text-sm font-medium text-foreground">{stage.name}</p>
+                    <p className="min-w-0 truncate pt-1 text-sm font-medium text-foreground">
+                      {stage.name}
+                    </p>
                   )}
                 </div>
                 {!isReadOnly && !isEditing ? (
@@ -322,16 +330,18 @@ export function ProjectStagesSection({
         </ol>
       )}
 
-      <AlertDialog onOpenChange={(open) => !open && setStageToDelete(null)} open={stageToDelete !== null}>
+      <AlertDialog
+        onOpenChange={(open) => !open && setStageToDelete(null)}
+        open={stageToDelete !== null}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar Etapa</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
           </AlertDialogHeader>
           <p className="text-sm text-muted-foreground">
-            Eliminarás la Etapa <span className="font-semibold text-foreground">{stageToDelete?.name}</span>.
+            Eliminarás la Etapa{" "}
+            <span className="font-semibold text-foreground">{stageToDelete?.name}</span>.
           </p>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSaving}>Cancelar</AlertDialogCancel>
