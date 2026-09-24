@@ -25,29 +25,20 @@ import {
   type Activity,
   type ActivityAssignee,
   type ActivityAuditEvent,
-<<<<<<< HEAD
-=======
   type ActivityDependencies,
->>>>>>> spec-14-dependencias-de-actividades
   ActivityAssigneeInvalidError,
   ActivityCategoryInactiveError,
   ActivityContainerNotFoundError,
   ActivityContainerTerminalError,
-<<<<<<< HEAD
-=======
   ActivityDependencyValidationError,
->>>>>>> spec-14-dependencias-de-actividades
   ActivityNotFoundError,
   ActivityOrderError,
   ActivityRelatedRecordsError,
   ActivityValidationError,
   ActivityVersionConflictError,
   type CreateActivityInput,
-<<<<<<< HEAD
-=======
   type CreateActivityDependencyInput,
   type DeleteActivityDependencyInput,
->>>>>>> spec-14-dependencias-de-actividades
   type DeleteActivityInput,
   type ListActivitiesInput,
   type MoveActivityInput,
@@ -57,22 +48,16 @@ import { ActivityService } from "./activities.service.js";
 
 export interface ActivitiesControllerStore {
   createActivity(input: CreateActivityInput, actorUserId: string): Promise<Activity>;
-<<<<<<< HEAD
-=======
   createActivityDependency(
     successorActivityId: string,
     input: CreateActivityDependencyInput,
     actorUserId: string,
   ): Promise<ActivityDependencies>;
->>>>>>> spec-14-dependencias-de-actividades
   deleteActivity(
     activityId: string,
     input: DeleteActivityInput,
     actorUserId: string,
   ): Promise<void>;
-<<<<<<< HEAD
-  getActivity(activityId: string): Promise<Activity>;
-=======
   deleteActivityDependency(
     successorActivityId: string,
     predecessorActivityId: string,
@@ -81,7 +66,6 @@ export interface ActivitiesControllerStore {
   ): Promise<ActivityDependencies>;
   getActivity(activityId: string): Promise<Activity>;
   listActivityDependencies(activityId: string): Promise<ActivityDependencies>;
->>>>>>> spec-14-dependencias-de-actividades
   listAuditEvents(activityId: string): Promise<ActivityAuditEvent[]>;
   listAssignees(query: string | undefined): Promise<ActivityAssignee[]>;
   listActivities(
@@ -141,8 +125,6 @@ export class ActivitiesController {
       throw toHttpException(error);
     }
   }
-<<<<<<< HEAD
-=======
   @Get(":activityId/dependencies")
   @RequirePermissions("activities.read")
   async listActivityDependencies(
@@ -171,7 +153,6 @@ export class ActivitiesController {
       throw toHttpException(error);
     }
   }
->>>>>>> spec-14-dependencias-de-actividades
   @Get(":activityId")
   @RequirePermissions("activities.read")
   async getActivity(@Param("activityId") activityId: string): Promise<{ activity: Activity }> {
@@ -232,8 +213,6 @@ export class ActivitiesController {
       throw toHttpException(error);
     }
   }
-<<<<<<< HEAD
-=======
   @Delete(":activityId/dependencies/:predecessorActivityId")
   @RequirePermissions("activities.manage")
   async deleteActivityDependency(
@@ -253,7 +232,6 @@ export class ActivitiesController {
       throw toHttpException(error);
     }
   }
->>>>>>> spec-14-dependencias-de-actividades
   @Delete(":activityId")
   @HttpCode(HttpStatus.NO_CONTENT)
   @RequirePermissions("activities.manage")
@@ -294,8 +272,6 @@ function readCreateInput(body: unknown): CreateActivityInput {
     throw new BadRequestException("estimatedHours is required.");
   return record as unknown as CreateActivityInput;
 }
-<<<<<<< HEAD
-=======
 function readCreateDependencyInput(body: unknown): CreateActivityDependencyInput {
   const record = readRecord(body);
   if (typeof record.predecessorActivityId !== "string") {
@@ -310,7 +286,6 @@ function readCreateDependencyInput(body: unknown): CreateActivityDependencyInput
   }
   return { predecessorActivityId: record.predecessorActivityId, version: record.version };
 }
->>>>>>> spec-14-dependencias-de-actividades
 function readUpdateInput(body: unknown): UpdateActivityInput {
   const record = readRecord(body);
   if (
@@ -366,10 +341,7 @@ function toHttpException(error: unknown): Error {
     return new ConflictException(error.message);
   if (
     error instanceof ActivityValidationError ||
-<<<<<<< HEAD
-=======
     error instanceof ActivityDependencyValidationError ||
->>>>>>> spec-14-dependencias-de-actividades
     error instanceof ActivityCategoryInactiveError ||
     error instanceof ActivityAssigneeInvalidError ||
     error instanceof ActivityContainerTerminalError ||

@@ -5,11 +5,8 @@ import { ConflictException, NotFoundException, UnprocessableEntityException } fr
 
 import {
   type Activity,
-<<<<<<< HEAD
-=======
   type ActivityDependencies,
   ActivityDependencyValidationError,
->>>>>>> spec-14-dependencias-de-actividades
   ActivityNotFoundError,
   ActivityValidationError,
   ActivityVersionConflictError,
@@ -63,9 +60,6 @@ function store(overrides: Partial<ActivitiesControllerStore> = {}): ActivitiesCo
     async createActivity() {
       return activity();
     },
-<<<<<<< HEAD
-    async deleteActivity() {},
-=======
     async createActivityDependency() {
       return { predecessors: [], successors: [] };
     },
@@ -73,7 +67,6 @@ function store(overrides: Partial<ActivitiesControllerStore> = {}): ActivitiesCo
     async deleteActivityDependency() {
       return { predecessors: [], successors: [] };
     },
->>>>>>> spec-14-dependencias-de-actividades
     async getActivity() {
       return activity();
     },
@@ -83,12 +76,9 @@ function store(overrides: Partial<ActivitiesControllerStore> = {}): ActivitiesCo
     async listAuditEvents() {
       return [];
     },
-<<<<<<< HEAD
-=======
     async listActivityDependencies() {
       return { predecessors: [], successors: [] };
     },
->>>>>>> spec-14-dependencias-de-actividades
     async listAssignees() {
       return [];
     },
@@ -106,27 +96,19 @@ test("declares Activity permission boundaries for every operational route", () =
   for (const [handler, permissions] of [
     [ActivitiesController.prototype.listActivities, ["activities.read"]],
     [ActivitiesController.prototype.listAssignees, ["activities.manage"]],
-<<<<<<< HEAD
-=======
     [ActivitiesController.prototype.listActivityDependencies, ["activities.read"]],
     [ActivitiesController.prototype.createActivityDependency, ["activities.manage"]],
->>>>>>> spec-14-dependencias-de-actividades
     [ActivitiesController.prototype.getActivity, ["activities.read"]],
     [ActivitiesController.prototype.listAuditEvents, ["activities.read"]],
     [ActivitiesController.prototype.createActivity, ["activities.manage"]],
     [ActivitiesController.prototype.updateActivity, ["activities.manage"]],
     [ActivitiesController.prototype.moveActivity, ["activities.manage"]],
-<<<<<<< HEAD
-=======
     [ActivitiesController.prototype.deleteActivityDependency, ["activities.manage"]],
->>>>>>> spec-14-dependencias-de-actividades
     [ActivitiesController.prototype.deleteActivity, ["activities.manage"]],
   ])
     assert.deepEqual(Reflect.getMetadata(requiredPermissionsMetadataKey, handler), permissions);
 });
 
-<<<<<<< HEAD
-=======
 test("reads and mutates Activity dependencies with their successor version", async () => {
   let created: { activityId: string; input: unknown; actorUserId: string } | undefined;
   let removed: { activityId: string; predecessorActivityId: string; version: number } | undefined;
@@ -187,7 +169,6 @@ test("maps Activity dependency validation to HTTP 422", async () => {
   );
 });
 
->>>>>>> spec-14-dependencias-de-actividades
 test("maps Activity not found, conflict, and validation errors to controlled responses", async () => {
   const controller = new ActivitiesController(
     store({

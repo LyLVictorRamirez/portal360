@@ -17,24 +17,17 @@ import {
 import {
   activityPriorities,
   activityStatuses,
-<<<<<<< HEAD
-  createActivity,
-=======
   createActivityDependency,
   deleteActivityDependency,
   createActivity,
   getActivity,
   listActivities,
->>>>>>> spec-14-dependencias-de-actividades
   listActivityAuditEvents,
   updateActivity,
   type Activity,
   type ActivityAuditEvent,
-<<<<<<< HEAD
-=======
   type ActivityDetail as ActivityDetailData,
   type ActivityDependency,
->>>>>>> spec-14-dependencias-de-actividades
   type ActivityPriority,
   type ActivityStatus,
 } from "../../../lib/activities-client";
@@ -44,10 +37,7 @@ import {
   type ActivityCategory,
 } from "../../../lib/activity-categories-client";
 import {
-<<<<<<< HEAD
-=======
   ActivityPredecessorSearchField,
->>>>>>> spec-14-dependencias-de-actividades
   AssigneeSearchField,
   ContainerSearchField,
   ProjectStageSearchField,
@@ -146,33 +136,22 @@ export function ActivitySheet({
   const isCreate = mode === "create";
   const isView = mode === "view";
   const [auditEvents, setAuditEvents] = useState<readonly ActivityAuditEvent[]>([]);
-<<<<<<< HEAD
-=======
   const [detailActivity, setDetailActivity] = useState<ActivityDetailData | null>(null);
->>>>>>> spec-14-dependencias-de-actividades
   const [categories, setCategories] = useState<readonly ActivityCategory[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ActivityFormErrors>({});
   const [form, setForm] = useState<ActivityFormValues>(emptyForm);
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
-<<<<<<< HEAD
-  const [isSaving, setIsSaving] = useState(false);
-  const [projectStages, setProjectStages] = useState<readonly ProjectStage[]>([]);
-=======
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [projectStages, setProjectStages] = useState<readonly ProjectStage[]>([]);
   const [selectedPredecessors, setSelectedPredecessors] = useState<readonly Activity[]>([]);
->>>>>>> spec-14-dependencias-de-actividades
 
   useEffect(() => {
     if (!open) return;
     setAuditEvents([]);
-<<<<<<< HEAD
-=======
     setDetailActivity(null);
     setSelectedPredecessors([]);
->>>>>>> spec-14-dependencias-de-actividades
     setError(null);
     setFieldErrors({});
     setForm(activityForm(activity));
@@ -180,9 +159,6 @@ export function ActivitySheet({
     void listActivityCategories().then((result) => {
       if (result.kind === "success") setCategories(result.data);
     });
-<<<<<<< HEAD
-    if (activity && isView) {
-=======
     if (activity && !isCreate) {
       setIsLoadingDetail(true);
       void getActivity(activity.id).then((result) => {
@@ -190,7 +166,6 @@ export function ActivitySheet({
         else if (result.kind !== "unauthorized") setError(result.message);
         setIsLoadingDetail(false);
       });
->>>>>>> spec-14-dependencias-de-actividades
       setIsLoadingTimeline(true);
       void listActivityAuditEvents(activity.id).then((result) => {
         if (result.kind === "success") setAuditEvents(result.data);
@@ -236,14 +211,10 @@ export function ActivitySheet({
     const payload = toPayload(form);
     const result = isCreate
       ? await createActivity(payload)
-<<<<<<< HEAD
-      : await updateActivity(activity?.id ?? "", { ...payload, version: activity?.version ?? 0 });
-=======
       : await updateActivity(activity?.id ?? "", {
           ...payload,
           version: detailActivity?.version ?? activity?.version ?? 0,
         });
->>>>>>> spec-14-dependencias-de-actividades
     setIsSaving(false);
     if (result.kind !== "success") {
       setError(
@@ -253,9 +224,6 @@ export function ActivitySheet({
       );
       return;
     }
-<<<<<<< HEAD
-    onSaved(result.data, isCreate);
-=======
     if (isCreate && selectedPredecessors.length) {
       let current = result.data;
       for (const predecessor of selectedPredecessors) {
@@ -280,7 +248,6 @@ export function ActivitySheet({
       }
       onSaved(current, true);
     } else onSaved(result.data, isCreate);
->>>>>>> spec-14-dependencias-de-actividades
     onOpenChange(false);
   }
   const title = isCreate ? "Nueva Actividad" : isView ? "Detalle de Actividad" : "Editar Actividad";
@@ -297,17 +264,12 @@ export function ActivitySheet({
         </SheetHeader>
         {isView && activity ? (
           <ActivityDetail
-<<<<<<< HEAD
-            activity={activity}
-            auditEvents={auditEvents}
-=======
             activity={detailActivity ?? activity}
             auditEvents={auditEvents}
             canManage={canManage}
             detailActivity={detailActivity}
             isLoadingDetail={isLoadingDetail}
             onDetailChanged={setDetailActivity}
->>>>>>> spec-14-dependencias-de-actividades
             categories={categories}
             isLoadingTimeline={isLoadingTimeline}
           />
@@ -496,8 +458,6 @@ export function ActivitySheet({
                       </option>
                     ))}
                   </LabeledSelect>
-<<<<<<< HEAD
-=======
                   {detailActivity && pendingPredecessors(detailActivity).length ? (
                     <div className="sm:col-span-2">
                       <PendingDependenciesWarning
@@ -506,7 +466,6 @@ export function ActivitySheet({
                       />
                     </div>
                   ) : null}
->>>>>>> spec-14-dependencias-de-actividades
                   {form.status === "blocked" ? (
                     <div className="sm:col-span-2">
                       <LabeledTextarea
@@ -549,8 +508,6 @@ export function ActivitySheet({
                   ) : null}
                 </div>
               </section>
-<<<<<<< HEAD
-=======
               {isCreate ? (
                 <CreateDependenciesSelector
                   containerId={form.containerId}
@@ -566,7 +523,6 @@ export function ActivitySheet({
                   onChanged={setDetailActivity}
                 />
               ) : null}
->>>>>>> spec-14-dependencias-de-actividades
               {error ? (
                 <div
                   className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger"
@@ -613,28 +569,20 @@ export function ActivitySheet({
 function ActivityDetail({
   activity,
   auditEvents,
-<<<<<<< HEAD
-  categories,
-=======
   canManage,
   categories,
   detailActivity,
   isLoadingDetail,
   onDetailChanged,
->>>>>>> spec-14-dependencias-de-actividades
   isLoadingTimeline,
 }: Readonly<{
   activity: Activity;
   auditEvents: readonly ActivityAuditEvent[];
-<<<<<<< HEAD
-  categories: readonly ActivityCategory[];
-=======
   canManage: boolean;
   categories: readonly ActivityCategory[];
   detailActivity: ActivityDetailData | null;
   isLoadingDetail: boolean;
   onDetailChanged: (activity: ActivityDetailData) => void;
->>>>>>> spec-14-dependencias-de-actividades
   isLoadingTimeline: boolean;
 }>) {
   const category =
@@ -661,8 +609,6 @@ function ActivityDetail({
           </Detail>
         </dl>
       </section>
-<<<<<<< HEAD
-=======
       {pendingPredecessors(detailActivity).length ? (
         <PendingDependenciesWarning
           emphasized={activity.status === "finalized"}
@@ -675,7 +621,6 @@ function ActivityDetail({
         isLoading={isLoadingDetail}
         onChanged={onDetailChanged}
       />
->>>>>>> spec-14-dependencias-de-actividades
       <section>
         <SectionTitle
           title="Línea de tiempo"
@@ -708,8 +653,6 @@ function ActivityDetail({
   );
 }
 
-<<<<<<< HEAD
-=======
 function CreateDependenciesSelector({
   containerId,
   containerType,
@@ -996,7 +939,6 @@ function DependencyList({
   );
 }
 
->>>>>>> spec-14-dependencias-de-actividades
 function ChangeSummary({
   activity,
   event,

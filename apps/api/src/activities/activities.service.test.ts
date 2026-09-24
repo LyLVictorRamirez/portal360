@@ -3,16 +3,11 @@ import test from "node:test";
 
 import {
   type Activity,
-<<<<<<< HEAD
-  ActivityValidationError,
-  type CreateActivityRecordInput,
-=======
   ActivityDependencyValidationError,
   ActivityValidationError,
   ActivityVersionConflictError,
   type CreateActivityRecordInput,
   type CreateActivityDependencyRecordInput,
->>>>>>> spec-14-dependencias-de-actividades
   type ListActivitiesQuery,
   type UpdateActivityRecordInput,
 } from "./activities.contracts.js";
@@ -61,9 +56,6 @@ function store(overrides: Partial<ActivityStore> = {}): ActivityStore {
     async createActivity() {
       return activity();
     },
-<<<<<<< HEAD
-    async deleteActivity() {},
-=======
     async createActivityDependency() {
       return { predecessors: [], successors: [] };
     },
@@ -71,19 +63,15 @@ function store(overrides: Partial<ActivityStore> = {}): ActivityStore {
     async deleteActivityDependency() {
       return { predecessors: [], successors: [] };
     },
->>>>>>> spec-14-dependencias-de-actividades
     async getActivity() {
       return activity();
     },
     async listAuditEvents() {
       return [];
     },
-<<<<<<< HEAD
-=======
     async listActivityDependencies() {
       return { predecessors: [], successors: [] };
     },
->>>>>>> spec-14-dependencias-de-actividades
     async listAssignees() {
       return [];
     },
@@ -144,8 +132,6 @@ test("creates Activities with pending and medium defaults", async () => {
   });
 });
 
-<<<<<<< HEAD
-=======
 test("creates and removes dependencies with the successor version and authenticated actor", async () => {
   let created: CreateActivityDependencyRecordInput | undefined;
   let removed:
@@ -235,7 +221,6 @@ test("keeps dependency conflicts and validation errors controlled", async () => 
   );
 });
 
->>>>>>> spec-14-dependencias-de-actividades
 test("sets and clears transient blocked state data", async () => {
   let received: UpdateActivityRecordInput | undefined;
   const service = new ActivityService(

@@ -30,8 +30,6 @@ type SearchState =
   | Readonly<{ kind: "unauthorized" }>
   | Readonly<{ kind: "error"; message: string }>;
 
-<<<<<<< HEAD
-=======
 export function ActivityPredecessorSearchField({
   activities,
   disabled,
@@ -130,7 +128,6 @@ export function ActivityPredecessorSearchField({
   );
 }
 
->>>>>>> spec-14-dependencias-de-actividades
 export function ContainerSearchField({
   containerType,
   error,
@@ -497,8 +494,6 @@ function SearchField({
 function assigneeOption(assignee: ActivityAssignee): SearchOption {
   return { detail: assignee.email, id: assignee.id, label: assignee.name };
 }
-<<<<<<< HEAD
-=======
 
 function statusLabel(status: Activity["status"]): string {
   return status === "blocked"
@@ -516,7 +511,6 @@ function statusLabel(status: Activity["status"]): string {
               : "Pendiente";
 }
 
->>>>>>> spec-14-dependencias-de-actividades
 function containerLabel(type: Activity["containerType"]): string {
   return type === "project" ? "Proyecto" : type === "requirement" ? "Requerimiento" : "Ticket";
 }

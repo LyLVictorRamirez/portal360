@@ -3,17 +3,12 @@ import test from "node:test";
 
 import {
   createActivity,
-<<<<<<< HEAD
-  deleteActivity,
-  listActivityAssignees,
-=======
   createActivityDependency,
   deleteActivity,
   deleteActivityDependency,
   getActivity,
   listActivityAssignees,
   listActivityDependencies,
->>>>>>> spec-14-dependencias-de-actividades
   listActivities,
   moveActivity,
 } from "./activities-client.ts";
@@ -108,8 +103,6 @@ test("maps Activity conflicts and validation responses", async () => {
     { kind: "validation", message: "Nombre requerido." },
   );
 });
-<<<<<<< HEAD
-=======
 
 test("reads and mutates Activity dependencies with versioned same-origin requests", async () => {
   const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
@@ -180,4 +173,3 @@ test("propagates dependency conflicts and validation responses", async () => {
     { kind: "validation", message: "No se permite un ciclo." },
   );
 });
->>>>>>> spec-14-dependencias-de-actividades

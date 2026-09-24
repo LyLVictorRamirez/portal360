@@ -54,8 +54,6 @@ export interface Activity {
   waitingStartedAt: Date | null;
 }
 
-<<<<<<< HEAD
-=======
 export interface ActivityDependency {
   id: string;
   name: string;
@@ -72,7 +70,6 @@ export interface ActivityDetail extends Activity {
   dependencies: ActivityDependencies;
 }
 
->>>>>>> spec-14-dependencias-de-actividades
 export interface CreateActivityInput {
   activityCategoryId: string;
   assignedUserId: string;
@@ -131,8 +128,6 @@ export interface DeleteActivityInput {
   version: number;
 }
 
-<<<<<<< HEAD
-=======
 export interface CreateActivityDependencyInput {
   predecessorActivityId: string;
   version: number;
@@ -150,7 +145,6 @@ export interface DeleteActivityDependencyRecordInput extends DeleteActivityDepen
   actorUserId: string;
 }
 
->>>>>>> spec-14-dependencias-de-actividades
 export interface ListActivitiesInput {
   activityCategoryId?: string;
   assignedUserId?: string;
@@ -202,11 +196,6 @@ export interface ActivityAssignee {
 export class ActivityCategoryInactiveError extends Error {}
 export class ActivityContainerNotFoundError extends Error {}
 export class ActivityContainerTerminalError extends Error {}
-<<<<<<< HEAD
-export class ActivityNotFoundError extends Error {}
-export class ActivityOrderError extends Error {}
-export class ActivityRelatedRecordsError extends Error {}
-=======
 export class ActivityDependencyValidationError extends Error {}
 export class ActivityNotFoundError extends Error {}
 export class ActivityOrderError extends Error {}
@@ -218,7 +207,6 @@ export class ActivityRelatedRecordsError extends Error {
     super(message);
   }
 }
->>>>>>> spec-14-dependencias-de-actividades
 export class ActivityValidationError extends Error {}
 export class ActivityVersionConflictError extends Error {}
 export class ActivityAssigneeInvalidError extends Error {}

@@ -5,10 +5,7 @@ import {
   type ActivityAssignee,
   type ActivityAuditEvent,
   type ActivityContainerType,
-<<<<<<< HEAD
-=======
   type ActivityDependencies,
->>>>>>> spec-14-dependencias-de-actividades
   type ActivityDirection,
   type ActivityList,
   type ActivityPriority,
@@ -19,15 +16,11 @@ import {
   activityStatuses,
   activityWaitingForValues,
   type CreateActivityInput,
-<<<<<<< HEAD
-  type CreateActivityRecordInput,
-=======
   type CreateActivityDependencyInput,
   type CreateActivityDependencyRecordInput,
   type CreateActivityRecordInput,
   type DeleteActivityDependencyInput,
   type DeleteActivityDependencyRecordInput,
->>>>>>> spec-14-dependencias-de-actividades
   type DeleteActivityInput,
   type ListActivitiesInput,
   type ListActivitiesQuery,
@@ -43,20 +36,14 @@ const activityListPageSize = 25;
 
 export interface ActivityStore {
   createActivity(input: CreateActivityRecordInput): Promise<Activity>;
-<<<<<<< HEAD
-=======
   createActivityDependency(
     successorActivityId: string,
     input: CreateActivityDependencyRecordInput,
   ): Promise<ActivityDependencies>;
->>>>>>> spec-14-dependencias-de-actividades
   deleteActivity(
     activityId: string,
     input: DeleteActivityInput & { actorUserId: string },
   ): Promise<void>;
-<<<<<<< HEAD
-  getActivity(activityId: string): Promise<Activity>;
-=======
   deleteActivityDependency(
     successorActivityId: string,
     predecessorActivityId: string,
@@ -64,7 +51,6 @@ export interface ActivityStore {
   ): Promise<ActivityDependencies>;
   getActivity(activityId: string): Promise<Activity>;
   listActivityDependencies(activityId: string): Promise<ActivityDependencies>;
->>>>>>> spec-14-dependencias-de-actividades
   listAuditEvents(activityId: string): Promise<ActivityAuditEvent[]>;
   listAssignees(query: string): Promise<ActivityAssignee[]>;
   listActivities(query: ListActivitiesQuery): Promise<ActivityList>;
@@ -87,8 +73,6 @@ export class ActivityService {
     });
   }
 
-<<<<<<< HEAD
-=======
   async createActivityDependency(
     successorActivityId: string,
     input: CreateActivityDependencyInput,
@@ -107,7 +91,6 @@ export class ActivityService {
     );
   }
 
->>>>>>> spec-14-dependencias-de-actividades
   async deleteActivity(
     activityId: string,
     input: DeleteActivityInput,
@@ -119,8 +102,6 @@ export class ActivityService {
     });
   }
 
-<<<<<<< HEAD
-=======
   async deleteActivityDependency(
     successorActivityId: string,
     predecessorActivityId: string,
@@ -137,18 +118,14 @@ export class ActivityService {
     );
   }
 
->>>>>>> spec-14-dependencias-de-actividades
   async getActivity(activityId: string): Promise<Activity> {
     return this.activityRepository.getActivity(normalizeActivityId(activityId));
   }
 
-<<<<<<< HEAD
-=======
   async listActivityDependencies(activityId: string): Promise<ActivityDependencies> {
     return this.activityRepository.listActivityDependencies(normalizeActivityId(activityId));
   }
 
->>>>>>> spec-14-dependencias-de-actividades
   async listAuditEvents(activityId: string): Promise<ActivityAuditEvent[]> {
     return this.activityRepository.listAuditEvents(normalizeActivityId(activityId));
   }

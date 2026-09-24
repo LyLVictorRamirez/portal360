@@ -47,8 +47,6 @@ export type ActivityAuditEvent = Readonly<{
   changes: Record<string, unknown>;
   reason: string | null;
 }>;
-<<<<<<< HEAD
-=======
 export type ActivityDependency = Readonly<{
   id: string;
   name: string;
@@ -60,7 +58,6 @@ export type ActivityDependencies = Readonly<{
   successors: readonly ActivityDependency[];
 }>;
 export type ActivityDetail = Readonly<Activity & { dependencies: ActivityDependencies }>;
->>>>>>> spec-14-dependencias-de-actividades
 export type ActivityAssignee = Readonly<{
   email: string;
   id: string;
@@ -91,13 +88,10 @@ export type ListActivitiesInput = Readonly<{
 }>;
 export type CreateActivityInput = Readonly<Record<string, unknown>>;
 export type UpdateActivityInput = Readonly<Record<string, unknown> & { version: number }>;
-<<<<<<< HEAD
-=======
 export type CreateActivityDependencyInput = Readonly<{
   predecessorActivityId: string;
   version: number;
 }>;
->>>>>>> spec-14-dependencias-de-actividades
 
 export async function listActivities(
   input: ListActivitiesInput = {},
@@ -117,23 +111,14 @@ export async function listActivities(
 export async function getActivity(
   id: string,
   fetchImplementation: typeof fetch = fetch,
-<<<<<<< HEAD
-): Promise<ActivityApiResult<Activity>> {
-  return request(
-    `/api/activities/${encodeURIComponent(id)}`,
-    (value) => readActivity(record(value)?.activity),
-=======
 ): Promise<ActivityApiResult<ActivityDetail>> {
   return request(
     `/api/activities/${encodeURIComponent(id)}`,
     (value) => readActivityDetail(record(value)?.activity),
->>>>>>> spec-14-dependencias-de-actividades
     fetchImplementation,
     "No fue posible cargar la Actividad.",
   );
 }
-<<<<<<< HEAD
-=======
 export async function listActivityDependencies(
   id: string,
   fetchImplementation: typeof fetch = fetch,
@@ -172,7 +157,6 @@ export async function deleteActivityDependency(
     "No fue posible quitar la dependencia.",
   );
 }
->>>>>>> spec-14-dependencias-de-actividades
 export async function createActivity(
   input: CreateActivityInput,
   fetchImplementation: typeof fetch = fetch,
@@ -285,8 +269,6 @@ async function mutate(
     return { kind: "error", message };
   }
 }
-<<<<<<< HEAD
-=======
 async function mutateDependencies(
   path: string,
   method: "POST" | "DELETE",
@@ -311,7 +293,6 @@ async function mutateDependencies(
     return { kind: "error", message };
   }
 }
->>>>>>> spec-14-dependencias-de-actividades
 async function request<T>(
   path: string,
   reader: (value: unknown) => T | null,
@@ -398,8 +379,6 @@ function readActivity(value: unknown): Activity | null {
   if (data.description !== null && !isActivityDescription(data.description)) return null;
   return data as Activity;
 }
-<<<<<<< HEAD
-=======
 function readActivityDetail(value: unknown): ActivityDetail | null {
   const activity = readActivity(value);
   if (!activity) return null;
@@ -430,7 +409,6 @@ function readActivityDependency(value: unknown): ActivityDependency | null {
     ? (data as ActivityDependency)
     : null;
 }
->>>>>>> spec-14-dependencias-de-actividades
 function readAuditEvent(value: unknown): value is ActivityAuditEvent {
   const data = record(value);
   return (

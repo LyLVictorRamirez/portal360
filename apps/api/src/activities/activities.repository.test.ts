@@ -1,15 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-<<<<<<< HEAD
-import { containerActivityLockQuery } from "./activities.repository.js";
-=======
 import {
   ActivityRepository,
   containerActivityLockQuery,
   type ActivitiesDatabase,
 } from "./activities.repository.js";
->>>>>>> spec-14-dependencias-de-actividades
 
 test("locks Tickets without selecting a status that their schema does not contain", () => {
   assert.equal(
@@ -28,8 +24,6 @@ test("keeps status available for terminal Project and Requirement validation", (
     'select "status" from "business"."requirement" where "id" = $1 for update',
   );
 });
-<<<<<<< HEAD
-=======
 
 test("creates a dependency transactionally, increments only its successor, and audits both ends", async () => {
   const queries: Array<{ query: string; values?: unknown[] }> = [];
@@ -125,4 +119,3 @@ function activityRow(id: string): Record<string, unknown> {
     waiting_started_at: null,
   };
 }
->>>>>>> spec-14-dependencias-de-actividades

@@ -4,31 +4,22 @@ import {
   type Activity,
   type ActivityAssignee,
   type ActivityAuditEvent,
-<<<<<<< HEAD
-=======
   type ActivityDependencies,
   type ActivityDependency,
   type ActivityDetail,
->>>>>>> spec-14-dependencias-de-actividades
   ActivityAssigneeInvalidError,
   ActivityCategoryInactiveError,
   ActivityContainerNotFoundError,
   ActivityContainerTerminalError,
-<<<<<<< HEAD
-=======
   ActivityDependencyValidationError,
->>>>>>> spec-14-dependencias-de-actividades
   ActivityNotFoundError,
   ActivityOrderError,
   ActivityRelatedRecordsError,
   ActivityValidationError,
   ActivityVersionConflictError,
   type CreateActivityRecordInput,
-<<<<<<< HEAD
-=======
   type CreateActivityDependencyRecordInput,
   type DeleteActivityDependencyRecordInput,
->>>>>>> spec-14-dependencias-de-actividades
   type DeleteActivityInput,
   type ListActivitiesQuery,
   type ActivityList,
@@ -103,8 +94,6 @@ const listAssigneesQuery = `
     and ($1::text = '' or "user"."name" ilike '%' || $1 || '%' or "user"."email" ilike '%' || $1 || '%')
   order by "user"."name" asc, "user"."email" asc
   limit 25`;
-<<<<<<< HEAD
-=======
 const listPredecessorsQuery = `
   select "activity"."id", "activity"."name", "activity"."status", "activity"."version"
   from "business"."activity_dependency" as "dependency"
@@ -129,7 +118,6 @@ const listRelatedActivityNamesQuery = `
     end
   where "dependency"."predecessor_activity_id" = $1 or "dependency"."successor_activity_id" = $1
   order by "activity"."name" asc, "activity"."id" asc`;
->>>>>>> spec-14-dependencias-de-actividades
 const listActivitiesQuery = `
   select ${activitySelection("activity")}
   from "business"."activity" as "activity"
@@ -153,12 +141,6 @@ const countActivitiesQuery = `
 export class ActivityRepository {
   constructor(@Inject(ACTIVITIES_DATABASE) private readonly database: ActivitiesDatabase) {}
 
-<<<<<<< HEAD
-  async getActivity(activityId: string): Promise<Activity> {
-    const result = await this.database.query(findActivityQuery, [activityId]);
-    if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
-    return readActivity(result.rows[0]);
-=======
   async getActivity(activityId: string): Promise<ActivityDetail> {
     const result = await this.database.query(findActivityQuery, [activityId]);
     if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
@@ -171,7 +153,6 @@ export class ActivityRepository {
   async listActivityDependencies(activityId: string): Promise<ActivityDependencies> {
     await this.getActivity(activityId);
     return this.readActivityDependencies(activityId);
->>>>>>> spec-14-dependencias-de-actividades
   }
 
   async listAuditEvents(activityId: string): Promise<ActivityAuditEvent[]> {
@@ -309,8 +290,6 @@ export class ActivityRepository {
         throw new ActivityVersionConflictError(
           "The Activity was updated by another person. Reload it before deleting.",
         );
-<<<<<<< HEAD
-=======
       const relatedActivities = await transaction.query(listRelatedActivityNamesQuery, [
         activityId,
       ]);
@@ -320,7 +299,6 @@ export class ActivityRepository {
           relatedActivities.rows.map((row) => readString(row.name, "Related Activity name")),
         );
       }
->>>>>>> spec-14-dependencias-de-actividades
       await recordAuditEvent(transaction, input.actorUserId, "delete", current, null);
       const result = await transaction.query(
         `delete from "business"."activity" where "id" = $1 returning "id"`,
@@ -382,8 +360,6 @@ export class ActivityRepository {
       transaction.release();
     }
   }
-<<<<<<< HEAD
-=======
 
   async createActivityDependency(
     successorActivityId: string,
@@ -485,7 +461,6 @@ export class ActivityRepository {
   private async readActivityDependencies(activityId: string): Promise<ActivityDependencies> {
     return readActivityDependencies(this.database, activityId);
   }
->>>>>>> spec-14-dependencias-de-actividades
 }
 
 function buildUpdateQuery(
@@ -544,8 +519,6 @@ async function getActivityForUpdate(
   if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
   return readActivity(result.rows[0]);
 }
-<<<<<<< HEAD
-=======
 async function getActivity(transaction: Transaction, activityId: string): Promise<Activity> {
   const result = await transaction.query(findActivityQuery, [activityId]);
   if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
@@ -613,7 +586,6 @@ async function touchActivity(
   );
   if (!result.rows[0]) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
 }
->>>>>>> spec-14-dependencias-de-actividades
 function containerIds(
   type: ActivityContainerType,
   id: string,
@@ -727,8 +699,6 @@ function readActivity(row: Record<string, unknown>): Activity {
     waitingStartedAt: nullableDate(row.waiting_started_at, "Waiting date"),
   };
 }
-<<<<<<< HEAD
-=======
 function readActivityDependency(row: Record<string, unknown>): ActivityDependency {
   return {
     id: readString(row.id, "Activity dependency id"),
@@ -737,7 +707,6 @@ function readActivityDependency(row: Record<string, unknown>): ActivityDependenc
     version: readPositiveInteger(row.version, "Activity dependency version"),
   };
 }
->>>>>>> spec-14-dependencias-de-actividades
 function readString(value: unknown, field: string): string {
   if (typeof value !== "string")
     throw new Error(`Invalid ${field} returned by the business database.`);
@@ -823,8 +792,6 @@ async function recordAuditEvent(
     [entityId, action, actorUserId, JSON.stringify(activityChanges(before, after))],
   );
 }
-<<<<<<< HEAD
-=======
 async function recordActivityDependencyAudit(
   transaction: Transaction,
   actorUserId: string,
@@ -850,7 +817,6 @@ async function recordActivityDependencyAudit(
 function activityDependencyAuditValue(activity: Activity): { id: string; name: string } {
   return { id: activity.id, name: activity.name };
 }
->>>>>>> spec-14-dependencias-de-actividades
 function activityChanges(
   before: Activity | null,
   after: Activity | null,

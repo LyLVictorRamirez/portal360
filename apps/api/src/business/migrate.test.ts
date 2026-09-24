@@ -20,10 +20,7 @@ test("defines the business client schema and initial CLI-001 configuration", asy
       "0008-business-project-stages.sql",
       "0009-business-activities.sql",
       "0010-business-activity-rich-description.sql",
-<<<<<<< HEAD
-=======
       "0011-business-activity-dependencies.sql",
->>>>>>> spec-14-dependencias-de-actividades
     ],
   );
 
@@ -68,8 +65,6 @@ test("migrates Activity descriptions to rich text documents without rewriting ot
   );
 });
 
-<<<<<<< HEAD
-=======
 test("defines Activity dependencies without creating relations for existing Activities", async () => {
   const migrations = await readBusinessMigrations();
   const migration = migrations.find(
@@ -96,7 +91,6 @@ test("defines Activity dependencies without creating relations for existing Acti
   assert.doesNotMatch(migration.sql, /insert into "business"\."activity_dependency"/i);
 });
 
->>>>>>> spec-14-dependencias-de-actividades
 test("migrates client code settings and defines the project schema", async () => {
   const migrations = await readBusinessMigrations();
   const migration = migrations.find(
