@@ -30,6 +30,104 @@ type SearchState =
   | Readonly<{ kind: "unauthorized" }>
   | Readonly<{ kind: "error"; message: string }>;
 
+export function ActivityPredecessorSearchField({
+  activities,
+  disabled,
+  emptyMessage,
+  isLoading,
+  onQueryChange,
+  onSelected,
+}: Readonly<{
+  activities: readonly Activity[];
+  disabled: boolean;
+  emptyMessage: string;
+  isLoading: boolean;
+  onQueryChange: (query: string) => void;
+  onSelected: (activity: Activity) => void;
+}>) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const fieldRef = useRef<HTMLDivElement>(null);
+  const triggerId = useId();
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    onQueryChange(value);
+  }
+
+  function selectActivity(activity: Activity) {
+    onSelected(activity);
+    setQuery("");
+    onQueryChange("");
+    setIsOpen(false);
+  }
+
+  return (
+    <div className="space-y-1.5" ref={fieldRef}>
+      <Label htmlFor={triggerId}>Agregar predecesora</Label>
+      <Popover onOpenChange={setIsOpen} open={isOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            aria-expanded={isOpen}
+            aria-haspopup="listbox"
+            className="h-10 w-full justify-between border-border bg-surface px-3 text-left font-normal hover:bg-surface-muted"
+            disabled={disabled}
+            id={triggerId}
+            role="combobox"
+            variant="outline"
+          >
+            <span className="truncate text-muted-foreground">Buscar Actividad para agregar</span>
+            <Icons.chevronsUpDown
+              aria-hidden="true"
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-(--radix-popover-trigger-width) gap-0 p-0"
+          container={fieldRef.current}
+        >
+          <Command shouldFilter={false}>
+            <CommandInput
+              aria-label="Buscar Actividad predecesora"
+              onValueChange={handleQueryChange}
+              placeholder="Buscar Actividad…"
+              value={query}
+            />
+            <CommandList>
+              {isLoading ? (
+                <p aria-live="polite" className="px-3 py-2 text-sm leading-6 text-muted-foreground">
+                  Buscando Actividades…
+                </p>
+              ) : null}
+              {!isLoading && activities.length === 0 ? (
+                <CommandEmpty>{emptyMessage}</CommandEmpty>
+              ) : null}
+              {!isLoading && activities.length > 0 ? (
+                <CommandGroup aria-label="Opciones de Actividades predecesoras">
+                  {activities.map((activity) => (
+                    <CommandItem
+                      key={activity.id}
+                      onSelect={() => selectActivity(activity)}
+                      value={activity.id}
+                    >
+                      <span className="min-w-0 truncate">{activity.name}</span>
+                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                        {statusLabel(activity.status)}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : null}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 export function ContainerSearchField({
   containerType,
   error,
@@ -396,6 +494,23 @@ function SearchField({
 function assigneeOption(assignee: ActivityAssignee): SearchOption {
   return { detail: assignee.email, id: assignee.id, label: assignee.name };
 }
+
+function statusLabel(status: Activity["status"]): string {
+  return status === "blocked"
+    ? "Bloqueada"
+    : status === "customer_testing"
+      ? "Pruebas cliente"
+      : status === "finalized"
+        ? "Finalizada"
+        : status === "in_progress"
+          ? "En progreso"
+          : status === "in_review"
+            ? "En revisión"
+            : status === "waiting_third_party"
+              ? "Esperando tercero"
+              : "Pendiente";
+}
+
 function containerLabel(type: Activity["containerType"]): string {
   return type === "project" ? "Proyecto" : type === "requirement" ? "Requerimiento" : "Ticket";
 }

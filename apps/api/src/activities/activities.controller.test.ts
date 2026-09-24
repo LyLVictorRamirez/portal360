@@ -5,6 +5,8 @@ import { ConflictException, NotFoundException, UnprocessableEntityException } fr
 
 import {
   type Activity,
+  type ActivityDependencies,
+  ActivityDependencyValidationError,
   ActivityNotFoundError,
   ActivityValidationError,
   ActivityVersionConflictError,
@@ -58,7 +60,13 @@ function store(overrides: Partial<ActivitiesControllerStore> = {}): ActivitiesCo
     async createActivity() {
       return activity();
     },
+    async createActivityDependency() {
+      return { predecessors: [], successors: [] };
+    },
     async deleteActivity() {},
+    async deleteActivityDependency() {
+      return { predecessors: [], successors: [] };
+    },
     async getActivity() {
       return activity();
     },
@@ -67,6 +75,9 @@ function store(overrides: Partial<ActivitiesControllerStore> = {}): ActivitiesCo
     },
     async listAuditEvents() {
       return [];
+    },
+    async listActivityDependencies() {
+      return { predecessors: [], successors: [] };
     },
     async listAssignees() {
       return [];
@@ -85,14 +96,77 @@ test("declares Activity permission boundaries for every operational route", () =
   for (const [handler, permissions] of [
     [ActivitiesController.prototype.listActivities, ["activities.read"]],
     [ActivitiesController.prototype.listAssignees, ["activities.manage"]],
+    [ActivitiesController.prototype.listActivityDependencies, ["activities.read"]],
+    [ActivitiesController.prototype.createActivityDependency, ["activities.manage"]],
     [ActivitiesController.prototype.getActivity, ["activities.read"]],
     [ActivitiesController.prototype.listAuditEvents, ["activities.read"]],
     [ActivitiesController.prototype.createActivity, ["activities.manage"]],
     [ActivitiesController.prototype.updateActivity, ["activities.manage"]],
     [ActivitiesController.prototype.moveActivity, ["activities.manage"]],
+    [ActivitiesController.prototype.deleteActivityDependency, ["activities.manage"]],
     [ActivitiesController.prototype.deleteActivity, ["activities.manage"]],
   ])
     assert.deepEqual(Reflect.getMetadata(requiredPermissionsMetadataKey, handler), permissions);
+});
+
+test("reads and mutates Activity dependencies with their successor version", async () => {
+  let created: { activityId: string; input: unknown; actorUserId: string } | undefined;
+  let removed: { activityId: string; predecessorActivityId: string; version: number } | undefined;
+  const dependencies: ActivityDependencies = {
+    predecessors: [{ id: "predecessor-1", name: "Preparar", status: "pending", version: 2 }],
+    successors: [],
+  };
+  const controller = new ActivitiesController(
+    store({
+      async createActivityDependency(id, input, actorUserId) {
+        created = { activityId: id, input, actorUserId };
+        return dependencies;
+      },
+      async deleteActivityDependency(id, predecessorActivityId, input) {
+        removed = { activityId: id, predecessorActivityId, version: input.version };
+        return { predecessors: [], successors: [] };
+      },
+      async listActivityDependencies() {
+        return dependencies;
+      },
+    }),
+  );
+
+  assert.deepEqual(await controller.listActivityDependencies(activityId), dependencies);
+  assert.deepEqual(
+    await controller.createActivityDependency(
+      activityId,
+      { predecessorActivityId: "predecessor-1", version: 3 },
+      context,
+    ),
+    dependencies,
+  );
+  assert.deepEqual(created, {
+    activityId,
+    actorUserId: "user-1",
+    input: { predecessorActivityId: "predecessor-1", version: 3 },
+  });
+  await controller.deleteActivityDependency(activityId, "predecessor-1", "3", context);
+  assert.deepEqual(removed, { activityId, predecessorActivityId: "predecessor-1", version: 3 });
+});
+
+test("maps Activity dependency validation to HTTP 422", async () => {
+  const controller = new ActivitiesController(
+    store({
+      async createActivityDependency() {
+        throw new ActivityDependencyValidationError("Circular dependency.");
+      },
+    }),
+  );
+  await assert.rejects(
+    () =>
+      controller.createActivityDependency(
+        activityId,
+        { predecessorActivityId: "predecessor-1", version: 1 },
+        context,
+      ),
+    (error: unknown) => error instanceof UnprocessableEntityException && error.getStatus() === 422,
+  );
 });
 
 test("maps Activity not found, conflict, and validation errors to controlled responses", async () => {

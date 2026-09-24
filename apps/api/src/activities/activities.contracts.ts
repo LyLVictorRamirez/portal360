@@ -54,6 +54,22 @@ export interface Activity {
   waitingStartedAt: Date | null;
 }
 
+export interface ActivityDependency {
+  id: string;
+  name: string;
+  status: ActivityStatus;
+  version: number;
+}
+
+export interface ActivityDependencies {
+  predecessors: ActivityDependency[];
+  successors: ActivityDependency[];
+}
+
+export interface ActivityDetail extends Activity {
+  dependencies: ActivityDependencies;
+}
+
 export interface CreateActivityInput {
   activityCategoryId: string;
   assignedUserId: string;
@@ -112,6 +128,23 @@ export interface DeleteActivityInput {
   version: number;
 }
 
+export interface CreateActivityDependencyInput {
+  predecessorActivityId: string;
+  version: number;
+}
+
+export interface CreateActivityDependencyRecordInput extends CreateActivityDependencyInput {
+  actorUserId: string;
+}
+
+export interface DeleteActivityDependencyInput {
+  version: number;
+}
+
+export interface DeleteActivityDependencyRecordInput extends DeleteActivityDependencyInput {
+  actorUserId: string;
+}
+
 export interface ListActivitiesInput {
   activityCategoryId?: string;
   assignedUserId?: string;
@@ -163,9 +196,17 @@ export interface ActivityAssignee {
 export class ActivityCategoryInactiveError extends Error {}
 export class ActivityContainerNotFoundError extends Error {}
 export class ActivityContainerTerminalError extends Error {}
+export class ActivityDependencyValidationError extends Error {}
 export class ActivityNotFoundError extends Error {}
 export class ActivityOrderError extends Error {}
-export class ActivityRelatedRecordsError extends Error {}
+export class ActivityRelatedRecordsError extends Error {
+  constructor(
+    message: string,
+    public readonly relatedActivityNames: readonly string[] = [],
+  ) {
+    super(message);
+  }
+}
 export class ActivityValidationError extends Error {}
 export class ActivityVersionConflictError extends Error {}
 export class ActivityAssigneeInvalidError extends Error {}

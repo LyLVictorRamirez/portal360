@@ -5,6 +5,7 @@ import {
   type ActivityAssignee,
   type ActivityAuditEvent,
   type ActivityContainerType,
+  type ActivityDependencies,
   type ActivityDirection,
   type ActivityList,
   type ActivityPriority,
@@ -15,7 +16,11 @@ import {
   activityStatuses,
   activityWaitingForValues,
   type CreateActivityInput,
+  type CreateActivityDependencyInput,
+  type CreateActivityDependencyRecordInput,
   type CreateActivityRecordInput,
+  type DeleteActivityDependencyInput,
+  type DeleteActivityDependencyRecordInput,
   type DeleteActivityInput,
   type ListActivitiesInput,
   type ListActivitiesQuery,
@@ -31,11 +36,21 @@ const activityListPageSize = 25;
 
 export interface ActivityStore {
   createActivity(input: CreateActivityRecordInput): Promise<Activity>;
+  createActivityDependency(
+    successorActivityId: string,
+    input: CreateActivityDependencyRecordInput,
+  ): Promise<ActivityDependencies>;
   deleteActivity(
     activityId: string,
     input: DeleteActivityInput & { actorUserId: string },
   ): Promise<void>;
+  deleteActivityDependency(
+    successorActivityId: string,
+    predecessorActivityId: string,
+    input: DeleteActivityDependencyRecordInput,
+  ): Promise<ActivityDependencies>;
   getActivity(activityId: string): Promise<Activity>;
+  listActivityDependencies(activityId: string): Promise<ActivityDependencies>;
   listAuditEvents(activityId: string): Promise<ActivityAuditEvent[]>;
   listAssignees(query: string): Promise<ActivityAssignee[]>;
   listActivities(query: ListActivitiesQuery): Promise<ActivityList>;
@@ -58,6 +73,24 @@ export class ActivityService {
     });
   }
 
+  async createActivityDependency(
+    successorActivityId: string,
+    input: CreateActivityDependencyInput,
+    actorUserId: string,
+  ): Promise<ActivityDependencies> {
+    if (!input || typeof input !== "object") {
+      throw new ActivityValidationError("Activity dependency creation must be an object.");
+    }
+    return this.activityRepository.createActivityDependency(
+      normalizeActivityId(successorActivityId),
+      {
+        actorUserId: normalizeActorUserId(actorUserId),
+        predecessorActivityId: normalizeActivityId(input.predecessorActivityId),
+        version: normalizeVersion(input.version),
+      },
+    );
+  }
+
   async deleteActivity(
     activityId: string,
     input: DeleteActivityInput,
@@ -69,8 +102,28 @@ export class ActivityService {
     });
   }
 
+  async deleteActivityDependency(
+    successorActivityId: string,
+    predecessorActivityId: string,
+    input: DeleteActivityDependencyInput,
+    actorUserId: string,
+  ): Promise<ActivityDependencies> {
+    return this.activityRepository.deleteActivityDependency(
+      normalizeActivityId(successorActivityId),
+      normalizeActivityId(predecessorActivityId),
+      {
+        actorUserId: normalizeActorUserId(actorUserId),
+        version: normalizeVersion(input?.version),
+      },
+    );
+  }
+
   async getActivity(activityId: string): Promise<Activity> {
     return this.activityRepository.getActivity(normalizeActivityId(activityId));
+  }
+
+  async listActivityDependencies(activityId: string): Promise<ActivityDependencies> {
+    return this.activityRepository.listActivityDependencies(normalizeActivityId(activityId));
   }
 
   async listAuditEvents(activityId: string): Promise<ActivityAuditEvent[]> {

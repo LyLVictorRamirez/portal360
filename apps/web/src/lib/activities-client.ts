@@ -47,6 +47,17 @@ export type ActivityAuditEvent = Readonly<{
   changes: Record<string, unknown>;
   reason: string | null;
 }>;
+export type ActivityDependency = Readonly<{
+  id: string;
+  name: string;
+  status: ActivityStatus;
+  version: number;
+}>;
+export type ActivityDependencies = Readonly<{
+  predecessors: readonly ActivityDependency[];
+  successors: readonly ActivityDependency[];
+}>;
+export type ActivityDetail = Readonly<Activity & { dependencies: ActivityDependencies }>;
 export type ActivityAssignee = Readonly<{
   email: string;
   id: string;
@@ -77,6 +88,10 @@ export type ListActivitiesInput = Readonly<{
 }>;
 export type CreateActivityInput = Readonly<Record<string, unknown>>;
 export type UpdateActivityInput = Readonly<Record<string, unknown> & { version: number }>;
+export type CreateActivityDependencyInput = Readonly<{
+  predecessorActivityId: string;
+  version: number;
+}>;
 
 export async function listActivities(
   input: ListActivitiesInput = {},
@@ -96,12 +111,50 @@ export async function listActivities(
 export async function getActivity(
   id: string,
   fetchImplementation: typeof fetch = fetch,
-): Promise<ActivityApiResult<Activity>> {
+): Promise<ActivityApiResult<ActivityDetail>> {
   return request(
     `/api/activities/${encodeURIComponent(id)}`,
-    (value) => readActivity(record(value)?.activity),
+    (value) => readActivityDetail(record(value)?.activity),
     fetchImplementation,
     "No fue posible cargar la Actividad.",
+  );
+}
+export async function listActivityDependencies(
+  id: string,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<ActivityApiResult<ActivityDependencies>> {
+  return request(
+    `/api/activities/${encodeURIComponent(id)}/dependencies`,
+    readActivityDependencies,
+    fetchImplementation,
+    "No fue posible cargar las dependencias.",
+  );
+}
+export async function createActivityDependency(
+  id: string,
+  input: CreateActivityDependencyInput,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<ActivityApiResult<ActivityDependencies>> {
+  return mutateDependencies(
+    `/api/activities/${encodeURIComponent(id)}/dependencies`,
+    "POST",
+    input,
+    fetchImplementation,
+    "No fue posible agregar la dependencia.",
+  );
+}
+export async function deleteActivityDependency(
+  id: string,
+  predecessorActivityId: string,
+  version: number,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<ActivityApiResult<ActivityDependencies>> {
+  return mutateDependencies(
+    `/api/activities/${encodeURIComponent(id)}/dependencies/${encodeURIComponent(predecessorActivityId)}?version=${version}`,
+    "DELETE",
+    undefined,
+    fetchImplementation,
+    "No fue posible quitar la dependencia.",
   );
 }
 export async function createActivity(
@@ -216,6 +269,30 @@ async function mutate(
     return { kind: "error", message };
   }
 }
+async function mutateDependencies(
+  path: string,
+  method: "POST" | "DELETE",
+  input: unknown,
+  fetchImplementation: typeof fetch,
+  message: string,
+): Promise<ActivityApiResult<ActivityDependencies>> {
+  try {
+    const response = await fetchImplementation(path, {
+      method,
+      ...(input === undefined
+        ? {}
+        : { body: JSON.stringify(input), headers: { "content-type": "application/json" } }),
+    });
+    const error = await apiError(response);
+    if (error) return error;
+    const dependencies = readActivityDependencies(await response.json());
+    return dependencies
+      ? { kind: "success", data: dependencies }
+      : { kind: "error", message: "La respuesta del servidor no es válida." };
+  } catch {
+    return { kind: "error", message };
+  }
+}
 async function request<T>(
   path: string,
   reader: (value: unknown) => T | null,
@@ -301,6 +378,36 @@ function readActivity(value: unknown): Activity | null {
   if (data.projectStageName !== null && typeof data.projectStageName !== "string") return null;
   if (data.description !== null && !isActivityDescription(data.description)) return null;
   return data as Activity;
+}
+function readActivityDetail(value: unknown): ActivityDetail | null {
+  const activity = readActivity(value);
+  if (!activity) return null;
+  const dependencies = readActivityDependencies(record(value)?.dependencies);
+  return dependencies ? { ...activity, dependencies } : null;
+}
+function readActivityDependencies(value: unknown): ActivityDependencies | null {
+  const data = record(value);
+  if (!data || !Array.isArray(data.predecessors) || !Array.isArray(data.successors)) return null;
+  const predecessors = data.predecessors.map(readActivityDependency);
+  const successors = data.successors.map(readActivityDependency);
+  return predecessors.every(Boolean) && successors.every(Boolean)
+    ? {
+        predecessors: predecessors as ActivityDependency[],
+        successors: successors as ActivityDependency[],
+      }
+    : null;
+}
+function readActivityDependency(value: unknown): ActivityDependency | null {
+  const data = record(value);
+  return data &&
+    typeof data.id === "string" &&
+    typeof data.name === "string" &&
+    activityStatuses.includes(data.status as ActivityStatus) &&
+    typeof data.version === "number" &&
+    Number.isSafeInteger(data.version) &&
+    data.version > 0
+    ? (data as ActivityDependency)
+    : null;
 }
 function readAuditEvent(value: unknown): value is ActivityAuditEvent {
   const data = record(value);
