@@ -42,3 +42,12 @@ test("recognizes the fixed Ticket permission catalog", () => {
   assert.equal(isAuthorizationPermission("tickets.delete"), false);
   assert.equal(authorizationPermissionKeys.includes("tickets.read"), true);
 });
+
+test("recognizes the fixed Activity permission catalog", () => {
+  for (const permission of ["activities.read", "activities.manage", "activity-categories.manage"]) {
+    assert.equal(isAuthorizationPermission(permission), true);
+  }
+
+  assert.equal(isAuthorizationPermission("activities.delete"), false);
+  assert.equal(authorizationPermissionKeys.includes("activities.read"), true);
+});

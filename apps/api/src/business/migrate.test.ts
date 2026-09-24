@@ -18,6 +18,8 @@ test("defines the business client schema and initial CLI-001 configuration", asy
       "0006-business-unified-project-and-requirement-statuses.sql",
       "0007-business-tickets.sql",
       "0008-business-project-stages.sql",
+      "0009-business-activities.sql",
+      "0010-business-activity-rich-description.sql",
     ],
   );
 
@@ -44,6 +46,22 @@ test("defines the business client schema and initial CLI-001 configuration", asy
   assert.match(migration.sql, /client_code_settings_enforce_lifecycle/i);
   assert.match(migration.sql, /values \(true, 'CLI', 6, 1\)\s*on conflict \("id"\) do nothing/i);
   assert.doesNotMatch(migration.sql, /"authorization"/i);
+});
+
+test("migrates Activity descriptions to rich text documents without rewriting other business data", async () => {
+  const migrations = await readBusinessMigrations();
+  const migration = migrations.find(
+    ({ name }) => name === "0010-business-activity-rich-description.sql",
+  );
+
+  assert.ok(migration);
+  assert.match(migration.sql, /alter column "description" type jsonb/i);
+  assert.match(migration.sql, /jsonb_build_object\(\s*'type', 'doc'/i);
+  assert.match(migration.sql, /activity_description_document_check/i);
+  assert.doesNotMatch(
+    migration.sql,
+    /(?:alter table|update|delete from) "business"\."(?:client|project|requirement|ticket|project_stage)"/i,
+  );
 });
 
 test("migrates client code settings and defines the project schema", async () => {
@@ -148,6 +166,47 @@ test("defines Project Stages without inserting records for existing Projects", a
   assert.match(migration.sql, /project_stage_version_positive_check/i);
   assert.match(migration.sql, /on delete restrict/i);
   assert.doesNotMatch(migration.sql, /insert into "business"\."project_stage"/i);
+});
+
+test("defines Activities, categories, and immutable audit events without changing existing data", async () => {
+  const migrations = await readBusinessMigrations();
+  const migration = migrations.find(({ name }) => name === "0009-business-activities.sql");
+
+  assert.ok(migration);
+
+  for (const table of ["activity_category", "activity", "audit_event"]) {
+    assert.match(migration.sql, new RegExp(`create table "business"\\."${table}"`, "i"));
+  }
+
+  assert.match(migration.sql, /activity_category_normalized_name_key/i);
+  assert.match(migration.sql, /lower\("name"\)/i);
+  for (const category of [
+    "Desarrollo",
+    "Pruebas",
+    "Reuniones",
+    "Consultoría",
+    "Documentación",
+    "Soporte",
+    "Estabilización",
+  ]) {
+    assert.match(migration.sql, new RegExp(`'${category}'`, "i"));
+  }
+  assert.match(migration.sql, /activity_exactly_one_container_check/i);
+  assert.match(migration.sql, /num_nonnulls\("project_id", "requirement_id", "ticket_id"\) = 1/i);
+  assert.match(migration.sql, /activity_project_stage_container_check/i);
+  assert.match(migration.sql, /activity_enforce_hierarchy_and_stage/i);
+  assert.match(migration.sql, /activity_project_root_position_key/i);
+  assert.match(migration.sql, /activity_child_position_key/i);
+  assert.match(migration.sql, /activity_status_check/i);
+  assert.match(migration.sql, /activity_blocked_data_check/i);
+  assert.match(migration.sql, /activity_waiting_data_check/i);
+  assert.match(migration.sql, /audit_event_entity_occurred_at_idx/i);
+  assert.match(migration.sql, /audit_event_prevent_mutation/i);
+  assert.match(migration.sql, /on delete restrict/i);
+  assert.doesNotMatch(
+    migration.sql,
+    /(?:alter table|update|delete from) "business"\."(?:client|project|requirement|ticket|project_stage)"/i,
+  );
 });
 
 test("reads only business migrations in filename order", async () => {

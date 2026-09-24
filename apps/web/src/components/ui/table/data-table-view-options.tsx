@@ -21,12 +21,40 @@ interface DataTableViewOptionsProps<TData> {
   table: Table<TData>;
 }
 
+export type ColumnVisibilityOption = Readonly<{
+  id: string;
+  label: string;
+  visible: boolean;
+}>;
+
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
   const columns = React.useMemo(
     () => table.getAllColumns().filter((column) => column.getCanHide()),
     [table],
   );
 
+  return (
+    <ColumnVisibilityOptions
+      columns={columns.map((column) => ({
+        id: column.id,
+        label: column.columnDef.meta?.label ?? column.id,
+        visible: column.getIsVisible(),
+      }))}
+      onToggle={(columnId) => {
+        const column = table.getColumn(columnId);
+        if (column) column.toggleVisibility(!column.getIsVisible());
+      }}
+    />
+  );
+}
+
+export function ColumnVisibilityOptions({
+  columns,
+  onToggle,
+}: Readonly<{
+  columns: readonly ColumnVisibilityOption[];
+  onToggle: (columnId: string) => void;
+}>) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -36,7 +64,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
           size="sm"
           className="h-8"
         >
-          <Icons.adjustments />
+          <Icons.columns />
           Ver
           <CaretSortIcon className="ml-auto opacity-50" />
         </Button>
@@ -48,15 +76,12 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
             <CommandEmpty>No se encontraron columnas.</CommandEmpty>
             <CommandGroup>
               {columns.map((column) => (
-                <CommandItem
-                  key={column.id}
-                  onSelect={() => column.toggleVisibility(!column.getIsVisible())}
-                >
-                  <span className="truncate">{column.columnDef.meta?.label ?? column.id}</span>
+                <CommandItem key={column.id} onSelect={() => onToggle(column.id)}>
+                  <span className="truncate">{column.label}</span>
                   <CheckIcon
                     className={cn(
                       "ml-auto size-4 shrink-0",
-                      column.getIsVisible() ? "opacity-100" : "opacity-0",
+                      column.visible ? "opacity-100" : "opacity-0",
                     )}
                   />
                 </CommandItem>

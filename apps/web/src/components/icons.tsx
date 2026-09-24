@@ -126,6 +126,7 @@ export const Icons = {
   // Layout
   dashboard: IconLayoutDashboard,
   kanban: IconLayoutKanban,
+  columns: IconLayoutKanban,
   panelLeft: IconLayoutSidebar,
 
   // User
@@ -219,5 +220,6 @@ export const Icons = {
   slash: IconSlash,
   calendar: IconCalendar,
   galleryVerticalEnd: IconStack2,
+  group: IconStack2,
   moreHorizontal: IconDots,
 };

@@ -91,10 +91,10 @@ test("creates, updates, moves, and deletes Project Stages with their version", a
     return Response.json({ stage: projectStage });
   };
 
-  assert.deepEqual(
-    await createProjectStage("project/1", { name: "Diseño" }, fetchImplementation),
-    { data: projectStage, kind: "success" },
-  );
+  assert.deepEqual(await createProjectStage("project/1", { name: "Diseño" }, fetchImplementation), {
+    data: projectStage,
+    kind: "success",
+  });
   assert.deepEqual(
     await updateProjectStage(
       "project/1",
@@ -113,10 +113,10 @@ test("creates, updates, moves, and deletes Project Stages with their version", a
     ),
     { data: projectStage, kind: "success" },
   );
-  assert.deepEqual(
-    await deleteProjectStage("project/1", "stage/1", 3, fetchImplementation),
-    { data: undefined, kind: "success" },
-  );
+  assert.deepEqual(await deleteProjectStage("project/1", "stage/1", 3, fetchImplementation), {
+    data: undefined,
+    kind: "success",
+  });
   assert.deepEqual(requests, [
     {
       init: {

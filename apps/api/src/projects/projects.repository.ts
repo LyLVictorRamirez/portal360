@@ -777,7 +777,10 @@ async function readProjectStageForMutation(
   projectId: string,
   stageId: string,
 ): Promise<ProjectStage> {
-  const stageResult = await transaction.query(findProjectStageForMutationQuery, [stageId, projectId]);
+  const stageResult = await transaction.query(findProjectStageForMutationQuery, [
+    stageId,
+    projectId,
+  ]);
   const stageRow = stageResult.rows[0];
 
   if (!stageRow) {

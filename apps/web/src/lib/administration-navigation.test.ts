@@ -23,6 +23,12 @@ test("shows each administration option for its read or manage permission", () =>
     ),
     ["roles"],
   );
+  assert.deepEqual(
+    getVisibleAdministrationNavigation(["app.access", "activity-categories.manage"]).map(
+      (item) => item.id,
+    ),
+    ["activity-categories"],
+  );
 });
 
 test("shows both administration options when their permissions are present", () => {
@@ -36,7 +42,7 @@ test("shows both administration options when their permissions are present", () 
   );
 });
 
-test("shows Clientes, Proyectos, Requerimientos, and Tickets only to people with their reading permission", () => {
+test("shows business sections only to people with their reading permission", () => {
   assert.deepEqual(getVisibleBusinessNavigation(["app.access"]), []);
   assert.deepEqual(getVisibleBusinessNavigation(["app.access", "clients.read"]), [
     {
@@ -68,6 +74,14 @@ test("shows Clientes, Proyectos, Requerimientos, and Tickets only to people with
       id: "tickets",
       label: "Tickets",
       permissionKeys: ["tickets.read"],
+    },
+  ]);
+  assert.deepEqual(getVisibleBusinessNavigation(["app.access", "activities.read"]), [
+    {
+      href: "/actividades",
+      id: "activities",
+      label: "Actividades",
+      permissionKeys: ["activities.read"],
     },
   ]);
 });

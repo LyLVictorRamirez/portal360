@@ -2,15 +2,15 @@ import type { AuthorizationPermission } from "./authorization.ts";
 
 type AdministrationNavigationItem = Readonly<{
   href: string;
-  id: "code-settings" | "roles" | "users";
+  id: "activity-categories" | "code-settings" | "roles" | "users";
   label: string;
   permissionKeys: readonly AuthorizationPermission[];
 }>;
 
 type BusinessNavigationItem = Readonly<{
-  href: "/clientes" | "/proyectos" | "/requerimientos" | "/tickets";
-  id: "clients" | "projects" | "requirements" | "tickets";
-  label: "Clientes" | "Proyectos" | "Requerimientos" | "Tickets";
+  href: "/actividades" | "/clientes" | "/proyectos" | "/requerimientos" | "/tickets";
+  id: "activities" | "clients" | "projects" | "requirements" | "tickets";
+  label: "Actividades" | "Clientes" | "Proyectos" | "Requerimientos" | "Tickets";
   permissionKeys: readonly AuthorizationPermission[];
 }>;
 
@@ -24,6 +24,12 @@ const administrationNavigation = [
       "projects.settings.manage",
       "requirements.settings.manage",
     ],
+  },
+  {
+    href: "/administracion/categorias-actividad",
+    id: "activity-categories",
+    label: "Categorías de actividad",
+    permissionKeys: ["activity-categories.manage"],
   },
   {
     href: "/administracion/usuarios",
@@ -63,6 +69,12 @@ const businessNavigation = [
     id: "tickets",
     label: "Tickets",
     permissionKeys: ["tickets.read"],
+  },
+  {
+    href: "/actividades",
+    id: "activities",
+    label: "Actividades",
+    permissionKeys: ["activities.read"],
   },
 ] as const satisfies readonly BusinessNavigationItem[];
 

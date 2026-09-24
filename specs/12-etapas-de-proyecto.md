@@ -102,12 +102,12 @@ ProjectStage = {
 
 Las rutas HTTP serán:
 
-| Método y ruta                                                   | Permiso           | Comportamiento                                                                          |
-| ---------------------------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------- |
-| `POST /api/projects/:projectId/stages`                          | `projects.manage` | Crea una Etapa al final de un Proyecto no terminal.                                    |
-| `PUT /api/projects/:projectId/stages/:stageId`                  | `projects.manage` | Actualiza el nombre cuando coincide la versión de la Etapa.                            |
-| `POST /api/projects/:projectId/stages/:stageId/move`            | `projects.manage` | Mueve una posición con cuerpo `{ direction, version }`, donde `direction` es `up/down`. |
-| `DELETE /api/projects/:projectId/stages/:stageId?version=<n>`   | `projects.manage` | Elimina físicamente una Etapa sin Actividades cuando coincide su versión.              |
+| Método y ruta                                                 | Permiso           | Comportamiento                                                                          |
+| ------------------------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------- |
+| `POST /api/projects/:projectId/stages`                        | `projects.manage` | Crea una Etapa al final de un Proyecto no terminal.                                     |
+| `PUT /api/projects/:projectId/stages/:stageId`                | `projects.manage` | Actualiza el nombre cuando coincide la versión de la Etapa.                             |
+| `POST /api/projects/:projectId/stages/:stageId/move`          | `projects.manage` | Mueve una posición con cuerpo `{ direction, version }`, donde `direction` es `up/down`. |
+| `DELETE /api/projects/:projectId/stages/:stageId?version=<n>` | `projects.manage` | Elimina físicamente una Etapa sin Actividades cuando coincide su versión.               |
 
 `GET /api/projects/:projectId` continuará protegido por `projects.read` y devolverá el Proyecto
 junto con sus Etapas.
@@ -146,32 +146,32 @@ Una solicitud sin sesión recibe `401` y una sesión sin el permiso requerido re
 ## Criterios de aceptación
 
 - [ ] La migración crea `business.project_stage` con Proyecto obligatorio, nombre, posición,
-  versión y campos técnicos, sin insertar Etapas para Proyectos existentes.
+      versión y campos técnicos, sin insertar Etapas para Proyectos existentes.
 - [ ] Una Etapa solo puede pertenecer a un Proyecto existente y un Proyecto con Etapas no puede
-  eliminarse.
+      eliminarse.
 - [ ] El nombre se recorta, debe tener entre 1 y 15 caracteres y no se puede repetir en un mismo
-  Proyecto aunque cambie únicamente la capitalización.
+      Proyecto aunque cambie únicamente la capitalización.
 - [ ] El mismo nombre puede existir en Proyectos distintos.
 - [ ] Crear una Etapa la ubica siempre después de la última Etapa del Proyecto y devuelve su versión
-  inicial `1`.
+      inicial `1`.
 - [ ] El detalle de Proyecto devuelve `stages` ordenado ascendentemente por `position`.
 - [ ] Editar, mover o eliminar una Etapa exige su versión vigente y un cambio simultáneo recibe
-  `409 Conflict` sin sobrescribir información.
+      `409 Conflict` sin sobrescribir información.
 - [ ] Subir o bajar una Etapa intercambia exactamente su orden con la vecina inmediata y conserva
-  posiciones positivas y únicas.
+      posiciones positivas y únicas.
 - [ ] Intentar subir la primera Etapa o bajar la última recibe un error de validación controlado.
 - [ ] Solo quien tiene `projects.manage` puede crear, editar, mover o eliminar Etapas; quien tiene
-  únicamente `projects.read` puede verlas desde el detalle.
+      únicamente `projects.read` puede verlas desde el detalle.
 - [ ] Un Proyecto `finalized` o `cancelled` muestra sus Etapas, pero no permite crear, editar,
-  mover ni eliminar ninguna.
+      mover ni eliminar ninguna.
 - [ ] Una Etapa con Actividades relacionadas no puede eliminarse y recibe un error controlado.
 - [ ] La sección `Etapas` se muestra en el diálogo existente de detalle y no aparece durante la
-  creación de un Proyecto sin guardar.
+      creación de un Proyecto sin guardar.
 - [ ] La interfaz comunica de forma accesible los estados de carga, vacío, validación, error y
-  conflicto de concurrencia.
+      conflicto de concurrencia.
 - [ ] Las pruebas focalizadas y `corepack pnpm lint`, `corepack pnpm typecheck`,
-  `corepack pnpm test`, `corepack pnpm build` y `corepack pnpm format:check` finalizan con código
-  `0`.
+      `corepack pnpm test`, `corepack pnpm build` y `corepack pnpm format:check` finalizan con código
+      `0`.
 
 ## Decisiones
 
@@ -188,7 +188,7 @@ Una solicitud sin sesión recibe `401` y una sesión sin el permiso requerido re
 - **Sí:** agregar una Etapa al final; proporciona un resultado determinista y deja el ajuste de
   orden a los controles explícitos.
 - **Sí:** unicidad del nombre por Proyecto sin distinguir mayúsculas y tras recortar espacios;
-  evita duplicados operativos como `Diseño`, `diseño` o ` Diseño `.
+  evita duplicados operativos como `Diseño`, `diseño` o `Diseño`.
 - **Sí:** concurrencia optimista por Etapa para edición, movimiento y eliminación; es coherente con
   el modelo actual y evita perder cambios simultáneos.
 - **Sí:** bloquear la gestión de Etapas en Proyectos terminales y la eliminación cuando existan
@@ -201,12 +201,12 @@ Una solicitud sin sesión recibe `401` y una sesión sin el permiso requerido re
 
 ## Riesgos
 
-| Riesgo                                                                 | Mitigación                                                                                         |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Dos personas crean o reordenan Etapas simultáneamente.                | Usar transacciones y bloqueo por Proyecto, versión de la Etapa origen y conflictos controlados.    |
-| El intercambio de posiciones vulnera la restricción de unicidad.      | Realizar el movimiento dentro de una transacción con una actualización intermedia segura y pruebas. |
-| Una futura Actividad deja una Etapa que parece eliminable en la UI.   | Declarar la clave foránea restrictiva y traducir su rechazo a un error de negocio controlado.       |
-| Los nombres visualmente equivalentes generan Etapas duplicadas.       | Normalizar espacios y aplicar unicidad insensible a mayúsculas en base de datos y servicio.         |
+| Riesgo                                                              | Mitigación                                                                                          |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Dos personas crean o reordenan Etapas simultáneamente.              | Usar transacciones y bloqueo por Proyecto, versión de la Etapa origen y conflictos controlados.     |
+| El intercambio de posiciones vulnera la restricción de unicidad.    | Realizar el movimiento dentro de una transacción con una actualización intermedia segura y pruebas. |
+| Una futura Actividad deja una Etapa que parece eliminable en la UI. | Declarar la clave foránea restrictiva y traducir su rechazo a un error de negocio controlado.       |
+| Los nombres visualmente equivalentes generan Etapas duplicadas.     | Normalizar espacios y aplicar unicidad insensible a mayúsculas en base de datos y servicio.         |
 
 ## Qué **no** está en esta spec
 

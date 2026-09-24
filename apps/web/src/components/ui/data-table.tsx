@@ -30,12 +30,14 @@ type DataTableProps<Row extends { id: string }> = Omit<
   HTMLAttributes<HTMLDivElement>,
   "aria-label" | "children" | "role" | "tabIndex"
 > & {
+  columnVisibility?: VisibilityState;
   columns: readonly DataTableColumn<Row>[];
   label: string;
   rows: readonly Row[];
   scrollable?: boolean;
   showViewOptions?: boolean;
   toolbar?: ReactNode;
+  onColumnVisibilityChange?: (next: VisibilityState) => void;
 };
 
 /**
@@ -44,17 +46,22 @@ type DataTableProps<Row extends { id: string }> = Omit<
  */
 export function DataTable<Row extends { id: string }>({
   className,
+  columnVisibility: controlledColumnVisibility,
   columns,
   label,
   rows,
   scrollable = false,
   showViewOptions = false,
   toolbar,
+  onColumnVisibilityChange,
   ...props
 }: DataTableProps<Row>) {
   const data = useMemo(() => [...rows], [rows]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [uncontrolledColumnVisibility, setUncontrolledColumnVisibility] = useState<VisibilityState>(
+    {},
+  );
   const [sorting, setSorting] = useState<SortingState>([]);
+  const columnVisibility = controlledColumnVisibility ?? uncontrolledColumnVisibility;
   const tableColumns = useMemo<ColumnDef<Row>[]>(
     () =>
       columns.map((column) => ({
@@ -80,7 +87,11 @@ export function DataTable<Row extends { id: string }>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getRowId: (row) => row.id,
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: (next) => {
+      const nextColumnVisibility = typeof next === "function" ? next(columnVisibility) : next;
+      if (onColumnVisibilityChange) onColumnVisibilityChange(nextColumnVisibility);
+      else setUncontrolledColumnVisibility(nextColumnVisibility);
+    },
     onSortingChange: setSorting,
     state: { columnVisibility, sorting },
   });
