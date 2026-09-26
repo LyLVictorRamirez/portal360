@@ -15,6 +15,7 @@ import {
   ActivityNotFoundError,
   ActivityOrderError,
   ActivityRelatedRecordsError,
+  ActivityTreeLimitError,
   ActivityValidationError,
   ActivityVersionConflictError,
   type CreateActivityRecordInput,
@@ -22,8 +23,10 @@ import {
   type DeleteActivityDependencyRecordInput,
   type DeleteActivityInput,
   type ListActivitiesQuery,
+  type ListActivityTreeQuery,
   type ActivityList,
-  type MoveActivityInput,
+  type RelocateActivityRecordInput,
+  type ActivityTree,
   type UpdateActivityRecordInput,
   activityPriorities,
   activityStatuses,
@@ -128,14 +131,59 @@ const listActivitiesQuery = `
     and ($2::uuid is null or coalesce("project"."client_id", "requirement"."client_id", "ticket"."client_id") = $2)
     and ($3::text is null or case when "activity"."project_id" is not null then 'project' when "activity"."requirement_id" is not null then 'requirement' else 'ticket' end = $3)
     and ($4::uuid is null or coalesce("activity"."project_id", "activity"."requirement_id", "activity"."ticket_id") = $4)
-    and ($5::text is null or "activity"."assigned_user_id" = $5)
-    and ($6::text is null or "activity"."status" = $6)
-    and ($7::text is null or "activity"."priority" = $7)
-    and ($8::uuid is null or "activity"."activity_category_id" = $8)
+    and ($5::uuid is null or "activity"."project_stage_id" = $5)
+    and ($6::text is null or "activity"."assigned_user_id" = $6)
+    and ($7::text is null or "activity"."status" = $7)
+    and ($8::text is null or "activity"."priority" = $8)
+    and ($9::uuid is null or "activity"."activity_category_id" = $9)
   order by "activity"."updated_at" desc, "activity"."id" desc
-  limit $9 offset $10`;
+  limit $10 offset $11`;
 const countActivitiesQuery = `
   select count(*)::integer as "total" from (${listActivitiesQuery.replace(/order by[\s\S]*/, "")}) as "listed"`;
+const activityTreeLimit = 500;
+const listActivityTreeQuery = `
+  with recursive matching_activity as (
+    select "activity"."id"
+    from "business"."activity" as "activity"
+    left join "business"."project" as "project" on "project"."id" = "activity"."project_id"
+    left join "business"."requirement" as "requirement" on "requirement"."id" = "activity"."requirement_id"
+    left join "business"."ticket" as "ticket" on "ticket"."id" = "activity"."ticket_id"
+    where ($1::text is null or "activity"."name" ilike '%' || $1 || '%')
+      and ($2::uuid is null or coalesce("project"."client_id", "requirement"."client_id", "ticket"."client_id") = $2)
+      and ($3::text is null or case when "activity"."project_id" is not null then 'project' when "activity"."requirement_id" is not null then 'requirement' else 'ticket' end = $3)
+      and ($4::uuid is null or coalesce("activity"."project_id", "activity"."requirement_id", "activity"."ticket_id") = $4)
+      and ($5::uuid is null or "activity"."project_stage_id" = $5)
+      and ($6::text is null or "activity"."assigned_user_id" = $6)
+      and ($7::text is null or "activity"."status" = $7)
+      and ($8::text is null or "activity"."priority" = $8)
+      and ($9::uuid is null or "activity"."activity_category_id" = $9)
+  ), contextual_activity as (
+    select "activity"."id", "activity"."parent_activity_id"
+    from "business"."activity" as "activity"
+    inner join matching_activity on matching_activity."id" = "activity"."id"
+    union
+    select "parent"."id", "parent"."parent_activity_id"
+    from "business"."activity" as "parent"
+    inner join contextual_activity on contextual_activity."parent_activity_id" = "parent"."id"
+  ), tree_activity as (
+    select contextual_activity."id", contextual_activity."parent_activity_id",
+      array["activity"."position"] as "sort_path"
+    from contextual_activity
+    inner join "business"."activity" as "activity" on "activity"."id" = contextual_activity."id"
+    where contextual_activity."parent_activity_id" is null
+    union all
+    select contextual_activity."id", contextual_activity."parent_activity_id",
+      tree_activity."sort_path" || "activity"."position"
+    from contextual_activity
+    inner join tree_activity on tree_activity."id" = contextual_activity."parent_activity_id"
+    inner join "business"."activity" as "activity" on "activity"."id" = contextual_activity."id"
+  )
+  select ${activitySelection("activity")},
+    exists (select 1 from matching_activity where matching_activity."id" = "activity"."id") as "matches_filter"
+  from tree_activity
+  inner join "business"."activity" as "activity" on "activity"."id" = tree_activity."id"
+  order by tree_activity."sort_path", "activity"."id"
+  limit $10`;
 
 @Injectable()
 export class ActivityRepository {
@@ -171,6 +219,7 @@ export class ActivityRepository {
       query.clientId,
       query.containerType,
       query.containerId,
+      query.projectStageId,
       query.assignedUserId,
       query.status,
       query.priority,
@@ -188,6 +237,32 @@ export class ActivityRepository {
       page: query.page,
       pageSize: query.pageSize,
       total: readNonNegativeInteger(count.total, "Activity count"),
+    };
+  }
+
+  async listActivityTree(query: ListActivityTreeQuery): Promise<ActivityTree> {
+    const result = await this.database.query(listActivityTreeQuery, [
+      query.query,
+      query.clientId,
+      query.containerType,
+      query.containerId,
+      query.projectStageId,
+      query.assignedUserId,
+      query.status,
+      query.priority,
+      query.activityCategoryId,
+      activityTreeLimit + 1,
+    ]);
+    if (result.rows.length > activityTreeLimit) {
+      throw new ActivityTreeLimitError(
+        "The Activity tree contains more than 500 contextual rows. Refine the filters.",
+      );
+    }
+    return {
+      activities: result.rows.map((row) => ({
+        ...readActivity(row),
+        matchesFilter: readBoolean(row.matches_filter, "Activity filter match"),
+      })),
     };
   }
 
@@ -314,45 +389,129 @@ export class ActivityRepository {
     }
   }
 
-  async moveActivity(
+  async relocateActivity(
     activityId: string,
-    input: MoveActivityInput & { actorUserId: string },
+    input: RelocateActivityRecordInput,
   ): Promise<Activity> {
     const transaction = await this.database.connect();
     try {
       await transaction.query("BEGIN");
-      const current = await getActivityForUpdate(transaction, activityId);
-      if (current.version !== input.version)
+      const requested = await getActivity(transaction, activityId);
+      await assertContainerAllowsActivities(
+        transaction,
+        requested.containerType,
+        requested.containerId,
+      );
+      const activities = await listActivitiesForContainerForUpdate(transaction, requested);
+      const current = activities.find((activity) => activity.id === activityId);
+      if (!current) throw new ActivityNotFoundError(`Activity ${activityId} does not exist.`);
+      if (current.version !== input.version) {
         throw new ActivityVersionConflictError(
-          "The Activity was updated by another person. Reload it before moving.",
+          "The Activity was updated by another person. Reload the tree before moving it.",
         );
-      const neighborPosition = current.position + (input.direction === "up" ? -1 : 1);
-      if (neighborPosition < 1)
-        throw new ActivityOrderError("The first Activity cannot be moved up.");
-      const sibling = await transaction.query(
-        `select ${activitySelection("activity")} from "business"."activity" as "activity" where "position" = $1 and "parent_activity_id" is not distinct from $2 and (($4 = 'project' and "project_id" = $3) or ($4 = 'requirement' and "requirement_id" = $3) or ($4 = 'ticket' and "ticket_id" = $3)) for update`,
-        [neighborPosition, current.parentActivityId, current.containerId, current.containerType],
+      }
+
+      const target = input.targetActivityId
+        ? activities.find((activity) => activity.id === input.targetActivityId)
+        : null;
+      if (input.placement === "last") {
+        if (target) throw new ActivityValidationError("The last placement cannot have a target.");
+      } else if (!target) {
+        throw new ActivityValidationError("The Activity move target does not exist.");
+      }
+
+      if (
+        target &&
+        (target.containerType !== current.containerType ||
+          target.containerId !== current.containerId ||
+          target.projectStageId !== current.projectStageId)
+      ) {
+        throw new ActivityValidationError(
+          "Activities can only be moved within the same container and Project Stage.",
+        );
+      }
+
+      const descendantIds = collectDescendantIds(activities, current.id);
+      if (target && descendantIds.has(target.id)) {
+        throw new ActivityValidationError("An Activity cannot be moved into its own subtree.");
+      }
+
+      const destinationParentId =
+        input.placement === "inside" ? (target?.id ?? null) : (target?.parentActivityId ?? null);
+      const subtreeDepth = maxSubtreeDepth(activities, current.id);
+      const destinationDepth = destinationParentId
+        ? activityDepth(activities, destinationParentId) + 1
+        : 1;
+      if (destinationDepth + subtreeDepth - 1 > 4) {
+        throw new ActivityValidationError(
+          "The Activity subtree cannot be moved below the fourth hierarchy level.",
+        );
+      }
+
+      const before = new Map(activities.map((activity) => [activity.id, activity]));
+      const sourceSiblings = siblingsOf(activities, current.parentActivityId).filter(
+        (activity) => activity.id !== current.id,
       );
-      if (!sibling.rows[0]) throw new ActivityOrderError("The last Activity cannot be moved down.");
-      const neighbor = readActivity(sibling.rows[0]);
+      const destinationSiblings = siblingsOf(activities, destinationParentId).filter(
+        (activity) => activity.id !== current.id,
+      );
+      const insertionIndex =
+        input.placement === "before"
+          ? destinationSiblings.findIndex((activity) => activity.id === target?.id)
+          : input.placement === "after"
+            ? destinationSiblings.findIndex((activity) => activity.id === target?.id) + 1
+            : destinationSiblings.length;
+      if (insertionIndex < 0)
+        throw new ActivityValidationError("The Activity move target is invalid.");
+      destinationSiblings.splice(insertionIndex, 0, current);
+
+      const desired = new Map<string, { parentActivityId: string | null; position: number }>();
+      for (const [index, activity] of sourceSiblings.entries()) {
+        desired.set(activity.id, {
+          parentActivityId: current.parentActivityId,
+          position: index + 1,
+        });
+      }
+      for (const [index, activity] of destinationSiblings.entries()) {
+        desired.set(activity.id, { parentActivityId: destinationParentId, position: index + 1 });
+      }
+
+      const changes = [...desired.entries()].filter(([id, next]) => {
+        const previous = before.get(id);
+        return (
+          previous &&
+          (previous.parentActivityId !== next.parentActivityId ||
+            previous.position !== next.position)
+        );
+      });
+      if (changes.length === 0) {
+        throw new ActivityOrderError("The Activity is already in that position.");
+      }
+
+      const temporaryOffset =
+        Math.max(...activities.map((activity) => activity.position)) + changes.length + 1;
       await transaction.query(
-        `update "business"."activity" set "position" = -"position" where "id" in ($1, $2)`,
-        [current.id, neighbor.id],
+        `update "business"."activity" set "position" = "position" + $2 where "id" = any($1::uuid[])`,
+        [changes.map(([id]) => id), temporaryOffset],
       );
-      await transaction.query(
-        `update "business"."activity" set "position" = $2, "updated_at" = current_timestamp, "updated_by_user_id" = $3, "version" = "version" + 1 where "id" = $1`,
-        [neighbor.id, current.position, input.actorUserId],
-      );
-      const moved = await transaction.query(
-        `update "business"."activity" set "position" = $2, "updated_at" = current_timestamp, "updated_by_user_id" = $3, "version" = "version" + 1 where "id" = $1 returning *`,
-        [current.id, neighbor.position, input.actorUserId],
-      );
-      if (!moved.rows[0])
-        throw new Error("The business database did not return the moved Activity.");
-      const movedActivity = await getActivityForUpdate(transaction, activityId);
-      await recordAuditEvent(transaction, input.actorUserId, "modify", current, movedActivity);
+      for (const [id, next] of changes) {
+        await transaction.query(
+          `update "business"."activity" set "parent_activity_id" = $2, "position" = $3, "updated_at" = current_timestamp, "updated_by_user_id" = $4, "version" = "version" + 1 where "id" = $1`,
+          [id, next.parentActivityId, next.position, input.actorUserId],
+        );
+      }
+      for (const [id] of changes) {
+        await recordAuditEvent(
+          transaction,
+          input.actorUserId,
+          "modify",
+          before.get(id) ?? null,
+          await getActivityForUpdate(transaction, id),
+        );
+      }
+      const relocated = await getActivityForUpdate(transaction, current.id);
       await transaction.query("COMMIT");
-      return movedActivity;
+      return relocated;
     } catch (error) {
       await transaction.query("ROLLBACK");
       throw mapDatabaseError(error);
@@ -511,6 +670,79 @@ function buildUpdateQuery(
   };
 }
 
+async function listActivitiesForContainerForUpdate(
+  transaction: Transaction,
+  activity: Activity,
+): Promise<Activity[]> {
+  const [projectId, requirementId, ticketId] = containerIds(
+    activity.containerType,
+    activity.containerId,
+  );
+  const result = await transaction.query(
+    `select ${activitySelection("activity")}
+    from "business"."activity" as "activity"
+    where "activity"."project_id" is not distinct from $1
+      and "activity"."requirement_id" is not distinct from $2
+      and "activity"."ticket_id" is not distinct from $3
+    order by "activity"."parent_activity_id" nulls first, "activity"."position", "activity"."id"
+    for update`,
+    [projectId, requirementId, ticketId],
+  );
+  return result.rows.map(readActivity);
+}
+function siblingsOf(activities: readonly Activity[], parentActivityId: string | null): Activity[] {
+  return activities
+    .filter((activity) => activity.parentActivityId === parentActivityId)
+    .sort((left, right) => left.position - right.position || left.id.localeCompare(right.id));
+}
+function collectDescendantIds(activities: readonly Activity[], activityId: string): Set<string> {
+  const descendants = new Set([activityId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const activity of activities) {
+      if (
+        activity.parentActivityId &&
+        descendants.has(activity.parentActivityId) &&
+        !descendants.has(activity.id)
+      ) {
+        descendants.add(activity.id);
+        changed = true;
+      }
+    }
+  }
+  return descendants;
+}
+function activityDepth(activities: readonly Activity[], activityId: string): number {
+  const byId = new Map(activities.map((activity) => [activity.id, activity]));
+  let current = byId.get(activityId);
+  let depth = 0;
+  const visited = new Set<string>();
+  while (current) {
+    if (visited.has(current.id))
+      throw new ActivityValidationError("The Activity hierarchy has a cycle.");
+    visited.add(current.id);
+    depth += 1;
+    current = current.parentActivityId ? byId.get(current.parentActivityId) : undefined;
+  }
+  return depth;
+}
+function maxSubtreeDepth(activities: readonly Activity[], activityId: string): number {
+  const byId = new Map(activities.map((activity) => [activity.id, activity]));
+  const descendants = collectDescendantIds(activities, activityId);
+  let maximum = 1;
+  for (const descendantId of descendants) {
+    let depth = 1;
+    let current = byId.get(descendantId);
+    while (current?.parentActivityId) {
+      depth += 1;
+      if (current.parentActivityId === activityId) break;
+      current = byId.get(current.parentActivityId);
+    }
+    maximum = Math.max(maximum, depth);
+  }
+  return maximum;
+}
 async function getActivityForUpdate(
   transaction: Transaction,
   activityId: string,

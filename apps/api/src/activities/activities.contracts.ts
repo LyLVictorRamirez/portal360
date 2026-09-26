@@ -19,7 +19,8 @@ export type ActivityWaitingFor = (typeof activityWaitingForValues)[number];
 
 export const activityContainerTypes = ["project", "requirement", "ticket"] as const;
 export type ActivityContainerType = (typeof activityContainerTypes)[number];
-export type ActivityDirection = "up" | "down";
+export const activityRelocatePlacements = ["before", "after", "inside", "last"] as const;
+export type ActivityRelocatePlacement = (typeof activityRelocatePlacements)[number];
 
 export interface Activity {
   activityCategoryId: string;
@@ -52,6 +53,14 @@ export interface Activity {
   waitingFor: ActivityWaitingFor | null;
   waitingReason: string | null;
   waitingStartedAt: Date | null;
+}
+
+export interface ActivityTreeItem extends Activity {
+  matchesFilter: boolean;
+}
+
+export interface ActivityTree {
+  activities: ActivityTreeItem[];
 }
 
 export interface ActivityDependency {
@@ -119,9 +128,14 @@ export interface UpdateActivityRecordInput extends UpdateActivityInput {
   waitingStartedAt?: Date | null;
 }
 
-export interface MoveActivityInput {
-  direction: ActivityDirection;
+export interface RelocateActivityInput {
+  placement: ActivityRelocatePlacement;
+  targetActivityId: string | null;
   version: number;
+}
+
+export interface RelocateActivityRecordInput extends RelocateActivityInput {
+  actorUserId: string;
 }
 
 export interface DeleteActivityInput {
@@ -152,6 +166,7 @@ export interface ListActivitiesInput {
   containerId?: string;
   containerType?: ActivityContainerType;
   page?: number;
+  projectStageId?: string;
   priority?: ActivityPriority;
   query?: string;
   status?: ActivityStatus;
@@ -165,6 +180,31 @@ export interface ListActivitiesQuery {
   containerType: ActivityContainerType | null;
   page: number;
   pageSize: number;
+  projectStageId: string | null;
+  priority: ActivityPriority | null;
+  query: string | null;
+  status: ActivityStatus | null;
+}
+
+export interface ListActivityTreeInput {
+  activityCategoryId?: string;
+  assignedUserId?: string;
+  clientId?: string;
+  containerId?: string;
+  containerType?: ActivityContainerType;
+  projectStageId?: string;
+  priority?: ActivityPriority;
+  query?: string;
+  status?: ActivityStatus;
+}
+
+export interface ListActivityTreeQuery {
+  activityCategoryId: string | null;
+  assignedUserId: string | null;
+  clientId: string | null;
+  containerId: string | null;
+  containerType: ActivityContainerType | null;
+  projectStageId: string | null;
   priority: ActivityPriority | null;
   query: string | null;
   status: ActivityStatus | null;
@@ -199,6 +239,7 @@ export class ActivityContainerTerminalError extends Error {}
 export class ActivityDependencyValidationError extends Error {}
 export class ActivityNotFoundError extends Error {}
 export class ActivityOrderError extends Error {}
+export class ActivityTreeLimitError extends Error {}
 export class ActivityRelatedRecordsError extends Error {
   constructor(
     message: string,

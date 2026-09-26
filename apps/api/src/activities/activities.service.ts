@@ -6,12 +6,12 @@ import {
   type ActivityAuditEvent,
   type ActivityContainerType,
   type ActivityDependencies,
-  type ActivityDirection,
   type ActivityList,
   type ActivityPriority,
   type ActivityStatus,
   type ActivityWaitingFor,
   activityContainerTypes,
+  activityRelocatePlacements,
   activityPriorities,
   activityStatuses,
   activityWaitingForValues,
@@ -24,7 +24,10 @@ import {
   type DeleteActivityInput,
   type ListActivitiesInput,
   type ListActivitiesQuery,
-  type MoveActivityInput,
+  type ListActivityTreeInput,
+  type ListActivityTreeQuery,
+  type RelocateActivityInput,
+  type ActivityTree,
   type UpdateActivityInput,
   type UpdateActivityRecordInput,
   ActivityValidationError,
@@ -54,9 +57,10 @@ export interface ActivityStore {
   listAuditEvents(activityId: string): Promise<ActivityAuditEvent[]>;
   listAssignees(query: string): Promise<ActivityAssignee[]>;
   listActivities(query: ListActivitiesQuery): Promise<ActivityList>;
-  moveActivity(
+  listActivityTree(query: ListActivityTreeQuery): Promise<ActivityTree>;
+  relocateActivity(
     activityId: string,
-    input: MoveActivityInput & { actorUserId: string },
+    input: RelocateActivityInput & { actorUserId: string },
   ): Promise<Activity>;
   updateActivity(activityId: string, input: UpdateActivityRecordInput): Promise<Activity>;
 }
@@ -141,32 +145,38 @@ export class ActivityService {
     }
 
     return this.activityRepository.listActivities({
-      activityCategoryId: optionalId(input.activityCategoryId, "Activity category id"),
-      assignedUserId: optionalId(input.assignedUserId, "Activity assignee id"),
-      clientId: optionalId(input.clientId, "Activity Client id"),
-      containerId: optionalId(input.containerId, "Activity container id"),
-      containerType:
-        input.containerType === undefined ? null : normalizeContainerType(input.containerType),
+      ...normalizeListFilters(input),
       page,
       pageSize: activityListPageSize,
-      priority: input.priority === undefined ? null : normalizePriority(input.priority),
-      query: normalizeSearch(input.query),
-      status: input.status === undefined ? null : normalizeStatus(input.status),
     });
   }
 
-  async moveActivity(
+  async listActivityTree(input: ListActivityTreeInput = {}): Promise<ActivityTree> {
+    return this.activityRepository.listActivityTree(normalizeListFilters(input));
+  }
+
+  async relocateActivity(
     activityId: string,
-    input: MoveActivityInput,
+    input: RelocateActivityInput,
     actorUserId: string,
   ): Promise<Activity> {
-    if (input?.direction !== "up" && input?.direction !== "down") {
-      throw new ActivityValidationError("Activity move direction must be up or down.");
+    if (!input || typeof input !== "object") {
+      throw new ActivityValidationError("Activity relocation must be an object.");
+    }
+    if (!(activityRelocatePlacements as readonly string[]).includes(input.placement)) {
+      throw new ActivityValidationError("Activity relocation placement is invalid.");
+    }
+    const targetActivityId = optionalId(input.targetActivityId, "Activity move target id");
+    if ((input.placement === "last") !== (targetActivityId === null)) {
+      throw new ActivityValidationError(
+        "Only the last placement can omit the Activity move target.",
+      );
     }
 
-    return this.activityRepository.moveActivity(normalizeActivityId(activityId), {
+    return this.activityRepository.relocateActivity(normalizeActivityId(activityId), {
       actorUserId: normalizeActorUserId(actorUserId),
-      direction: input.direction as ActivityDirection,
+      placement: input.placement,
+      targetActivityId,
       version: normalizeVersion(input.version),
     });
   }
@@ -184,6 +194,23 @@ export class ActivityService {
       actorUserId: normalizeActorUserId(actorUserId),
     });
   }
+}
+
+function normalizeListFilters(
+  input: ListActivitiesInput | ListActivityTreeInput,
+): ListActivityTreeQuery {
+  return {
+    activityCategoryId: optionalId(input.activityCategoryId, "Activity category id"),
+    assignedUserId: optionalId(input.assignedUserId, "Activity assignee id"),
+    clientId: optionalId(input.clientId, "Activity Client id"),
+    containerId: optionalId(input.containerId, "Activity container id"),
+    containerType:
+      input.containerType === undefined ? null : normalizeContainerType(input.containerType),
+    projectStageId: optionalId(input.projectStageId, "Activity Project Stage id"),
+    priority: input.priority === undefined ? null : normalizePriority(input.priority),
+    query: normalizeSearch(input.query),
+    status: input.status === undefined ? null : normalizeStatus(input.status),
+  };
 }
 
 function normalizeCreate(

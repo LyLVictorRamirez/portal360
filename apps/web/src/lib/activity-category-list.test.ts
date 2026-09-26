@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  filterActivityCategories,
-  paginateActivityCategories,
-} from "./activity-category-list.ts";
+import { filterActivityCategories, paginateActivityCategories } from "./activity-category-list.ts";
 
 const categories = [
   { id: "1", name: "Consultoría", isActive: true, version: 1 },

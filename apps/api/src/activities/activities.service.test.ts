@@ -9,6 +9,8 @@ import {
   type CreateActivityRecordInput,
   type CreateActivityDependencyRecordInput,
   type ListActivitiesQuery,
+  type ListActivityTreeQuery,
+  type RelocateActivityInput,
   type UpdateActivityRecordInput,
 } from "./activities.contracts.js";
 import { ActivityService, type ActivityStore } from "./activities.service.js";
@@ -78,7 +80,10 @@ function store(overrides: Partial<ActivityStore> = {}): ActivityStore {
     async listActivities(query: ListActivitiesQuery) {
       return { activities: [], page: query.page, pageSize: query.pageSize, total: 0 };
     },
-    async moveActivity() {
+    async listActivityTree() {
+      return { activities: [] };
+    },
+    async relocateActivity() {
       return activity();
     },
     async updateActivity() {
@@ -256,6 +261,7 @@ test("uses 25 rows and normalizes Activity filters", async () => {
   await service.listActivities({
     containerType: "ticket",
     page: 2,
+    projectStageId: "stage-1",
     priority: "high",
     query: "  entrega  ",
     status: "in_review",
@@ -269,9 +275,77 @@ test("uses 25 rows and normalizes Activity filters", async () => {
     page: 2,
     pageSize: 25,
     priority: "high",
+    projectStageId: "stage-1",
     query: "entrega",
     status: "in_review",
   });
+});
+
+test("normalizes tree filters and relocates an Activity with its version and actor", async () => {
+  let treeQuery: ListActivityTreeQuery | undefined;
+  let relocated:
+    { activityId: string; input: RelocateActivityInput & { actorUserId: string } } | undefined;
+  const service = new ActivityService(
+    store({
+      async listActivityTree(query) {
+        treeQuery = query;
+        return { activities: [] };
+      },
+      async relocateActivity(id, input) {
+        relocated = { activityId: id, input };
+        return activity();
+      },
+    }),
+  );
+
+  await service.listActivityTree({
+    containerType: "project",
+    projectStageId: "stage-1",
+    query: "  Entrega  ",
+  });
+  await service.relocateActivity(
+    activityId,
+    { placement: "inside", targetActivityId: "parent-1", version: 3 },
+    "user-2",
+  );
+
+  assert.deepEqual(treeQuery, {
+    activityCategoryId: null,
+    assignedUserId: null,
+    clientId: null,
+    containerId: null,
+    containerType: "project",
+    priority: null,
+    projectStageId: "stage-1",
+    query: "Entrega",
+    status: null,
+  });
+  assert.deepEqual(relocated, {
+    activityId,
+    input: { actorUserId: "user-2", placement: "inside", targetActivityId: "parent-1", version: 3 },
+  });
+});
+
+test("rejects relocation destinations that do not match their placement", async () => {
+  const service = new ActivityService(store());
+  await assert.rejects(
+    () =>
+      service.relocateActivity(
+        activityId,
+        { placement: "before", targetActivityId: null, version: 1 },
+        "user-1",
+      ),
+    ActivityValidationError,
+  );
+  await assert.rejects(
+    () =>
+      service.relocateActivity(
+        activityId,
+        { placement: "last", targetActivityId: "target-1", version: 1 },
+        "user-1",
+      ),
+    ActivityValidationError,
+  );
 });
 
 test("rejects a waiting Activity without complete wait data", async () => {

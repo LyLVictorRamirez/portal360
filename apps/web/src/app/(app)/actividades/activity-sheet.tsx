@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "../../../components/ui/button";
 import { Checkbox } from "../../../components/ui/checkbox";
@@ -23,6 +23,7 @@ import {
   getActivity,
   listActivities,
   listActivityAuditEvents,
+  listActivityTree,
   updateActivity,
   type Activity,
   type ActivityAuditEvent,
@@ -30,6 +31,7 @@ import {
   type ActivityDependency,
   type ActivityPriority,
   type ActivityStatus,
+  type ActivityTreeItem,
 } from "../../../lib/activities-client";
 import { getProject, type ProjectStage } from "../../../lib/projects-client";
 import {
@@ -38,6 +40,7 @@ import {
 } from "../../../lib/activity-categories-client";
 import {
   ActivityPredecessorSearchField,
+  ActivityParentSearchField,
   AssigneeSearchField,
   ContainerSearchField,
   ProjectStageSearchField,
@@ -144,6 +147,9 @@ export function ActivitySheet({
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [parentActivities, setParentActivities] = useState<readonly ActivityTreeItem[] | null>(
+    null,
+  );
   const [projectStages, setProjectStages] = useState<readonly ProjectStage[]>([]);
   const [selectedPredecessors, setSelectedPredecessors] = useState<readonly Activity[]>([]);
 
@@ -152,6 +158,7 @@ export function ActivitySheet({
     setAuditEvents([]);
     setDetailActivity(null);
     setSelectedPredecessors([]);
+    setParentActivities(null);
     setError(null);
     setFieldErrors({});
     setForm(activityForm(activity));
@@ -190,6 +197,36 @@ export function ActivitySheet({
       current = false;
     };
   }, [form.containerId, form.containerType, isCreate, open]);
+
+  useEffect(() => {
+    const needsProjectStage = form.containerType === "project";
+    if (!open || !form.containerId || (needsProjectStage && !form.projectStageId)) {
+      setParentActivities(null);
+      return;
+    }
+    let current = true;
+    setParentActivities(null);
+    void listActivityTree({
+      containerId: form.containerId,
+      containerType: form.containerType,
+      projectStageId: needsProjectStage ? form.projectStageId : undefined,
+    }).then((result) => {
+      if (!current) return;
+      if (result.kind === "success") setParentActivities(result.data.activities);
+      else if (result.kind !== "unauthorized") setError(result.message);
+    });
+    return () => {
+      current = false;
+    };
+  }, [form.containerId, form.containerType, form.projectStageId, open]);
+
+  const validParentActivityIds = useMemo(
+    () => (parentActivities ? validParentIds(parentActivities, activity?.id ?? null) : null),
+    [activity?.id, parentActivities],
+  );
+  const selectedParentLabel = parentActivities?.find(
+    (item) => item.id === form.parentActivityId,
+  )?.name;
 
   const setValue = <Key extends keyof ActivityFormValues>(
     key: Key,
@@ -299,6 +336,7 @@ export function ActivitySheet({
                             ...current,
                             containerId: "",
                             containerType: value as Activity["containerType"],
+                            parentActivityId: "",
                             projectStageId: "",
                           }))
                         }
@@ -311,7 +349,12 @@ export function ActivitySheet({
                         containerType={form.containerType}
                         error={fieldErrors.containerId}
                         onSelected={(containerId) => {
-                          setForm((current) => ({ ...current, containerId, projectStageId: "" }));
+                          setForm((current) => ({
+                            ...current,
+                            containerId,
+                            parentActivityId: "",
+                            projectStageId: "",
+                          }));
                           setFieldErrors((current) => ({
                             ...current,
                             containerId: undefined,
@@ -330,7 +373,9 @@ export function ActivitySheet({
                   {isCreate && form.containerType === "project" && form.containerId ? (
                     <ProjectStageSearchField
                       error={fieldErrors.projectStageId}
-                      onSelected={(projectStageId) => setValue("projectStageId", projectStageId)}
+                      onSelected={(projectStageId) =>
+                        setForm((current) => ({ ...current, parentActivityId: "", projectStageId }))
+                      }
                       selectedId={form.projectStageId}
                       stages={projectStages}
                     />
@@ -340,12 +385,37 @@ export function ActivitySheet({
                       value={activity?.projectStageName ?? "Sin etapa"}
                     />
                   ) : null}
-                  <LabeledInput
-                    label="ID de actividad padre"
-                    value={form.parentActivityId}
-                    onChange={(value) => setValue("parentActivityId", value)}
-                    help="Opcional. Debe pertenecer al mismo contenedor."
-                  />
+                  <div className="space-y-2">
+                    <ActivityParentSearchField
+                      containerId={form.containerId}
+                      containerType={form.containerType}
+                      disabled={
+                        !form.containerId ||
+                        (form.containerType === "project" && !form.projectStageId) ||
+                        !validParentActivityIds
+                      }
+                      onSelected={(parentActivityId) =>
+                        setValue("parentActivityId", parentActivityId)
+                      }
+                      projectStageId={form.projectStageId}
+                      selectedId={form.parentActivityId}
+                      selectedLabel={selectedParentLabel}
+                      validActivityIds={validParentActivityIds}
+                    />
+                    {form.parentActivityId ? (
+                      <Button
+                        onClick={() => setValue("parentActivityId", "")}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Quitar padre
+                      </Button>
+                    ) : null}
+                    <p className="text-xs text-muted-foreground">
+                      Opcional. Solo se muestran Actividades compatibles con la jerarquía.
+                    </p>
+                  </div>
                 </div>
               </section>
               <section>
@@ -1184,6 +1254,49 @@ function toPayload(form: ActivityFormValues) {
     waitingFor: form.status === "waiting_third_party" ? form.waitingFor : null,
     waitingReason: form.status === "waiting_third_party" ? form.waitingReason.trim() : null,
   };
+}
+
+function validParentIds(
+  activities: readonly ActivityTreeItem[],
+  sourceActivityId: string | null,
+): ReadonlySet<string> {
+  const childrenByParent = new Map<string | null, ActivityTreeItem[]>();
+  for (const activity of activities) {
+    const children = childrenByParent.get(activity.parentActivityId) ?? [];
+    children.push(activity);
+    childrenByParent.set(activity.parentActivityId, children);
+  }
+  const depths = new Map<string, number>();
+  const subtreeHeight = new Map<string, number>();
+  const visit = (activity: ActivityTreeItem, depth: number): number => {
+    depths.set(activity.id, depth);
+    const height = (childrenByParent.get(activity.id) ?? []).reduce(
+      (maximum, child) => Math.max(maximum, visit(child, depth + 1) + 1),
+      0,
+    );
+    subtreeHeight.set(activity.id, height);
+    return height;
+  };
+  (childrenByParent.get(null) ?? []).forEach((activity) => visit(activity, 0));
+  const excludedIds = new Set<string>(sourceActivityId ? [sourceActivityId] : []);
+  if (sourceActivityId) {
+    const visitDescendants = (parentId: string) => {
+      for (const child of childrenByParent.get(parentId) ?? []) {
+        excludedIds.add(child.id);
+        visitDescendants(child.id);
+      }
+    };
+    visitDescendants(sourceActivityId);
+  }
+  const sourceHeight = sourceActivityId ? (subtreeHeight.get(sourceActivityId) ?? 0) : 0;
+  return new Set(
+    activities
+      .filter(
+        (activity) =>
+          !excludedIds.has(activity.id) && (depths.get(activity.id) ?? 0) + sourceHeight < 3,
+      )
+      .map((activity) => activity.id),
+  );
 }
 const eventLabels: Record<ActivityAuditEvent["action"], string> = {
   create: "Actividad creada",

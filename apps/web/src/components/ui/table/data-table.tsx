@@ -17,6 +17,10 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 interface DataTableProps<TData> extends React.ComponentProps<"div"> {
   actionBar?: React.ReactNode;
   emptyMessage?: string;
+  getRowGroupKey?: (row: TData) => string | null;
+  getRowSubgroupKey?: (row: TData) => string | null;
+  renderRowGroupHeader?: (row: TData) => React.ReactNode;
+  renderRowSubgroupHeader?: (row: TData) => React.ReactNode;
   scrollable?: boolean;
   showPagination?: boolean;
   table: TanstackTable<TData>;
@@ -24,6 +28,8 @@ interface DataTableProps<TData> extends React.ComponentProps<"div"> {
 
 type PortalColumnMeta = {
   align?: "center" | "left" | "right";
+  cellClassName?: string;
+  headerClassName?: string;
 };
 
 const alignmentClassNames: Record<NonNullable<PortalColumnMeta["align"]>, string> = {
@@ -37,16 +43,81 @@ function getAlignmentClassName(meta: unknown) {
   return align ? alignmentClassNames[align] : undefined;
 }
 
+function getCellClassName(meta: unknown) {
+  return (meta as PortalColumnMeta | undefined)?.cellClassName;
+}
+
+function getHeaderClassName(meta: unknown) {
+  return (meta as PortalColumnMeta | undefined)?.headerClassName;
+}
+
 export function DataTable<TData>({
   actionBar,
   children,
   className,
   emptyMessage = "No hay resultados.",
+  getRowGroupKey,
+  getRowSubgroupKey,
+  renderRowGroupHeader,
+  renderRowSubgroupHeader,
   scrollable = false,
   showPagination = true,
   table,
   ...props
 }: DataTableProps<TData>) {
+  const visibleColumnCount = table.getVisibleLeafColumns().length;
+  const rows = table.getRowModel().rows;
+  const renderedRows: React.ReactNode[] = [];
+  let previousGroupKey: string | null = null;
+  let previousSubgroupKey: string | null = null;
+
+  for (const row of rows) {
+    const groupKey = getRowGroupKey?.(row.original) ?? null;
+    if (groupKey && groupKey !== previousGroupKey && renderRowGroupHeader) {
+      renderedRows.push(
+        <TableRow className="bg-info-surface hover:bg-info-surface" key={`group-${groupKey}`}>
+          <TableCell className="border-y border-info/20 px-3 py-2.5" colSpan={visibleColumnCount}>
+            {renderRowGroupHeader(row.original)}
+          </TableCell>
+        </TableRow>,
+      );
+      previousSubgroupKey = null;
+    }
+    const subgroupKey = getRowSubgroupKey?.(row.original) ?? null;
+    if (subgroupKey && subgroupKey !== previousSubgroupKey && renderRowSubgroupHeader) {
+      renderedRows.push(
+        <TableRow
+          className="bg-info-surface/60 hover:bg-info-surface/60"
+          key={`subgroup-${groupKey ?? "none"}-${subgroupKey}`}
+        >
+          <TableCell className="border-b border-info/15 px-3 py-1.5" colSpan={visibleColumnCount}>
+            {renderRowSubgroupHeader(row.original)}
+          </TableCell>
+        </TableRow>,
+      );
+    }
+    renderedRows.push(
+      <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+        {row.getVisibleCells().map((cell) => (
+          <TableCell
+            className={cn(
+              getAlignmentClassName(cell.column.columnDef.meta),
+              getCellClassName(cell.column.columnDef.meta),
+            )}
+            key={cell.id}
+            style={{
+              ...getCommonPinningStyles({ column: cell.column }),
+            }}
+          >
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ))}
+      </TableRow>,
+    );
+    previousGroupKey = groupKey;
+    previousSubgroupKey = subgroupKey;
+  }
+
   return (
     <div className={cn("flex w-full flex-col space-y-4", className)} {...props}>
       {children}
@@ -62,7 +133,10 @@ export function DataTable<TData>({
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead
-                      className={getAlignmentClassName(header.column.columnDef.meta)}
+                      className={cn(
+                        getAlignmentClassName(header.column.columnDef.meta),
+                        getHeaderClassName(header.column.columnDef.meta),
+                      )}
                       key={header.id}
                       colSpan={header.colSpan}
                       style={{
@@ -78,25 +152,11 @@ export function DataTable<TData>({
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        className={getAlignmentClassName(cell.column.columnDef.meta)}
-                        key={cell.id}
-                        style={{
-                          ...getCommonPinningStyles({ column: cell.column }),
-                        }}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
+              {rows.length ? (
+                renderedRows
               ) : (
                 <TableRow>
-                  <TableCell colSpan={table.getAllColumns().length} className="h-24 text-center">
+                  <TableCell colSpan={visibleColumnCount} className="h-24 text-center">
                     {emptyMessage}
                   </TableCell>
                 </TableRow>

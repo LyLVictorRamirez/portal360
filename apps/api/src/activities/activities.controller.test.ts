@@ -1,13 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ConflictException, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 
 import {
   type Activity,
   type ActivityDependencies,
   ActivityDependencyValidationError,
   ActivityNotFoundError,
+  ActivityTreeLimitError,
   ActivityValidationError,
   ActivityVersionConflictError,
 } from "./activities.contracts.js";
@@ -73,6 +79,9 @@ function store(overrides: Partial<ActivitiesControllerStore> = {}): ActivitiesCo
     async listActivities() {
       return { activities: [], page: 1, pageSize: 25, total: 0 };
     },
+    async listActivityTree() {
+      return { activities: [] };
+    },
     async listAuditEvents() {
       return [];
     },
@@ -82,7 +91,7 @@ function store(overrides: Partial<ActivitiesControllerStore> = {}): ActivitiesCo
     async listAssignees() {
       return [];
     },
-    async moveActivity() {
+    async relocateActivity() {
       return activity();
     },
     async updateActivity() {
@@ -95,6 +104,7 @@ function store(overrides: Partial<ActivitiesControllerStore> = {}): ActivitiesCo
 test("declares Activity permission boundaries for every operational route", () => {
   for (const [handler, permissions] of [
     [ActivitiesController.prototype.listActivities, ["activities.read"]],
+    [ActivitiesController.prototype.listActivityTree, ["activities.read"]],
     [ActivitiesController.prototype.listAssignees, ["activities.manage"]],
     [ActivitiesController.prototype.listActivityDependencies, ["activities.read"]],
     [ActivitiesController.prototype.createActivityDependency, ["activities.manage"]],
@@ -102,7 +112,7 @@ test("declares Activity permission boundaries for every operational route", () =
     [ActivitiesController.prototype.listAuditEvents, ["activities.read"]],
     [ActivitiesController.prototype.createActivity, ["activities.manage"]],
     [ActivitiesController.prototype.updateActivity, ["activities.manage"]],
-    [ActivitiesController.prototype.moveActivity, ["activities.manage"]],
+    [ActivitiesController.prototype.relocateActivity, ["activities.manage"]],
     [ActivitiesController.prototype.deleteActivityDependency, ["activities.manage"]],
     [ActivitiesController.prototype.deleteActivity, ["activities.manage"]],
   ])
@@ -205,6 +215,55 @@ test("maps Activity not found, conflict, and validation errors to controlled res
         },
         context,
       ),
+    (error: unknown) => error instanceof UnprocessableEntityException && error.getStatus() === 422,
+  );
+});
+
+test("reads the tree and sends a destination relocation with its authenticated actor", async () => {
+  let relocated: { id: string; input: unknown; actorUserId: string } | undefined;
+  const controller = new ActivitiesController(
+    store({
+      async listActivityTree() {
+        return { activities: [{ ...activity(), matchesFilter: true }] };
+      },
+      async relocateActivity(id, input, actorUserId) {
+        relocated = { id, input, actorUserId };
+        return activity();
+      },
+    }),
+  );
+
+  assert.equal(
+    (await controller.listActivityTree({ query: "entrega" })).activities[0]?.matchesFilter,
+    true,
+  );
+  await controller.relocateActivity(
+    activityId,
+    { placement: "after", targetActivityId: "target-1", version: 2 },
+    context,
+  );
+  assert.deepEqual(relocated, {
+    actorUserId: "user-1",
+    id: activityId,
+    input: { placement: "after", targetActivityId: "target-1", version: 2 },
+  });
+});
+
+test("rejects malformed relocation input and maps tree limits to HTTP 422", async () => {
+  const controller = new ActivitiesController(
+    store({
+      async listActivityTree() {
+        throw new ActivityTreeLimitError("Refine filters.");
+      },
+    }),
+  );
+
+  await assert.rejects(
+    () => controller.relocateActivity(activityId, { placement: "inside", version: 1 }, context),
+    (error: unknown) => error instanceof BadRequestException && error.getStatus() === 400,
+  );
+  await assert.rejects(
+    () => controller.listActivityTree({}),
     (error: unknown) => error instanceof UnprocessableEntityException && error.getStatus() === 422,
   );
 });

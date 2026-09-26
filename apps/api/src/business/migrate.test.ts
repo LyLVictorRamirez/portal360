@@ -21,6 +21,7 @@ test("defines the business client schema and initial CLI-001 configuration", asy
       "0009-business-activities.sql",
       "0010-business-activity-rich-description.sql",
       "0011-business-activity-dependencies.sql",
+      "0012-business-activity-hierarchy-order.sql",
     ],
   );
 
@@ -47,6 +48,30 @@ test("defines the business client schema and initial CLI-001 configuration", asy
   assert.match(migration.sql, /client_code_settings_enforce_lifecycle/i);
   assert.match(migration.sql, /values \(true, 'CLI', 6, 1\)\s*on conflict \("id"\) do nothing/i);
   assert.doesNotMatch(migration.sql, /"authorization"/i);
+});
+
+test("expands Activity hierarchies to four levels without weakening their invariants", async () => {
+  const migrations = await readBusinessMigrations();
+  const migration = migrations.find(
+    ({ name }) => name === "0012-business-activity-hierarchy-order.sql",
+  );
+
+  assert.ok(migration);
+  assert.match(migration.sql, /drop trigger if exists "activity_enforce_hierarchy_and_stage"/i);
+  assert.match(
+    migration.sql,
+    /drop function if exists "business"\."enforce_activity_hierarchy_and_stage"/i,
+  );
+  assert.match(
+    migration.sql,
+    /create function "business"\."enforce_activity_hierarchy_and_stage"/i,
+  );
+  assert.match(migration.sql, /at most four levels/i);
+  assert.match(migration.sql, /one of its descendants/i);
+  assert.match(migration.sql, /with recursive descendants/i);
+  assert.match(migration.sql, /cannot change stage/i);
+  assert.doesNotMatch(migration.sql, /create table/i);
+  assert.doesNotMatch(migration.sql, /alter table/i);
 });
 
 test("migrates Activity descriptions to rich text documents without rewriting other business data", async () => {

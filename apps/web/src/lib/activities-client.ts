@@ -69,6 +69,8 @@ export type ActivityList = Readonly<{
   pageSize: number;
   total: number;
 }>;
+export type ActivityTreeItem = Readonly<Activity & { matchesFilter: boolean }>;
+export type ActivityTree = Readonly<{ activities: readonly ActivityTreeItem[] }>;
 export type ActivityApiResult<T> =
   | Readonly<{ kind: "success"; data: T }>
   | Readonly<{ kind: "unauthorized" }>
@@ -81,6 +83,7 @@ export type ListActivitiesInput = Readonly<{
   clientId?: string;
   containerId?: string;
   containerType?: Activity["containerType"];
+  projectStageId?: string;
   assignedUserId?: string;
   status?: ActivityStatus;
   priority?: ActivityPriority;
@@ -92,20 +95,41 @@ export type CreateActivityDependencyInput = Readonly<{
   predecessorActivityId: string;
   version: number;
 }>;
+export type RelocateActivityInput = Readonly<{
+  placement: "before" | "after" | "inside" | "last";
+  targetActivityId: string | null;
+  version: number;
+}>;
 
 export async function listActivities(
   input: ListActivitiesInput = {},
   fetchImplementation: typeof fetch = fetch,
 ): Promise<ActivityApiResult<ActivityList>> {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(input)) {
-    if (value !== undefined && String(value).trim()) params.set(key, String(value).trim());
-  }
+  const params = activitySearchParams(input);
   return request(
     `/api/activities${params.size ? `?${params}` : ""}`,
     readList,
     fetchImplementation,
     "No fue posible cargar las Actividades.",
+  );
+}
+function activitySearchParams(input: Omit<ListActivitiesInput, "page"> | ListActivitiesInput) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined && String(value).trim()) params.set(key, String(value).trim());
+  }
+  return params;
+}
+export async function listActivityTree(
+  input: Omit<ListActivitiesInput, "page"> = {},
+  fetchImplementation: typeof fetch = fetch,
+): Promise<ActivityApiResult<ActivityTree>> {
+  const params = activitySearchParams(input);
+  return request(
+    `/api/activities/tree${params.size ? `?${params}` : ""}`,
+    readTree,
+    fetchImplementation,
+    "No fue posible cargar el árbol de Actividades.",
   );
 }
 export async function getActivity(
@@ -182,16 +206,15 @@ export async function updateActivity(
     "No fue posible guardar la Actividad.",
   );
 }
-export async function moveActivity(
+export async function relocateActivity(
   id: string,
-  direction: "up" | "down",
-  version: number,
+  input: RelocateActivityInput,
   fetchImplementation: typeof fetch = fetch,
 ): Promise<ActivityApiResult<Activity>> {
   return mutate(
     `/api/activities/${encodeURIComponent(id)}/move`,
     "POST",
-    { direction, version },
+    input,
     fetchImplementation,
     "No fue posible ordenar la Actividad.",
   );
@@ -353,6 +376,16 @@ function readList(value: unknown): ActivityList | null {
         total: data.total as number,
       }
     : null;
+}
+function readTree(value: unknown): ActivityTree | null {
+  const data = record(value);
+  if (!data || !Array.isArray(data.activities)) return null;
+  const activities = data.activities.map((item) => {
+    const activity = readActivity(item);
+    const matchesFilter = record(item)?.matchesFilter;
+    return activity && typeof matchesFilter === "boolean" ? { ...activity, matchesFilter } : null;
+  });
+  return activities.every(Boolean) ? { activities: activities as ActivityTreeItem[] } : null;
 }
 function readActivity(value: unknown): Activity | null {
   const data = record(value);

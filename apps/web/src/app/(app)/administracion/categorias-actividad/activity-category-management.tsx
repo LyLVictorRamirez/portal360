@@ -230,7 +230,9 @@ function ActivityCategoryFilters({
           <DropdownMenuLabel>Filtrar por disponibilidad</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuRadioGroup
-            onValueChange={(value) => onAvailabilityChange(value as ActivityCategoryAvailabilityFilter)}
+            onValueChange={(value) =>
+              onAvailabilityChange(value as ActivityCategoryAvailabilityFilter)
+            }
             value={availability}
           >
             <DropdownMenuRadioItem value="all">Todas</DropdownMenuRadioItem>

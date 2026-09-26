@@ -10,7 +10,8 @@ import {
   listActivityAssignees,
   listActivityDependencies,
   listActivities,
-  moveActivity,
+  listActivityTree,
+  relocateActivity,
 } from "./activities-client.ts";
 
 const activity = {
@@ -49,6 +50,9 @@ test("uses same-origin Activity endpoints for filters and mutations", async () =
         assignees: [{ email: "ana@example.com", id: "user-1", name: "Ana" }],
       });
     }
+    if (input.toString().startsWith("/api/activities/tree")) {
+      return Response.json({ activities: [{ ...activity, matchesFilter: true }] });
+    }
     return init?.method === "DELETE"
       ? new Response(null, { status: 204 })
       : Response.json(
@@ -58,17 +62,37 @@ test("uses same-origin Activity endpoints for filters and mutations", async () =
         );
   };
   assert.deepEqual(
-    await listActivities({ page: 2, query: "  entrega  ", status: "pending" }, fetchImplementation),
+    await listActivities(
+      { page: 2, projectStageId: "stage-1", query: "  entrega  ", status: "pending" },
+      fetchImplementation,
+    ),
     { kind: "success", data: { activities: [activity], page: 2, pageSize: 25, total: 26 } },
   );
   assert.deepEqual(await createActivity({ name: "Actividad" }, fetchImplementation), {
     kind: "success",
     data: activity,
   });
-  assert.deepEqual(await moveActivity("activity/1", "down", 1, fetchImplementation), {
-    kind: "success",
-    data: activity,
-  });
+  assert.deepEqual(
+    await listActivityTree(
+      { containerId: "project-1", projectStageId: "stage-1" },
+      fetchImplementation,
+    ),
+    {
+      kind: "success",
+      data: { activities: [{ ...activity, matchesFilter: true }] },
+    },
+  );
+  assert.deepEqual(
+    await relocateActivity(
+      "activity/1",
+      { placement: "after", targetActivityId: "activity-2", version: 1 },
+      fetchImplementation,
+    ),
+    {
+      kind: "success",
+      data: activity,
+    },
+  );
   assert.deepEqual(await deleteActivity("activity/1", 1, fetchImplementation), {
     kind: "success",
     data: undefined,
@@ -80,8 +104,15 @@ test("uses same-origin Activity endpoints for filters and mutations", async () =
   assert.deepEqual(
     requests.map(({ url, init }) => ({ url, method: init?.method })),
     [
-      { url: "/api/activities?page=2&query=entrega&status=pending", method: undefined },
+      {
+        url: "/api/activities?page=2&projectStageId=stage-1&query=entrega&status=pending",
+        method: undefined,
+      },
       { url: "/api/activities", method: "POST" },
+      {
+        url: "/api/activities/tree?containerId=project-1&projectStageId=stage-1",
+        method: undefined,
+      },
       { url: "/api/activities/activity%2F1/move", method: "POST" },
       { url: "/api/activities/activity%2F1?version=1", method: "DELETE" },
       { url: "/api/activities/assignees?query=ana", method: undefined },
@@ -91,8 +122,10 @@ test("uses same-origin Activity endpoints for filters and mutations", async () =
 
 test("maps Activity conflicts and validation responses", async () => {
   assert.deepEqual(
-    await moveActivity("activity-1", "up", 1, async () =>
-      Response.json({ message: "Recarga." }, { status: 409 }),
+    await relocateActivity(
+      "activity-1",
+      { placement: "last", targetActivityId: null, version: 1 },
+      async () => Response.json({ message: "Recarga." }, { status: 409 }),
     ),
     { kind: "conflict", message: "Recarga." },
   );

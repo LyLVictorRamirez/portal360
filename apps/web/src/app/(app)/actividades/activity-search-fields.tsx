@@ -16,6 +16,7 @@ import { Label } from "../../../components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover";
 import {
   listActivityAssignees,
+  listActivities,
   type Activity,
   type ActivityAssignee,
 } from "../../../lib/activities-client";
@@ -219,6 +220,67 @@ export function ProjectStageSearchField({
   );
 }
 
+export function ActivityParentSearchField({
+  containerId,
+  containerType,
+  disabled,
+  onSelected,
+  projectStageId,
+  selectedId,
+  selectedLabel,
+  validActivityIds,
+}: Readonly<{
+  containerId: string;
+  containerType: Activity["containerType"];
+  disabled: boolean;
+  onSelected: (id: string) => void;
+  projectStageId: string;
+  selectedId: string;
+  selectedLabel?: string;
+  validActivityIds: ReadonlySet<string> | null;
+}>) {
+  const loadOptions = useCallback(
+    async (query: string) => {
+      if (!validActivityIds) return { kind: "success" as const, options: [] };
+      const result = await listActivities({
+        containerId,
+        containerType,
+        projectStageId: containerType === "project" ? projectStageId : undefined,
+        query,
+      });
+      return result.kind === "success"
+        ? {
+            kind: "success" as const,
+            options: result.data.activities
+              .filter(
+                (activity) =>
+                  validActivityIds.has(activity.id) &&
+                  (containerType !== "project" || activity.projectStageId === projectStageId),
+              )
+              .map((activity) => ({
+                detail: activity.projectStageName ?? undefined,
+                id: activity.id,
+                label: activity.name,
+              })),
+          }
+        : result;
+    },
+    [containerId, containerType, projectStageId, validActivityIds],
+  );
+  return (
+    <RemoteSearchField
+      disabled={disabled}
+      emptyMessage="No hay Actividades válidas para usar como padre."
+      label="Actividad padre"
+      loadOptions={loadOptions}
+      onSelected={onSelected}
+      placeholder="Buscar Actividad padre…"
+      selectedId={selectedId}
+      selectedLabel={selectedLabel}
+    />
+  );
+}
+
 export function AssigneeSearchField({
   error,
   onSelected,
@@ -255,6 +317,7 @@ export function AssigneeSearchField({
 
 function RemoteSearchField({
   emptyMessage,
+  disabled = false,
   error,
   label,
   loadOptions,
@@ -264,6 +327,7 @@ function RemoteSearchField({
   selectedLabel,
 }: Readonly<{
   emptyMessage: string;
+  disabled?: boolean;
   error?: string;
   label: string;
   loadOptions: (
@@ -303,6 +367,7 @@ function RemoteSearchField({
 
   return (
     <SearchField
+      disabled={disabled}
       emptyMessage={emptyMessage}
       error={error}
       label={label}
@@ -329,6 +394,7 @@ function RemoteSearchField({
 
 function LocalSearchField({
   emptyMessage,
+  disabled = false,
   error,
   label,
   onSelected,
@@ -337,6 +403,7 @@ function LocalSearchField({
   selectedId,
 }: Readonly<{
   emptyMessage: string;
+  disabled?: boolean;
   error?: string;
   label: string;
   onSelected: (id: string) => void;
@@ -352,6 +419,7 @@ function LocalSearchField({
   );
   return (
     <SearchField
+      disabled={disabled}
       emptyMessage={emptyMessage}
       error={error}
       label={label}
@@ -373,6 +441,7 @@ function LocalSearchField({
 }
 
 function SearchField({
+  disabled = false,
   emptyMessage,
   error,
   label,
@@ -387,6 +456,7 @@ function SearchField({
   selectedLabel,
   state,
 }: Readonly<{
+  disabled?: boolean;
   emptyMessage: string;
   error?: string;
   label: string;
@@ -415,6 +485,7 @@ function SearchField({
             aria-describedby={error ? `${triggerId}-error` : undefined}
             aria-haspopup="listbox"
             className="h-9 w-full justify-between border-input bg-background px-3 text-left font-normal shadow-xs hover:bg-muted/50"
+            disabled={disabled}
             id={triggerId}
             role="combobox"
             variant="outline"

@@ -26,6 +26,7 @@ import {
   type ActivityAssignee,
   type ActivityAuditEvent,
   type ActivityDependencies,
+  type ActivityTree,
   ActivityAssigneeInvalidError,
   ActivityCategoryInactiveError,
   ActivityContainerNotFoundError,
@@ -34,6 +35,7 @@ import {
   ActivityNotFoundError,
   ActivityOrderError,
   ActivityRelatedRecordsError,
+  ActivityTreeLimitError,
   ActivityValidationError,
   ActivityVersionConflictError,
   type CreateActivityInput,
@@ -41,7 +43,8 @@ import {
   type DeleteActivityDependencyInput,
   type DeleteActivityInput,
   type ListActivitiesInput,
-  type MoveActivityInput,
+  type ListActivityTreeInput,
+  type RelocateActivityInput,
   type UpdateActivityInput,
 } from "./activities.contracts.js";
 import { ActivityService } from "./activities.service.js";
@@ -71,9 +74,10 @@ export interface ActivitiesControllerStore {
   listActivities(
     input: ListActivitiesInput,
   ): Promise<{ activities: Activity[]; page: number; pageSize: number; total: number }>;
-  moveActivity(
+  listActivityTree(input: ListActivityTreeInput): Promise<ActivityTree>;
+  relocateActivity(
     activityId: string,
-    input: MoveActivityInput,
+    input: RelocateActivityInput,
     actorUserId: string,
   ): Promise<Activity>;
   updateActivity(
@@ -96,6 +100,17 @@ export class ActivitiesController {
   ): Promise<{ activities: Activity[]; page: number; pageSize: number; total: number }> {
     try {
       return await this.activityService.listActivities(readListInput(query));
+    } catch (error) {
+      throw toHttpException(error);
+    }
+  }
+  @Get("tree")
+  @RequirePermissions("activities.read")
+  async listActivityTree(
+    @Query() query: Record<string, string | undefined>,
+  ): Promise<ActivityTree> {
+    try {
+      return await this.activityService.listActivityTree(readListInput(query));
     } catch (error) {
       throw toHttpException(error);
     }
@@ -196,16 +211,16 @@ export class ActivitiesController {
   }
   @Post(":activityId/move")
   @RequirePermissions("activities.manage")
-  async moveActivity(
+  async relocateActivity(
     @Param("activityId") activityId: string,
     @Body() body: unknown,
     @AuthorizationContext() context: AuthorizationRequestContext,
   ): Promise<{ activity: Activity }> {
     try {
       return {
-        activity: await this.activityService.moveActivity(
+        activity: await this.activityService.relocateActivity(
           activityId,
-          readMoveInput(body),
+          readRelocateInput(body),
           context.userId,
         ),
       };
@@ -264,6 +279,7 @@ function readCreateInput(body: unknown): CreateActivityInput {
     "assignedUserId",
     "containerId",
     "containerType",
+    "projectStageId",
     "name",
   ]) {
     if (typeof record[key] !== "string") throw new BadRequestException(`${key} is required.`);
@@ -296,17 +312,34 @@ function readUpdateInput(body: unknown): UpdateActivityInput {
     throw new BadRequestException("version must be a positive integer.");
   return record as unknown as UpdateActivityInput;
 }
-function readMoveInput(body: unknown): MoveActivityInput {
+function readRelocateInput(body: unknown): RelocateActivityInput {
   const record = readRecord(body);
-  if (record.direction !== "up" && record.direction !== "down")
-    throw new BadRequestException("direction must be up or down.");
+  if (
+    record.placement !== "before" &&
+    record.placement !== "after" &&
+    record.placement !== "inside" &&
+    record.placement !== "last"
+  ) {
+    throw new BadRequestException("placement must be before, after, inside, or last.");
+  }
+  if (record.placement === "last") {
+    if (record.targetActivityId !== null && record.targetActivityId !== undefined) {
+      throw new BadRequestException("last placement must not have a targetActivityId.");
+    }
+  } else if (typeof record.targetActivityId !== "string") {
+    throw new BadRequestException("targetActivityId is required.");
+  }
   if (
     typeof record.version !== "number" ||
     !Number.isSafeInteger(record.version) ||
     record.version < 1
   )
     throw new BadRequestException("version must be a positive integer.");
-  return { direction: record.direction, version: record.version };
+  return {
+    placement: record.placement,
+    targetActivityId: record.placement === "last" ? null : (record.targetActivityId as string),
+    version: record.version,
+  };
 }
 function readVersionQuery(value: string | undefined): number {
   if (value === undefined || !/^\d+$/.test(value) || Number(value) < 1)
@@ -345,7 +378,8 @@ function toHttpException(error: unknown): Error {
     error instanceof ActivityCategoryInactiveError ||
     error instanceof ActivityAssigneeInvalidError ||
     error instanceof ActivityContainerTerminalError ||
-    error instanceof ActivityOrderError
+    error instanceof ActivityOrderError ||
+    error instanceof ActivityTreeLimitError
   )
     return new UnprocessableEntityException(error.message);
   return error instanceof Error ? error : new Error("Activity operation failed.");

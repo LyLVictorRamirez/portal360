@@ -20,9 +20,12 @@ export type DataTableAlignment = "left" | "center" | "right";
 export type DataTableColumn<Row> = {
   align?: DataTableAlignment;
   cell: (row: Row) => ReactNode;
+  cellClassName?: string;
   header: string;
+  headerClassName?: string;
   hideable?: boolean;
   id: string;
+  size?: number;
   sortValue?: (row: Row) => string | number;
 };
 
@@ -34,6 +37,11 @@ type DataTableProps<Row extends { id: string }> = Omit<
   columns: readonly DataTableColumn<Row>[];
   label: string;
   rows: readonly Row[];
+  groupBy?: (row: Row) => string | null;
+  renderGroupHeader?: (row: Row) => ReactNode;
+  subgroupBy?: (row: Row) => string | null;
+  renderSubgroupHeader?: (row: Row) => ReactNode;
+  paginate?: boolean;
   scrollable?: boolean;
   showViewOptions?: boolean;
   toolbar?: ReactNode;
@@ -48,12 +56,17 @@ export function DataTable<Row extends { id: string }>({
   className,
   columnVisibility: controlledColumnVisibility,
   columns,
+  groupBy,
   label,
+  renderGroupHeader,
+  renderSubgroupHeader,
   rows,
   scrollable = false,
   showViewOptions = false,
+  subgroupBy,
   toolbar,
   onColumnVisibilityChange,
+  paginate = true,
   ...props
 }: DataTableProps<Row>) {
   const data = useMemo(() => [...rows], [rows]);
@@ -76,7 +89,13 @@ export function DataTable<Row extends { id: string }>({
             column.header
           ),
         id: column.id,
-        meta: { align: column.align, label: column.header },
+        size: column.size,
+        meta: {
+          align: column.align,
+          cellClassName: column.cellClassName,
+          headerClassName: column.headerClassName,
+          label: column.header,
+        },
       })),
     [columns],
   );
@@ -85,7 +104,7 @@ export function DataTable<Row extends { id: string }>({
     data,
     getSortedRowModel: getSortedRowModel(),
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: paginate ? getPaginationRowModel() : undefined,
     getRowId: (row) => row.id,
     onColumnVisibilityChange: (next) => {
       const nextColumnVisibility = typeof next === "function" ? next(columnVisibility) : next;
@@ -100,6 +119,10 @@ export function DataTable<Row extends { id: string }>({
     <TanstackDataTable
       aria-label={`Tabla desplazable: ${label}`}
       className={className}
+      getRowGroupKey={groupBy ? (row) => groupBy(row) : undefined}
+      getRowSubgroupKey={subgroupBy ? (row) => subgroupBy(row) : undefined}
+      renderRowGroupHeader={renderGroupHeader}
+      renderRowSubgroupHeader={renderSubgroupHeader}
       scrollable={scrollable}
       showPagination={false}
       table={table}

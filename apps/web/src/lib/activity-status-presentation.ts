@@ -1,13 +1,7 @@
 import type { ActivityStatus } from "./activities-client.ts";
 
 export type ActivityStatusTone =
-  | "analysis"
-  | "approved"
-  | "danger"
-  | "info"
-  | "paused"
-  | "planned"
-  | "success";
+  "analysis" | "approved" | "danger" | "info" | "paused" | "planned" | "success";
 
 /**
  * Conserva la lectura de estados de Proyectos y Requerimientos: planificación

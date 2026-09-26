@@ -1,7 +1,17 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { VisibilityState } from "@tanstack/react-table";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 
 import { ActivityDeleteDialog } from "./activity-delete-dialog";
 import { ActivitySheet, type ActivitySheetMode } from "./activity-sheet";
@@ -14,7 +24,6 @@ import {
 } from "../../../components/states/interface-states";
 import { Button } from "../../../components/ui/button";
 import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
-import { ColumnVisibilityOptions } from "../../../components/ui/table/data-table-view-options";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,21 +38,14 @@ import { Input } from "../../../components/ui/input";
 import { PageHeader } from "../../../components/ui/page-header";
 import { StatusBadge, type StatusBadgeTone } from "../../../components/ui/status-badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../../components/ui/table";
-import {
   activityPriorities,
   activityStatuses,
   listActivityAssignees,
-  listActivities,
-  moveActivity,
+  listActivityTree,
+  relocateActivity,
   type Activity,
-  type ActivityList,
+  type ActivityTree,
+  type ActivityTreeItem,
   type ActivityPriority,
   type ActivityStatus,
 } from "../../../lib/activities-client";
@@ -54,21 +56,15 @@ import {
 } from "../../../lib/activity-categories-client";
 import { listClients } from "../../../lib/clients-client";
 
-type ActivityListState =
+type ActivityTreeState =
   | Readonly<{ kind: "loading" }>
-  | Readonly<{ kind: "ready"; list: ActivityList }>
+  | Readonly<{ kind: "ready"; tree: ActivityTree }>
   | Readonly<{ kind: "unauthorized" }>
+  | Readonly<{ kind: "refine"; message: string }>
   | Readonly<{ kind: "error"; message: string }>;
 type ActivityEditorState = Readonly<{ activity: Activity | null; mode: ActivitySheetMode }>;
-type ActivityGrouping = "none" | "container";
-type ActivityContainerGroup = Readonly<{
-  id: string;
-  activities: readonly Activity[];
-  clientName: string;
-  containerName: string;
-  containerType: Activity["containerType"];
-  estimatedHours: number;
-}>;
+type ActivityRelocationPlacement = "before" | "after" | "inside" | "last";
+type ActivityTreeMetadata = Readonly<{ childCount: number; depth: number; subtreeHeight: number }>;
 
 const statusLabels: Record<ActivityStatus, string> = {
   blocked: "Bloqueada",
@@ -98,6 +94,11 @@ const priorityTones: Record<ActivityPriority, StatusBadgeTone> = {
   low: "success",
   medium: "planned",
 };
+const dropPlacementLabels: Record<Exclude<ActivityRelocationPlacement, "last">, string> = {
+  after: "Después",
+  before: "Antes",
+  inside: "Dentro",
+};
 
 export function ActivityManagement({
   canManageActivities,
@@ -108,20 +109,44 @@ export function ActivityManagement({
   const [categoryState, setCategoryState] = useState<readonly ActivityCategory[]>([]);
   const [clientId, setClientId] = useState("");
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [collapsedContainerIds, setCollapsedContainerIds] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
   const [containerId, setContainerId] = useState("");
   const [containerType, setContainerType] = useState<"all" | Activity["containerType"]>("all");
   const [editor, setEditor] = useState<ActivityEditorState | null>(null);
-  const [grouping, setGrouping] = useState<ActivityGrouping>("none");
-  const [page, setPage] = useState(1);
   const [priority, setPriority] = useState<"all" | ActivityPriority>("all");
   const [query, setQuery] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
-  const [state, setState] = useState<ActivityListState>({ kind: "loading" });
+  const [state, setState] = useState<ActivityTreeState>({ kind: "loading" });
   const [status, setStatus] = useState<"all" | ActivityStatus>("all");
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [expandedActivityIds, setExpandedActivityIds] = useState<ReadonlySet<string>>(new Set());
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const expansionLoaded = useRef(false);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("portal-360:activities:expanded-v1");
+      const parsed = saved ? JSON.parse(saved) : [];
+      if (Array.isArray(parsed) && parsed.every((id) => typeof id === "string")) {
+        setExpandedActivityIds(new Set(parsed));
+      }
+    } catch {
+      // The tree remains usable when local preferences cannot be read.
+    } finally {
+      expansionLoaded.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!expansionLoaded.current) return;
+    try {
+      window.localStorage.setItem(
+        "portal-360:activities:expanded-v1",
+        JSON.stringify([...expandedActivityIds]),
+      );
+    } catch {
+      // Local preference persistence is optional.
+    }
+  }, [expandedActivityIds]);
 
   useEffect(() => {
     let current = true;
@@ -136,13 +161,12 @@ export function ActivityManagement({
   useEffect(() => {
     let current = true;
     const timeout = window.setTimeout(async () => {
-      const result = await listActivities({
+      const result = await listActivityTree({
         activityCategoryId: activityCategoryId === "all" ? undefined : activityCategoryId,
         assignedUserId,
         clientId,
         containerId,
         containerType: containerType === "all" ? undefined : containerType,
-        page,
         priority: priority === "all" ? undefined : priority,
         query,
         status: status === "all" ? undefined : status,
@@ -150,10 +174,12 @@ export function ActivityManagement({
       if (!current) return;
       setState(
         result.kind === "success"
-          ? { kind: "ready", list: result.data }
+          ? { kind: "ready", tree: result.data }
           : result.kind === "unauthorized"
             ? result
-            : { kind: "error", message: result.message },
+            : result.kind === "validation"
+              ? { kind: "refine", message: result.message }
+              : { kind: "error", message: result.message },
       );
     }, 200);
     return () => {
@@ -166,14 +192,13 @@ export function ActivityManagement({
     clientId,
     containerId,
     containerType,
-    page,
     priority,
     query,
     reloadKey,
     status,
   ]);
 
-  const list = state.kind === "ready" ? state.list : null;
+  const tree = state.kind === "ready" ? state.tree : null;
   const categoryNames = useMemo(
     () => new Map(categoryState.map((category) => [category.id, category.name])),
     [categoryState],
@@ -201,7 +226,6 @@ export function ActivityManagement({
     query?: string;
     status?: "all" | ActivityStatus;
   }) => {
-    setPage(1);
     if (next.activityCategoryId !== undefined) setActivityCategoryId(next.activityCategoryId);
     if (next.assignedUserId !== undefined) setAssignedUserId(next.assignedUserId);
     if (next.clientId !== undefined) setClientId(next.clientId);
@@ -212,42 +236,104 @@ export function ActivityManagement({
     if (next.status !== undefined) setStatus(next.status);
     setUpdateMessage(null);
   };
+  const treeRows = useMemo(
+    () => visibleTreeActivities(tree?.activities ?? [], expandedActivityIds, Boolean(hasFilters)),
+    [expandedActivityIds, hasFilters, tree?.activities],
+  );
+  const groupedTreeRows = useMemo(() => groupActivitiesByContainer(treeRows), [treeRows]);
+  const treeMeta = useMemo(() => treeMetadata(tree?.activities ?? []), [tree?.activities]);
+  const activitiesById = useMemo(
+    () => new Map((tree?.activities ?? []).map((activity) => [activity.id, activity])),
+    [tree?.activities],
+  );
+  const activeDragActivity = activeDragId ? (activitiesById.get(activeDragId) ?? null) : null;
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor),
+  );
+  const relocate = async (
+    activity: Activity,
+    placement: ActivityRelocationPlacement,
+    targetActivityId: string | null,
+  ) => {
+    const result = await relocateActivity(activity.id, {
+      placement,
+      targetActivityId,
+      version: activity.version,
+    });
+    if (result.kind === "success") refresh(`Se reubicó ${activity.name}.`);
+    else
+      setUpdateMessage(
+        result.kind === "conflict" ? result.message : "No fue posible reubicar la Actividad.",
+      );
+  };
+  const onDragEnd = (event: DragEndEvent) => {
+    setActiveDragId(null);
+    const [targetId, placement] = String(event.over?.id ?? "").split("|");
+    const activity = tree?.activities.find((item) => item.id === event.active.id);
+    if (!activity || !targetId) return;
+    if (placement === "last" && targetId === activity.containerId) {
+      void relocate(activity, placement, null);
+      return;
+    }
+    const target = activitiesById.get(targetId);
+    if (
+      target &&
+      (placement === "before" || placement === "after" || placement === "inside") &&
+      isValidDropTarget(activity, target, placement, treeMeta, activitiesById)
+    ) {
+      void relocate(activity, placement, targetId);
+    }
+  };
+  const dragAccessibility = useMemo(
+    () => ({
+      announcements: {
+        onDragCancel: ({ active }: { active: { id: string | number } }) =>
+          `Se canceló el movimiento de ${activitiesById.get(String(active.id))?.name ?? "la Actividad"}.`,
+        onDragEnd: ({
+          active,
+          over,
+        }: {
+          active: { id: string | number };
+          over: { id: string | number } | null;
+        }) =>
+          over
+            ? `Se soltó ${activitiesById.get(String(active.id))?.name ?? "la Actividad"} en ${dropTargetAnnouncement(String(over.id), activitiesById)}.`
+            : "No se eligió un destino para la Actividad.",
+        onDragOver: ({ over }: { over: { id: string | number } | null }) =>
+          over ? `Destino: ${dropTargetAnnouncement(String(over.id), activitiesById)}.` : undefined,
+        onDragStart: ({ active }: { active: { id: string | number } }) =>
+          `Se seleccionó ${activitiesById.get(String(active.id))?.name ?? "la Actividad"}.`,
+      },
+      screenReaderInstructions: {
+        draggable:
+          "Presiona la barra espaciadora para tomar una Actividad. Usa las flechas para elegir un destino y barra espaciadora para soltarla. Presiona Escape para cancelar.",
+      },
+    }),
+    [activitiesById],
+  );
   const columns = createColumns({
     canManage: canManageActivities,
     categoryNames,
+    expandedActivityIds,
+    activeDragActivity,
+    getDropPlacements: (target) =>
+      activeDragActivity
+        ? getValidDropPlacements(activeDragActivity, target, treeMeta, activitiesById)
+        : [],
+    onMoveToRoot: (activity) => void relocate(activity, "last", null),
+    onToggleExpanded: (activityId) =>
+      setExpandedActivityIds((current) => {
+        const next = new Set(current);
+        if (next.has(activityId)) next.delete(activityId);
+        else next.add(activityId);
+        return next;
+      }),
     onDelete: setActivityToDelete,
     onEdit: (activity) => setEditor({ activity, mode: "edit" }),
-    onMove: async (activity, direction) => {
-      const result = await moveActivity(activity.id, direction, activity.version);
-      if (result.kind === "success") refresh(`Se actualizó la secuencia de ${activity.name}.`);
-      else
-        setUpdateMessage(
-          result.kind === "conflict" ? result.message : "No fue posible mover la Actividad.",
-        );
-    },
+    treeMeta,
     onView: (activity) => setEditor({ activity, mode: "view" }),
   });
-  const visibleColumns = columns.filter(
-    (column) => !column.hideable || columnVisibility[column.id] !== false,
-  );
-  const columnVisibilityOptions = columns
-    .filter((column) => column.hideable)
-    .map((column) => ({
-      id: column.id,
-      label: column.header,
-      visible: columnVisibility[column.id] !== false,
-    }));
-  const toggleColumnVisibility = (columnId: string) => {
-    setColumnVisibility((current) => {
-      const next = { ...current };
-      next[columnId] = current[columnId] === false;
-      return next;
-    });
-  };
-  const containerGroups = useMemo(
-    () => (list ? groupActivitiesByContainer(list.activities) : []),
-    [list],
-  );
   const activityFilters = (
     <ActivityFilters
       activityCategoryId={activityCategoryId}
@@ -255,10 +341,8 @@ export function ActivityManagement({
       categories={categoryState}
       clientId={clientId}
       containerType={containerType}
-      grouping={grouping}
       hasFilters={Boolean(hasFilters)}
       onChange={updateFilters}
-      onGroupingChange={setGrouping}
       priority={priority}
       query={query}
       status={status}
@@ -296,7 +380,14 @@ export function ActivityManagement({
           title="No fue posible consultar las Actividades"
         />
       ) : null}
-      {list ? (
+      {state.kind === "refine" ? (
+        <ErrorState
+          action={<Button onClick={() => setQuery("")}>Restablecer filtros</Button>}
+          description={state.message}
+          title="Refina los filtros para consultar el árbol"
+        />
+      ) : null}
+      {tree ? (
         <section
           className="flex min-h-0 min-w-0 flex-1 flex-col gap-4"
           aria-labelledby="activity-table-title"
@@ -304,39 +395,42 @@ export function ActivityManagement({
           <h2 className="sr-only" id="activity-table-title">
             Actividades registradas
           </h2>
-          {list.activities.length ? (
-            grouping === "container" ? (
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-                {activityFilters}
-                <ActivityGroupedTable
-                  collapsedContainerIds={collapsedContainerIds}
-                  columns={visibleColumns}
-                  columnVisibilityOptions={columnVisibilityOptions}
-                  groups={containerGroups}
-                  onToggleContainer={(containerGroupId) =>
-                    setCollapsedContainerIds((current) => {
-                      const next = new Set(current);
-                      if (next.has(containerGroupId)) next.delete(containerGroupId);
-                      else next.add(containerGroupId);
-                      return next;
-                    })
-                  }
-                  onToggleColumnVisibility={toggleColumnVisibility}
-                />
-              </div>
-            ) : (
+          {tree.activities.length ? (
+            <DndContext
+              accessibility={dragAccessibility}
+              onDragCancel={() => setActiveDragId(null)}
+              onDragEnd={onDragEnd}
+              onDragStart={(event) => setActiveDragId(String(event.active.id))}
+              sensors={sensors}
+            >
               <DataTable
                 className="min-h-0 min-w-0 flex-1"
                 columnVisibility={columnVisibility}
                 columns={columns}
-                label="Actividades registradas"
-                rows={list.activities}
+                groupBy={(activity) => activity.containerId}
+                label="Árbol de Actividades"
+                paginate={false}
+                renderGroupHeader={(activity) => (
+                  <ActivityContainerBand
+                    activity={activity}
+                    activeDragActivity={activeDragActivity}
+                  />
+                )}
+                renderSubgroupHeader={(activity) => (
+                  <ActivityProjectStageBand activity={activity} />
+                )}
+                rows={groupedTreeRows}
                 scrollable
                 showViewOptions
+                subgroupBy={(activity) =>
+                  activity.containerType === "project"
+                    ? (activity.projectStageId ?? "without-project-stage")
+                    : null
+                }
                 toolbar={activityFilters}
                 onColumnVisibilityChange={setColumnVisibility}
               />
-            )
+            </DndContext>
           ) : (
             <>
               {activityFilters}
@@ -357,12 +451,6 @@ export function ActivityManagement({
               />
             </>
           )}
-          <ActivityPagination
-            page={list.page}
-            pageSize={list.pageSize}
-            total={list.total}
-            onPageChange={setPage}
-          />
         </section>
       ) : null}
       {editor ? (
@@ -395,10 +483,8 @@ function ActivityFilters({
   categories,
   clientId,
   containerType,
-  grouping,
   hasFilters,
   onChange,
-  onGroupingChange,
   priority,
   query,
   status,
@@ -408,7 +494,6 @@ function ActivityFilters({
   categories: readonly ActivityCategory[];
   clientId: string;
   containerType: "all" | Activity["containerType"];
-  grouping: ActivityGrouping;
   hasFilters: boolean;
   onChange: (next: {
     activityCategoryId?: string;
@@ -420,7 +505,6 @@ function ActivityFilters({
     query?: string;
     status?: "all" | ActivityStatus;
   }) => void;
-  onGroupingChange: (grouping: ActivityGrouping) => void;
   priority: "all" | ActivityPriority;
   query: string;
   status: "all" | ActivityStatus;
@@ -496,17 +580,6 @@ function ActivityFilters({
         onValueChange={(value) => onChange({ priority: value as "all" | ActivityPriority })}
         value={priority}
         valueLabel={priority === "all" ? undefined : priorityLabels[priority]}
-      />
-      <ActivityFilterMenu
-        icon={Icons.group}
-        items={[
-          { label: "Sin agrupar", value: "none" },
-          { label: "Por contenedor", value: "container" },
-        ]}
-        label="Agrupar"
-        onValueChange={(value) => onGroupingChange(value as ActivityGrouping)}
-        value={grouping}
-        valueLabel={grouping === "container" ? "Por contenedor" : undefined}
       />
       {hasFilters ? (
         <Button
@@ -666,171 +739,92 @@ function ActivityFilterMenu({
   );
 }
 
-function ActivityGroupedTable({
-  collapsedContainerIds,
-  columns,
-  columnVisibilityOptions,
-  groups,
-  onToggleColumnVisibility,
-  onToggleContainer,
+function ActivityTreeCell({
+  activity,
+  canManage,
+  children,
+  depth,
+  dropPlacements,
 }: Readonly<{
-  collapsedContainerIds: ReadonlySet<string>;
-  columns: readonly DataTableColumn<Activity>[];
-  columnVisibilityOptions: readonly {
-    id: string;
-    label: string;
-    visible: boolean;
-  }[];
-  groups: readonly ActivityContainerGroup[];
-  onToggleColumnVisibility: (columnId: string) => void;
-  onToggleContainer: (containerGroupId: string) => void;
+  activity: Activity;
+  canManage: boolean;
+  children: ReactNode;
+  depth: number;
+  dropPlacements: readonly Exclude<ActivityRelocationPlacement, "last">[];
 }>) {
+  const draggable = useDraggable({ disabled: !canManage, id: activity.id });
+
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-      <div className="flex justify-end">
-        <ColumnVisibilityOptions
-          columns={columnVisibilityOptions}
-          onToggle={onToggleColumnVisibility}
-        />
-      </div>
-      <div
-        aria-label="Actividades agrupadas por contenedor"
-        className="min-h-0 min-w-0 flex-1 overflow-auto rounded-lg border"
-      >
-        <Table className="min-w-max">
-          <TableHeader className="bg-muted sticky top-0 z-10">
-            <TableRow>
-              {columns.map((column) => (
-                <TableHead
-                  className={column.align === "right" ? "text-right" : undefined}
-                  key={column.id}
-                >
-                  {column.header}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {groups.map((group) => {
-              const isCollapsed = collapsedContainerIds.has(group.id);
-              return (
-                <Fragment key={group.id}>
-                  <TableRow className="bg-muted/40 hover:bg-muted/50">
-                    <TableCell className="p-0" colSpan={columns.length}>
-                      <button
-                        aria-expanded={!isCollapsed}
-                        className="flex w-full items-center gap-3 px-3 py-2.5 text-left focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
-                        onClick={() => onToggleContainer(group.id)}
-                        type="button"
-                      >
-                        {isCollapsed ? <Icons.chevronRight /> : <Icons.chevronDown />}
-                        <span className="font-medium text-foreground">
-                          {containerLabels[group.containerType]} · {group.containerName}
-                        </span>
-                        <span className="text-sm text-muted-foreground">{group.clientName}</span>
-                        <span className="ml-auto text-sm tabular-nums text-muted-foreground">
-                          {group.activities.length}{" "}
-                          {group.activities.length === 1 ? "actividad" : "actividades"}
-                          {" · "}
-                          {formatHours(group.estimatedHours)} h
-                        </span>
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                  {!isCollapsed
-                    ? group.activities.map((activity) => (
-                        <TableRow key={activity.id}>
-                          {columns.map((column) => (
-                            <TableCell
-                              className={column.align === "right" ? "text-right" : undefined}
-                              key={column.id}
-                            >
-                              {column.cell(activity)}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))
-                    : null}
-                </Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+    <div className="relative flex min-w-72 items-center gap-2" style={{ paddingLeft: depth * 20 }}>
+      {canManage ? (
+        <button
+          aria-label={`Arrastrar ${activity.name}`}
+          className="cursor-grab text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          ref={draggable.setNodeRef}
+          type="button"
+          {...draggable.attributes}
+          {...draggable.listeners}
+        >
+          <Icons.gripVertical />
+        </button>
+      ) : null}
+      {children}
+      {dropPlacements.length ? (
+        <span className="ml-auto flex gap-1" aria-label={`Destinos para ${activity.name}`}>
+          {dropPlacements.map((placement) => (
+            <DropTarget
+              id={`${activity.id}|${placement}`}
+              key={placement}
+              label={dropPlacementLabels[placement]}
+            />
+          ))}
+        </span>
+      ) : null}
     </div>
   );
 }
 
-function ActivityPagination({
-  onPageChange,
-  page,
-  pageSize,
-  total,
-}: Readonly<{
-  onPageChange: (page: number) => void;
-  page: number;
-  pageSize: number;
-  total: number;
-}>) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+function DropTarget({ id, label }: Readonly<{ id: string; label: string }>) {
+  const { isOver, setNodeRef } = useDroppable({ id });
+
   return (
-    <div
-      aria-label="Paginación de Actividades"
-      className="shrink-0 flex flex-col gap-4 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"
-      role="navigation"
+    <span
+      className={
+        isOver
+          ? "rounded bg-primary px-1.5 py-0.5 text-xs text-primary-foreground"
+          : "rounded border px-1.5 py-0.5 text-xs text-muted-foreground"
+      }
+      ref={setNodeRef}
     >
-      <p className="text-sm text-muted-foreground">
-        {total} {total === 1 ? "registro en total." : "registros en total."}
-      </p>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-        <p className="text-sm font-medium text-foreground whitespace-nowrap">
-          Filas por página
-          <span className="ml-2 inline-flex h-8 min-w-12 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-normal shadow-xs">
-            {pageSize}
-          </span>
-        </p>
-        <p className="text-sm font-medium text-foreground whitespace-nowrap">
-          Página {page} de {totalPages}
-        </p>
-        <div className="flex items-center gap-1">
-          <Button
-            aria-label="Ir a la primera página"
-            disabled={page <= 1}
-            onClick={() => onPageChange(1)}
-            size="icon"
-            variant="outline"
-          >
-            <Icons.chevronsLeft />
-          </Button>
-          <Button
-            aria-label="Ir a la página anterior"
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-            size="icon"
-            variant="outline"
-          >
-            <Icons.chevronLeft />
-          </Button>
-          <Button
-            aria-label="Ir a la página siguiente"
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(page + 1)}
-            size="icon"
-            variant="outline"
-          >
-            <Icons.chevronRight />
-          </Button>
-          <Button
-            aria-label="Ir a la última página"
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(totalPages)}
-            size="icon"
-            variant="outline"
-          >
-            <Icons.chevronsRight />
-          </Button>
-        </div>
-      </div>
+      {label}
+    </span>
+  );
+}
+
+function ActivityContainerBand({
+  activity,
+  activeDragActivity,
+}: Readonly<{ activity: Activity; activeDragActivity: Activity | null }>) {
+  return (
+    <div className="flex min-w-max items-center gap-2 text-sm">
+      <span className="font-semibold text-info">
+        {containerLabels[activity.containerType]}: {activity.containerName}
+      </span>
+      <span className="text-muted-foreground">{activity.clientName}</span>
+      {activeDragActivity?.containerId === activity.containerId ? (
+        <span className="ml-2">
+          <DropTarget id={`${activity.containerId}|last`} label="Como raíz al final" />
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function ActivityProjectStageBand({ activity }: Readonly<{ activity: Activity }>) {
+  return (
+    <div className="flex min-w-max items-center gap-2 pl-1 text-sm">
+      <span className="font-medium text-info">Etapa</span>
+      <span className="text-foreground">{activity.projectStageName ?? "Sin etapa"}</span>
     </div>
   );
 }
@@ -838,25 +832,73 @@ function ActivityPagination({
 function createColumns({
   canManage,
   categoryNames,
+  expandedActivityIds,
+  activeDragActivity,
+  getDropPlacements,
   onDelete,
   onEdit,
-  onMove,
+  onMoveToRoot,
+  onToggleExpanded,
+  treeMeta,
   onView,
 }: Readonly<{
   canManage: boolean;
   categoryNames: ReadonlyMap<string, string>;
+  expandedActivityIds: ReadonlySet<string>;
+  activeDragActivity: Activity | null;
+  getDropPlacements: (target: Activity) => readonly Exclude<ActivityRelocationPlacement, "last">[];
   onDelete: (activity: Activity) => void;
   onEdit: (activity: Activity) => void;
-  onMove: (activity: Activity, direction: "up" | "down") => void;
+  onMoveToRoot: (activity: Activity) => void;
+  onToggleExpanded: (activityId: string) => void;
+  treeMeta: ReadonlyMap<string, ActivityTreeMetadata>;
   onView: (activity: Activity) => void;
 }>): DataTableColumn<Activity>[] {
   return [
     {
-      cell: (activity) => <span className="font-semibold text-foreground">{activity.name}</span>,
+      cell: (activity) => {
+        const metadata = treeMeta.get(activity.id) ?? {
+          childCount: 0,
+          depth: 0,
+          subtreeHeight: 0,
+        };
+        const isExpanded = expandedActivityIds.has(activity.id);
+        return (
+          <ActivityTreeCell
+            activity={activity}
+            canManage={canManage}
+            depth={metadata.depth}
+            dropPlacements={
+              activeDragActivity && activeDragActivity.id !== activity.id
+                ? getDropPlacements(activity)
+                : []
+            }
+          >
+            {metadata.childCount ? (
+              <button
+                aria-expanded={isExpanded}
+                aria-label={`${isExpanded ? "Contraer" : "Expandir"} ${activity.name}`}
+                className="flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                onClick={() => onToggleExpanded(activity.id)}
+                type="button"
+              >
+                {isExpanded ? <Icons.chevronDown /> : <Icons.chevronRight />}
+              </button>
+            ) : (
+              <span aria-hidden className="size-6 shrink-0" />
+            )}
+            <span className="font-semibold text-foreground">{activity.name}</span>
+            {"matchesFilter" in activity && !activity.matchesFilter ? (
+              <span className="rounded-sm bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                Contexto
+              </span>
+            ) : null}
+          </ActivityTreeCell>
+        );
+      },
       header: "Actividad",
       hideable: true,
       id: "name",
-      sortValue: (activity) => activity.name,
     },
     {
       cell: (activity) => (
@@ -865,7 +907,6 @@ function createColumns({
       header: "Estado",
       hideable: true,
       id: "status",
-      sortValue: (activity) => activity.status,
     },
     {
       cell: (activity) => (
@@ -877,7 +918,6 @@ function createColumns({
       header: "Prioridad",
       hideable: true,
       id: "priority",
-      sortValue: (activity) => activity.priority,
     },
     {
       cell: (activity) => (
@@ -891,34 +931,11 @@ function createColumns({
     },
     {
       cell: (activity) => (
-        <span className="block max-w-40 truncate text-sm">{activity.clientName}</span>
-      ),
-      header: "Cliente",
-      hideable: true,
-      id: "client",
-      sortValue: (activity) => activity.clientName,
-    },
-    {
-      cell: (activity) => (
         <span className="block max-w-40 truncate text-sm">{activity.assignedUserName}</span>
       ),
       header: "Responsable",
       hideable: true,
       id: "assignee",
-      sortValue: (activity) => activity.assignedUserName,
-    },
-    {
-      cell: (activity) => (
-        <span className="text-sm text-muted-foreground">
-          {containerLabels[activity.containerType]}
-          <span className="mt-0.5 block max-w-40 truncate text-xs text-foreground">
-            {activity.containerName}
-          </span>
-        </span>
-      ),
-      header: "Ubicación",
-      hideable: true,
-      id: "container",
     },
     {
       cell: (activity) => (
@@ -931,14 +948,12 @@ function createColumns({
       header: "Fecha objetivo",
       hideable: true,
       id: "target-date",
-      sortValue: (activity) => activity.targetDate ?? "9999-12-31",
     },
     {
       cell: (activity) => <span className="tabular-nums">{activity.estimatedHours} h</span>,
       header: "Estimación",
       hideable: true,
       id: "estimate",
-      sortValue: (activity) => activity.estimatedHours,
     },
     {
       align: "right",
@@ -962,14 +977,12 @@ function createColumns({
                   <Icons.edit />
                   Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onMove(activity, "up")}>
-                  <Icons.chevronUp />
-                  Mover arriba
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onMove(activity, "down")}>
-                  <Icons.chevronDown />
-                  Mover abajo
-                </DropdownMenuItem>
+                {activity.parentActivityId ? (
+                  <DropdownMenuItem onSelect={() => onMoveToRoot(activity)}>
+                    <Icons.gripVertical />
+                    Convertir en última raíz
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => onDelete(activity)} variant="destructive">
                   <Icons.trash />
@@ -980,8 +993,11 @@ function createColumns({
           </DropdownMenuContent>
         </DropdownMenu>
       ),
+      cellClassName: "w-10 px-1",
       header: "Acciones",
+      headerClassName: "sr-only",
       id: "actions",
+      size: 48,
     },
   ];
 }
@@ -992,36 +1008,132 @@ function formatDateOnly(value: string): string {
   );
 }
 
-function groupActivitiesByContainer(
-  activities: readonly Activity[],
-): readonly ActivityContainerGroup[] {
-  const groups = new Map<string, ActivityContainerGroup>();
+function treeMetadata(
+  activities: readonly ActivityTreeItem[],
+): ReadonlyMap<string, ActivityTreeMetadata> {
+  const childrenByParent = new Map<string | null, ActivityTreeItem[]>();
   for (const activity of activities) {
-    const id = `${activity.containerType}:${activity.containerId}`;
-    const existing = groups.get(id);
-    groups.set(
-      id,
-      existing
-        ? {
-            ...existing,
-            activities: [...existing.activities, activity],
-            estimatedHours: existing.estimatedHours + activity.estimatedHours,
-          }
-        : {
-            activities: [activity],
-            clientName: activity.clientName || "Sin cliente",
-            containerName: activity.containerName,
-            containerType: activity.containerType,
-            estimatedHours: activity.estimatedHours,
-            id,
-          },
-    );
+    const children = childrenByParent.get(activity.parentActivityId) ?? [];
+    children.push(activity);
+    childrenByParent.set(activity.parentActivityId, children);
   }
-  return [...groups.values()];
+  const metadata = new Map<string, ActivityTreeMetadata>();
+  const visit = (activity: ActivityTreeItem, depth: number): number => {
+    const children = childrenByParent.get(activity.id) ?? [];
+    const subtreeHeight = children.reduce(
+      (height, child) => Math.max(height, visit(child, depth + 1) + 1),
+      0,
+    );
+    metadata.set(activity.id, { childCount: children.length, depth, subtreeHeight });
+    return subtreeHeight;
+  };
+  (childrenByParent.get(null) ?? []).forEach((activity) => visit(activity, 0));
+  return metadata;
 }
 
-function formatHours(value: number): string {
-  return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 }).format(value);
+function getValidDropPlacements(
+  source: Activity,
+  target: Activity,
+  treeMeta: ReadonlyMap<string, ActivityTreeMetadata>,
+  activitiesById: ReadonlyMap<string, ActivityTreeItem>,
+): readonly Exclude<ActivityRelocationPlacement, "last">[] {
+  return (["before", "inside", "after"] as const).filter((placement) =>
+    isValidDropTarget(source, target, placement, treeMeta, activitiesById),
+  );
+}
+
+function isValidDropTarget(
+  source: Activity,
+  target: Activity,
+  placement: Exclude<ActivityRelocationPlacement, "last">,
+  treeMeta: ReadonlyMap<string, ActivityTreeMetadata>,
+  activitiesById: ReadonlyMap<string, ActivityTreeItem>,
+): boolean {
+  if (
+    source.id === target.id ||
+    source.containerId !== target.containerId ||
+    source.projectStageId !== target.projectStageId ||
+    isDescendantOf(target, source.id, activitiesById)
+  ) {
+    return false;
+  }
+  const sourceHeight = treeMeta.get(source.id)?.subtreeHeight ?? 0;
+  const targetDepth = treeMeta.get(target.id)?.depth ?? 0;
+  return placement === "inside" ? targetDepth + sourceHeight < 3 : targetDepth + sourceHeight <= 3;
+}
+
+function isDescendantOf(
+  activity: Activity,
+  ancestorId: string,
+  activitiesById: ReadonlyMap<string, ActivityTreeItem>,
+): boolean {
+  let parentId = activity.parentActivityId;
+  while (parentId) {
+    if (parentId === ancestorId) return true;
+    parentId = activitiesById.get(parentId)?.parentActivityId ?? null;
+  }
+  return false;
+}
+
+function dropTargetAnnouncement(
+  targetId: string,
+  activitiesById: ReadonlyMap<string, ActivityTreeItem>,
+): string {
+  const [id, placement] = targetId.split("|");
+  if (placement === "last") return "como última Actividad raíz";
+  const target = activitiesById.get(id);
+  return `${dropPlacementLabels[placement as Exclude<ActivityRelocationPlacement, "last">] ?? "junto a"} ${target?.name ?? "la Actividad"}`;
+}
+
+function visibleTreeActivities(
+  activities: readonly ActivityTreeItem[],
+  expandedActivityIds: ReadonlySet<string>,
+  revealMatches: boolean,
+): readonly ActivityTreeItem[] {
+  const childrenByParent = new Map<string | null, ActivityTreeItem[]>();
+  const byId = new Map(activities.map((activity) => [activity.id, activity]));
+  const expanded = new Set(expandedActivityIds);
+  if (revealMatches) {
+    for (const activity of activities.filter((item) => item.matchesFilter)) {
+      let parentId = activity.parentActivityId;
+      while (parentId) {
+        expanded.add(parentId);
+        parentId = byId.get(parentId)?.parentActivityId ?? null;
+      }
+    }
+  }
+  for (const activity of activities) {
+    const children = childrenByParent.get(activity.parentActivityId) ?? [];
+    children.push(activity);
+    childrenByParent.set(activity.parentActivityId, children);
+  }
+  const visible: ActivityTreeItem[] = [];
+  const visit = (activity: ActivityTreeItem) => {
+    visible.push(activity);
+    if (expanded.has(activity.id)) (childrenByParent.get(activity.id) ?? []).forEach(visit);
+  };
+  (childrenByParent.get(null) ?? []).forEach(visit);
+  return visible;
+}
+
+function groupActivitiesByContainer(
+  activities: readonly ActivityTreeItem[],
+): readonly ActivityTreeItem[] {
+  const activitiesByContainer = new Map<string, Map<string, ActivityTreeItem[]>>();
+  for (const activity of activities) {
+    const activitiesByStage = activitiesByContainer.get(activity.containerId) ?? new Map();
+    const stageKey =
+      activity.containerType === "project"
+        ? (activity.projectStageId ?? "without-project-stage")
+        : "container-activities";
+    const stageActivities = activitiesByStage.get(stageKey) ?? [];
+    stageActivities.push(activity);
+    activitiesByStage.set(stageKey, stageActivities);
+    activitiesByContainer.set(activity.containerId, activitiesByStage);
+  }
+  return [...activitiesByContainer.values()].flatMap((activitiesByStage) =>
+    [...activitiesByStage.values()].flat(),
+  );
 }
 
 const containerLabels: Record<Activity["containerType"], string> = {
