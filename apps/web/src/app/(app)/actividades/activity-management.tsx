@@ -350,7 +350,7 @@ export function ActivityManagement({
   );
 
   return (
-    <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
+    <div className="flex h-[calc(100svh-5.5rem)] min-h-0 min-w-0 w-full flex-col">
       <div className="shrink-0 space-y-4 pb-4">
         <PageHeader
           actions={
@@ -389,7 +389,7 @@ export function ActivityManagement({
       ) : null}
       {tree ? (
         <section
-          className="flex min-h-0 min-w-0 flex-1 flex-col gap-4"
+          className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden"
           aria-labelledby="activity-table-title"
         >
           <h2 className="sr-only" id="activity-table-title">
@@ -993,10 +993,12 @@ function createColumns({
           </DropdownMenuContent>
         </DropdownMenu>
       ),
-      cellClassName: "w-10 px-1",
+      cellClassName: "w-10 max-w-10 min-w-10 px-1",
       header: "Acciones",
-      headerClassName: "sr-only",
+      headerClassName: "sr-only w-10 max-w-10 min-w-10 px-1",
       id: "actions",
+      maxSize: 48,
+      minSize: 48,
       size: 48,
     },
   ];

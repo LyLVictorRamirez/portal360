@@ -107,6 +107,8 @@ export function DataTable<TData>({
             key={cell.id}
             style={{
               ...getCommonPinningStyles({ column: cell.column }),
+              maxWidth: cell.column.columnDef.maxSize,
+              minWidth: cell.column.columnDef.minSize,
             }}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -141,6 +143,8 @@ export function DataTable<TData>({
                       colSpan={header.colSpan}
                       style={{
                         ...getCommonPinningStyles({ column: header.column }),
+                        maxWidth: header.column.columnDef.maxSize,
+                        minWidth: header.column.columnDef.minSize,
                       }}
                     >
                       {header.isPlaceholder

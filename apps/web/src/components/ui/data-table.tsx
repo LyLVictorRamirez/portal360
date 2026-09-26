@@ -25,6 +25,8 @@ export type DataTableColumn<Row> = {
   headerClassName?: string;
   hideable?: boolean;
   id: string;
+  maxSize?: number;
+  minSize?: number;
   size?: number;
   sortValue?: (row: Row) => string | number;
 };
@@ -89,6 +91,8 @@ export function DataTable<Row extends { id: string }>({
             column.header
           ),
         id: column.id,
+        maxSize: column.maxSize,
+        minSize: column.minSize,
         size: column.size,
         meta: {
           align: column.align,
